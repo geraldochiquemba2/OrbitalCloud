@@ -34,6 +34,17 @@ export default function SharePage() {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
+  const getEffectiveMimeType = (fileInfo: FileInfo): string => {
+    return (fileInfo.isEncrypted && fileInfo.originalMimeType) 
+      ? fileInfo.originalMimeType 
+      : fileInfo.tipoMime;
+  };
+
+  const isMediaFile = (fileInfo: FileInfo): boolean => {
+    const mimeToCheck = getEffectiveMimeType(fileInfo);
+    return mimeToCheck.startsWith("image/") || mimeToCheck.startsWith("video/");
+  };
+
   useEffect(() => {
     if (params?.linkCode) {
       fetchShareInfo(params.linkCode);
@@ -49,8 +60,11 @@ export default function SharePage() {
         setFile(data.file);
         setShare(data.share);
         
-        if (data.file.tipoMime.startsWith("image/") || data.file.tipoMime.startsWith("video/")) {
-          loadThumbnail(linkCode, data.file.tipoMime);
+        const effectiveMime = (data.file.isEncrypted && data.file.originalMimeType) 
+          ? data.file.originalMimeType 
+          : data.file.tipoMime;
+        if (effectiveMime.startsWith("image/") || effectiveMime.startsWith("video/")) {
+          loadThumbnail(linkCode, effectiveMime);
         }
       } else if (response.status === 404) {
         setError("Link não encontrado ou expirado");
@@ -141,7 +155,8 @@ export default function SharePage() {
     setShowFullPreview(true);
     
     try {
-      if (file.tipoMime.startsWith("video/") || file.tipoMime.startsWith("audio/")) {
+      const effectiveMime = getEffectiveMimeType(file);
+      if (effectiveMime.startsWith("video/") || effectiveMime.startsWith("audio/")) {
         setPreviewUrl(`/api/shares/${params.linkCode}/stream`);
       } else {
         const response = await fetch(`/api/shares/${params.linkCode}/preview`);
@@ -182,7 +197,8 @@ export default function SharePage() {
     return <File className="w-16 h-16 text-primary" />;
   };
 
-  const canPreview = (mimeType: string) => {
+  const canPreview = (fileInfo: FileInfo) => {
+    const mimeType = getEffectiveMimeType(fileInfo);
     return mimeType.startsWith("image/") || 
            mimeType.startsWith("video/") || 
            mimeType.startsWith("audio/") ||
@@ -232,7 +248,7 @@ export default function SharePage() {
           ) : file && share ? (
             <div className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/30 text-center">
               {/* Preview Thumbnail */}
-              {(file.tipoMime.startsWith("image/") || file.tipoMime.startsWith("video/")) && (
+              {isMediaFile(file) && (
                 <div 
                   className="relative mb-6 rounded-xl overflow-hidden cursor-pointer group"
                   onClick={openFullPreview}
@@ -246,7 +262,7 @@ export default function SharePage() {
                         className="w-full h-48 object-cover"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        {file.tipoMime.startsWith("video/") ? (
+                        {getEffectiveMimeType(file).startsWith("video/") ? (
                           <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                             <Play className="w-8 h-8 text-white ml-1" />
                           </div>
@@ -256,7 +272,7 @@ export default function SharePage() {
                           </div>
                         )}
                       </div>
-                      {file.tipoMime.startsWith("video/") && (
+                      {getEffectiveMimeType(file).startsWith("video/") && (
                         <div className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white flex items-center gap-1">
                           <Video className="w-3 h-3" />
                           Vídeo
@@ -265,7 +281,7 @@ export default function SharePage() {
                     </>
                   ) : (
                     <div className="w-full h-48 bg-gradient-to-br from-purple-900/50 to-slate-900/50 flex items-center justify-center">
-                      {file.tipoMime.startsWith("video/") ? (
+                      {getEffectiveMimeType(file).startsWith("video/") ? (
                         <Video className="w-16 h-16 text-white/60" />
                       ) : (
                         <Image className="w-16 h-16 text-white/60" />
@@ -276,9 +292,9 @@ export default function SharePage() {
               )}
               
               {/* File Icon for non-media files */}
-              {!file.tipoMime.startsWith("image/") && !file.tipoMime.startsWith("video/") && (
+              {!isMediaFile(file) && (
                 <div className="mb-6 flex justify-center">
-                  {getFileIcon(file.tipoMime)}
+                  {getFileIcon(getEffectiveMimeType(file))}
                 </div>
               )}
               
@@ -286,13 +302,13 @@ export default function SharePage() {
               <p className="text-white/60 text-sm mb-6">{formatFileSize(file.tamanho)}</p>
               
               {/* Preview Button for previewable files */}
-              {canPreview(file.tipoMime) && (
+              {canPreview(file) && (
                 <button
                   onClick={openFullPreview}
                   className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors mb-3"
                   data-testid="button-preview"
                 >
-                  {file.tipoMime.startsWith("video/") ? (
+                  {getEffectiveMimeType(file).startsWith("video/") ? (
                     <>
                       <Play className="w-5 h-5" />
                       Reproduzir
@@ -371,25 +387,25 @@ export default function SharePage() {
                     <p className="text-white/50 text-sm">A carregar...</p>
                   </div>
                 ) : previewUrl ? (
-                  file.tipoMime.startsWith("image/") ? (
+                  getEffectiveMimeType(file).startsWith("image/") ? (
                     <img 
                       src={previewUrl} 
                       alt={file.nome}
                       className="max-w-full max-h-[70vh] object-contain"
                     />
-                  ) : file.tipoMime.startsWith("video/") ? (
+                  ) : getEffectiveMimeType(file).startsWith("video/") ? (
                     <video 
                       src={previewUrl} 
                       controls 
                       autoPlay
                       className="max-w-full max-h-[70vh]"
                     />
-                  ) : file.tipoMime.startsWith("audio/") ? (
+                  ) : getEffectiveMimeType(file).startsWith("audio/") ? (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <Music className="w-20 h-20 text-white/50" />
                       <audio src={previewUrl} controls autoPlay className="w-full max-w-md" />
                     </div>
-                  ) : file.tipoMime === "application/pdf" ? (
+                  ) : getEffectiveMimeType(file) === "application/pdf" ? (
                     <iframe 
                       src={previewUrl} 
                       className="w-full h-[70vh]"
@@ -397,7 +413,7 @@ export default function SharePage() {
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-4 p-8">
-                      {getFileIcon(file.tipoMime)}
+                      {getFileIcon(getEffectiveMimeType(file))}
                       <p className="text-white/70 text-center">
                         Preview não disponível para este tipo de ficheiro.
                       </p>
@@ -405,7 +421,7 @@ export default function SharePage() {
                   )
                 ) : (
                   <div className="flex flex-col items-center gap-4 p-8">
-                    {getFileIcon(file.tipoMime)}
+                    {getFileIcon(getEffectiveMimeType(file))}
                     <p className="text-white/50">Não foi possível carregar o preview</p>
                   </div>
                 )}
