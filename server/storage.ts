@@ -556,7 +556,8 @@ export class DatabaseStorage implements IStorage {
       .from(files)
       .where(and(
         sql`${files.id} IN (${sql.join(fileIds.map(id => sql`${id}`), sql`, `)})`,
-        eq(files.isDeleted, false)
+        eq(files.isDeleted, false),
+        sql`${files.userId} != ${userId}`
       ))
       .orderBy(desc(files.createdAt));
   }
@@ -569,7 +570,10 @@ export class DatabaseStorage implements IStorage {
     return db
       .select()
       .from(folders)
-      .where(sql`${folders.id} IN (${sql.join(folderIds.map(id => sql`${id}`), sql`, `)})`)
+      .where(and(
+        sql`${folders.id} IN (${sql.join(folderIds.map(id => sql`${id}`), sql`, `)})`,
+        sql`${folders.userId} != ${userId}`
+      ))
       .orderBy(desc(folders.createdAt));
   }
 

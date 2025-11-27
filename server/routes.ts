@@ -971,6 +971,17 @@ export async function registerRoutes(
         fileName: z.string()
       }).parse(req.body);
 
+      // Check if email is registered in the system
+      const targetUser = await storage.getUserByEmail(email);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Este email não está registado no sistema" });
+      }
+
+      // Don't allow sharing with yourself
+      if (targetUser.id === req.user!.id) {
+        return res.status(400).json({ message: "Não pode partilhar ficheiros consigo mesmo" });
+      }
+
       // TODO: Integrate with email service (SendGrid, Resend, etc.)
       // For now, just log and return success
       console.log(`[Share Email] Sending share link to ${email}`);
