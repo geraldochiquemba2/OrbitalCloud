@@ -241,9 +241,17 @@ export default function About() {
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         viewport={{ once: true, margin: "-100px" }}
-        className="relative py-12 px-6 md:px-12 border-t border-primary/10 bg-black/20 backdrop-blur-sm"
+        className="relative py-12 px-6 md:px-12 border-t border-primary/10 backdrop-blur-sm overflow-hidden"
+        style={{
+          backgroundImage: `url(${valuesBackgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          backgroundRepeat: 'repeat-y',
+        }}
       >
-        <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 text-center md:text-left">
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 text-center md:text-left relative z-10">
           <div className="flex items-center gap-2 font-display font-bold text-xl text-white">
             <Cloud className="w-6 h-6 text-white" />
             <span>AngoCloud</span>
