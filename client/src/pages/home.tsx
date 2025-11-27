@@ -56,13 +56,13 @@ export default function Home() {
       {/* Navigation */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 absolute top-0 left-0">
         <div className="flex items-center gap-2 font-display font-bold text-2xl tracking-tighter">
-          <Cloud className="w-8 h-8 text-primary fill-primary/10" />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">AngoCloud</span>
+          <Cloud className="w-8 h-8 text-white fill-white/20" />
+          <span className="text-white drop-shadow-md">AngoCloud</span>
         </div>
-        <div className="hidden md:flex gap-8 items-center font-medium text-sm text-muted-foreground">
-          <a href="#features" className="hover:text-primary transition-colors">Funcionalidades</a>
-          <a href="#pricing" className="hover:text-primary transition-colors">Preços</a>
-          <a href="#about" className="hover:text-primary transition-colors">Sobre</a>
+        <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80 hover:text-white transition-colors">
+          <a href="#features" className="hover:text-white transition-colors">Funcionalidades</a>
+          <a href="#pricing" className="hover:text-white transition-colors">Preços</a>
+          <a href="#about" className="hover:text-white transition-colors">Sobre</a>
         </div>
         <div className="flex gap-4">
           <Button variant="ghost" className="hidden md:flex hover:bg-primary/5">Login</Button>
