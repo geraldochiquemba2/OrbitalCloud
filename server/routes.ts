@@ -594,5 +594,33 @@ export async function registerRoutes(
     }
   });
 
+  // ========== SYSTEM STATUS ROUTES ==========
+
+  // Get Telegram bot status (for monitoring)
+  app.get("/api/system/telegram-status", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const botStatus = telegramService.getBotStatus();
+      const cacheStats = telegramService.getCacheStats();
+      
+      res.json({
+        available: telegramService.isAvailable(),
+        bots: botStatus,
+        cache: cacheStats,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao obter status do sistema" });
+    }
+  });
+
+  // Health check endpoint (public)
+  app.get("/api/health", async (req: Request, res: Response) => {
+    res.json({
+      status: "ok",
+      telegramAvailable: telegramService.isAvailable(),
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   return httpServer;
 }

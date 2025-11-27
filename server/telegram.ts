@@ -349,8 +349,10 @@ class TelegramService {
   public cleanExpiredCache(): number {
     const now = Date.now();
     let cleaned = 0;
+    const entries = Array.from(this.urlCache.entries());
     
-    for (const [key, value] of this.urlCache.entries()) {
+    for (let i = 0; i < entries.length; i++) {
+      const [key, value] = entries[i];
       if (value.expiresAt <= now) {
         this.urlCache.delete(key);
         cleaned++;

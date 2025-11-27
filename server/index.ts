@@ -1,10 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { telegramService } from "./telegram";
 
 const app = express();
 const httpServer = createServer(app);
+
+// Compressão gzip para respostas mais rápidas
+app.use(compression());
 
 declare module "http" {
   interface IncomingMessage {
@@ -80,6 +85,11 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
+  // Limpeza automática de cache do Telegram a cada 10 minutos
+  setInterval(() => {
+    telegramService.cleanExpiredCache();
+  }, 10 * 60 * 1000);
+
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
@@ -93,6 +103,7 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      log(`🚀 Sistema com retry/fallback e cache ativo`);
     },
   );
 })();
