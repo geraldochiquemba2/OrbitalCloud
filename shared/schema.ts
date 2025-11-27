@@ -27,6 +27,7 @@ export const folders = pgTable("folders", {
 export const files = pgTable("files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  uploadedByUserId: varchar("uploaded_by_user_id").references(() => users.id, { onDelete: "set null" }),
   folderId: varchar("folder_id").references(() => folders.id, { onDelete: "set null" }),
   nome: text("nome").notNull(),
   tamanho: bigint("tamanho", { mode: "number" }).notNull(),
@@ -59,6 +60,38 @@ export const payments = pgTable("payments", {
   plano: text("plano").notNull(),
   referenciaMulticaixa: text("referencia_multicaixa"),
   status: text("status").notNull().default("pendente"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const invitations = pgTable("invitations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  resourceType: text("resource_type").notNull(), // 'file' ou 'folder'
+  resourceId: varchar("resource_id").notNull(),
+  inviterId: varchar("inviter_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  inviteeEmail: text("invitee_email").notNull(),
+  inviteeUserId: varchar("invitee_user_id").references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("viewer"), // 'viewer' ou 'collaborator'
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'declined', 'cancelled'
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const filePermissions = pgTable("file_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fileId: varchar("file_id").notNull().references(() => files.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("viewer"), // 'viewer' ou 'editor'
+  grantedBy: varchar("granted_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const folderPermissions = pgTable("folder_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  folderId: varchar("folder_id").notNull().references(() => folders.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("viewer"), // 'viewer' ou 'collaborator'
+  grantedBy: varchar("granted_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -111,6 +144,47 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   }),
 }));
 
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+  inviter: one(users, {
+    fields: [invitations.inviterId],
+    references: [users.id],
+  }),
+  invitee: one(users, {
+    fields: [invitations.inviteeUserId],
+    references: [users.id],
+  }),
+}));
+
+export const filePermissionsRelations = relations(filePermissions, ({ one }) => ({
+  file: one(files, {
+    fields: [filePermissions.fileId],
+    references: [files.id],
+  }),
+  user: one(users, {
+    fields: [filePermissions.userId],
+    references: [users.id],
+  }),
+  granter: one(users, {
+    fields: [filePermissions.grantedBy],
+    references: [users.id],
+  }),
+}));
+
+export const folderPermissionsRelations = relations(folderPermissions, ({ one }) => ({
+  folder: one(folders, {
+    fields: [folderPermissions.folderId],
+    references: [folders.id],
+  }),
+  user: one(users, {
+    fields: [folderPermissions.userId],
+    references: [users.id],
+  }),
+  granter: one(users, {
+    fields: [folderPermissions.grantedBy],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -153,6 +227,23 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   status: true,
 });
 
+export const insertInvitationSchema = createInsertSchema(invitations).omit({
+  id: true,
+  createdAt: true,
+  inviteeUserId: true,
+  status: true,
+});
+
+export const insertFilePermissionSchema = createInsertSchema(filePermissions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFolderPermissionSchema = createInsertSchema(folderPermissions).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -168,3 +259,12 @@ export type InsertShare = z.infer<typeof insertShareSchema>;
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type Invitation = typeof invitations.$inferSelect;
+export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
+
+export type FilePermission = typeof filePermissions.$inferSelect;
+export type InsertFilePermission = z.infer<typeof insertFilePermissionSchema>;
+
+export type FolderPermission = typeof folderPermissions.$inferSelect;
+export type InsertFolderPermission = z.infer<typeof insertFolderPermissionSchema>;
