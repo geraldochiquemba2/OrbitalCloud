@@ -63,7 +63,6 @@ export default function Home() {
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-accent/3 blur-[120px]" />
       </div>
-
       {/* Navigation */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 absolute top-0 left-0">
         <button 
@@ -85,7 +84,6 @@ export default function Home() {
           </button>
         </div>
       </nav>
-
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden">
         {/* Video Background */}
@@ -119,7 +117,7 @@ export default function Home() {
               className="text-3xl sm:text-4xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg"
             >
               Armazenamento <br />
-              <span className="bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-lg">Sem Fronteiras.</span>
+              <span className="bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-lg">Sem Fronteiras</span>
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
@@ -190,7 +188,6 @@ export default function Home() {
           />
         </div>
       </section>
-
       {/* Features Grid */}
       <section id="features" className="py-24 px-6 md:px-12 relative overflow-hidden" style={{
         backgroundImage: 'url(/features-bg.jpg)',
@@ -237,7 +234,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* Pricing Section with Footer */}
       <section id="pricing" className="relative min-h-screen py-24 px-6 md:px-12 overflow-hidden flex flex-col">
         {/* Video Background Container */}
