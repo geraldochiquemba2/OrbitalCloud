@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 import aboutHeroVideo from "@assets/4351798-hd_1280_720_50fps_1764253527054.mp4";
-import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
+import aboutVideoFrame from "@assets/generated_images/about_page_video_first_frame.png";
 
 export default function About() {
   const [, navigate] = useLocation();
@@ -76,7 +76,7 @@ export default function About() {
       <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden">
         {/* Video Background */}
         <div className="absolute inset-0 z-0">
-          <VideoBackground videoSrc={aboutHeroVideo} posterSrc={heroImage} />
+          <VideoBackground videoSrc={aboutHeroVideo} posterSrc={aboutVideoFrame} />
         </div>
         <div className="max-w-7xl mx-auto relative z-10 w-full">
           <motion.div
