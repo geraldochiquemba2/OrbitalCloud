@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { telegramService } from "./telegram";
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
@@ -89,6 +90,31 @@ app.use((req, res, next) => {
   setInterval(() => {
     telegramService.cleanExpiredCache();
   }, 10 * 60 * 1000);
+
+  // Limpeza automática da lixeira - ficheiros com mais de 15 dias são eliminados
+  // Executa uma vez por hora
+  const purgeExpiredTrash = async () => {
+    try {
+      const expiredFiles = await storage.purgeExpiredTrash(15);
+      if (expiredFiles.length > 0) {
+        log(`🗑️ Limpeza automática: ${expiredFiles.length} ficheiros expirados eliminados da lixeira`);
+        // Update storage for each user whose files were deleted
+        const userStorageUpdates: { [userId: string]: number } = {};
+        for (const file of expiredFiles) {
+          userStorageUpdates[file.userId] = (userStorageUpdates[file.userId] || 0) + file.tamanho;
+        }
+        for (const [userId, totalSize] of Object.entries(userStorageUpdates)) {
+          await storage.updateUserStorage(userId, -totalSize);
+        }
+      }
+    } catch (error) {
+      log(`❌ Erro na limpeza automática da lixeira: ${error}`);
+    }
+  };
+  
+  // Executar limpeza ao iniciar e depois a cada hora
+  purgeExpiredTrash();
+  setInterval(purgeExpiredTrash, 60 * 60 * 1000);
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.

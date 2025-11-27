@@ -35,6 +35,7 @@ export interface IStorage {
   deleteFile(id: string): Promise<void>;
   moveToTrash(id: string): Promise<void>;
   restoreFromTrash(id: string): Promise<void>;
+  purgeExpiredTrash(daysOld: number): Promise<File[]>;
   renameFile(id: string, newNome: string): Promise<void>;
   moveFile(id: string, newFolderId: string | null): Promise<void>;
   searchFiles(userId: string, query: string): Promise<File[]>;
@@ -149,11 +150,41 @@ export class DatabaseStorage implements IStorage {
   }
 
   async moveToTrash(id: string): Promise<void> {
-    await db.update(files).set({ isDeleted: true }).where(eq(files.id, id));
+    await db.update(files).set({ 
+      isDeleted: true, 
+      deletedAt: new Date() 
+    }).where(eq(files.id, id));
   }
 
   async restoreFromTrash(id: string): Promise<void> {
-    await db.update(files).set({ isDeleted: false }).where(eq(files.id, id));
+    await db.update(files).set({ 
+      isDeleted: false, 
+      deletedAt: null 
+    }).where(eq(files.id, id));
+  }
+
+  async purgeExpiredTrash(daysOld: number = 15): Promise<File[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    
+    const expiredFiles = await db
+      .select()
+      .from(files)
+      .where(and(
+        eq(files.isDeleted, true),
+        sql`${files.deletedAt} IS NOT NULL`,
+        sql`${files.deletedAt} < ${cutoffDate}`
+      ));
+    
+    if (expiredFiles.length > 0) {
+      await db.delete(files).where(and(
+        eq(files.isDeleted, true),
+        sql`${files.deletedAt} IS NOT NULL`,
+        sql`${files.deletedAt} < ${cutoffDate}`
+      ));
+    }
+    
+    return expiredFiles;
   }
 
   async renameFile(id: string, newNome: string): Promise<void> {

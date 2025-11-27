@@ -33,6 +33,7 @@ export const files = pgTable("files", {
   telegramFileId: text("telegram_file_id"),
   telegramBotId: text("telegram_bot_id"),
   isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedAt: timestamp("deleted_at"),
   sharedLinkId: varchar("shared_link_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -127,6 +128,7 @@ export const insertFileSchema = createInsertSchema(files).omit({
   id: true,
   createdAt: true,
   isDeleted: true,
+  deletedAt: true,
   sharedLinkId: true,
 });
 
