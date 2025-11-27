@@ -110,6 +110,8 @@ export default function Dashboard() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareSending, setShareSending] = useState(false);
+  const [fileShares, setFileShares] = useState<{id: string; email: string; nome: string; role: string; createdAt: string}[]>([]);
+  const [sharesLoading, setSharesLoading] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [allFolders, setAllFolders] = useState<FolderItem[]>([]);
   
@@ -924,6 +926,21 @@ export default function Dashboard() {
   };
 
   // Share handlers
+  const fetchFileShares = async (fileId: string) => {
+    setSharesLoading(true);
+    try {
+      const response = await fetch(`/api/files/${fileId}/shares`, { credentials: "include" });
+      if (response.ok) {
+        const shares = await response.json();
+        setFileShares(shares);
+      }
+    } catch (err) {
+      console.error("Error fetching shares:", err);
+    } finally {
+      setSharesLoading(false);
+    }
+  };
+
   const shareFile = async (file: FileItem) => {
     try {
       const response = await fetch("/api/shares", {
@@ -939,6 +956,7 @@ export default function Dashboard() {
         setShareLink(link);
         setSelectedFile(file);
         setShowShareModal(true);
+        fetchFileShares(file.id);
       } else {
         const error = await response.json();
         toast.error(error.message || "Erro ao criar link de partilha");
@@ -970,25 +988,45 @@ export default function Dashboard() {
         body: JSON.stringify({ 
           email: shareEmail.trim(),
           shareLink: shareLink,
-          fileName: selectedFile.nome
+          fileName: selectedFile.nome,
+          fileId: selectedFile.id
         })
       });
       
       if (response.ok) {
-        toast.success(`Link enviado para ${shareEmail}`);
-        setShowShareModal(false);
-        setSelectedFile(null);
-        setShareLink(null);
+        const data = await response.json();
+        toast.success(data.message);
         setShareEmail("");
+        fetchFileShares(selectedFile.id);
       } else {
         const error = await response.json();
-        toast.error(error.message || "Erro ao enviar email");
+        toast.error(error.message || "Erro ao partilhar");
       }
     } catch (err) {
-      console.error("Error sending share email:", err);
-      toast.error("Erro ao enviar email");
+      console.error("Error sharing file:", err);
+      toast.error("Erro ao partilhar");
     } finally {
       setShareSending(false);
+    }
+  };
+
+  const removeFileShare = async (shareId: string) => {
+    if (!selectedFile) return;
+    try {
+      const response = await fetch(`/api/files/${selectedFile.id}/shares/${shareId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      
+      if (response.ok) {
+        toast.success("Partilha removida");
+        setFileShares(prev => prev.filter(s => s.id !== shareId));
+      } else {
+        toast.error("Erro ao remover partilha");
+      }
+    } catch (err) {
+      console.error("Error removing share:", err);
+      toast.error("Erro ao remover partilha");
     }
   };
 
@@ -2054,47 +2092,87 @@ export default function Dashboard() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-white/70 text-sm mb-2">Email do destinatário</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
-                    <input
-                      type="email"
-                      value={shareEmail}
-                      onChange={(e) => setShareEmail(e.target.value)}
-                      placeholder="email@exemplo.com"
-                      className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/30 focus:outline-none focus:border-primary"
-                      data-testid="input-share-email"
-                    />
+                  <label className="block text-white/70 text-sm mb-2">Partilhar com</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                      <input
+                        type="email"
+                        value={shareEmail}
+                        onChange={(e) => setShareEmail(e.target.value)}
+                        placeholder="email@exemplo.com"
+                        className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/30 focus:outline-none focus:border-primary"
+                        data-testid="input-share-email"
+                      />
+                    </div>
+                    <button
+                      onClick={sendShareByEmail}
+                      disabled={shareSending || !shareEmail.trim()}
+                      className="px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      data-testid="button-send-share"
+                    >
+                      {shareSending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
               
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={() => { setShowShareModal(false); setSelectedFile(null); setShareLink(null); setShareEmail(""); }}
-                  className="flex-1 py-2.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors font-medium"
-                  data-testid="button-cancel-share"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={sendShareByEmail}
-                  disabled={shareSending || !shareEmail.trim()}
-                  className="flex-1 py-2.5 rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  data-testid="button-send-share"
-                >
-                  {shareSending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Mail className="w-4 h-4" />
-                  )}
-                  Enviar
-                </button>
+              {/* Lista de partilhados */}
+              <div className="mt-4">
+                <label className="block text-white/70 text-sm mb-2">Partilhado com</label>
+                {sharesLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-white/50" />
+                  </div>
+                ) : fileShares.length === 0 ? (
+                  <div className="text-center py-4 text-white/40 text-sm">
+                    Nenhuma partilha ainda
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {fileShares.map((share) => (
+                      <div 
+                        key={share.id} 
+                        className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-primary text-sm font-medium">
+                              {share.nome.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-white text-sm truncate">{share.nome}</p>
+                            <p className="text-white/40 text-xs truncate">{share.email}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeFileShare(share.id)}
+                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors flex-shrink-0"
+                          title="Remover partilha"
+                          data-testid={`button-remove-share-${share.id}`}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
-              <p className="text-white/40 text-xs text-center mt-4">
-                O destinatário receberá o link de download por email
-              </p>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => { setShowShareModal(false); setSelectedFile(null); setShareLink(null); setShareEmail(""); setFileShares([]); }}
+                  className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors font-medium"
+                  data-testid="button-close-share"
+                >
+                  Fechar
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

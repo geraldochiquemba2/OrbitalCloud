@@ -962,13 +962,61 @@ export async function registerRoutes(
     }
   });
 
-  // Send share link via email
+  // Get file shares/permissions
+  app.get("/api/files/:id/shares", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Ficheiro não encontrado" });
+      }
+
+      const permissions = await storage.getFilePermissionsByFile(file.id);
+      
+      // Enrich with user details
+      const sharesWithUsers = await Promise.all(
+        permissions.map(async (perm) => {
+          const user = await storage.getUser(perm.userId);
+          return {
+            id: perm.id,
+            email: user?.email || "",
+            nome: user?.nome || "Desconhecido",
+            role: perm.role,
+            createdAt: perm.createdAt
+          };
+        })
+      );
+
+      res.json(sharesWithUsers);
+    } catch (error) {
+      console.error("Get file shares error:", error);
+      res.status(500).json({ message: "Erro ao buscar partilhas" });
+    }
+  });
+
+  // Remove file share
+  app.delete("/api/files/:id/shares/:shareId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Ficheiro não encontrado" });
+      }
+
+      await storage.deleteFilePermission(req.params.shareId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete file share error:", error);
+      res.status(500).json({ message: "Erro ao remover partilha" });
+    }
+  });
+
+  // Send share link via email (and create file permission)
   app.post("/api/shares/send-email", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { email, shareLink, fileName } = z.object({ 
+      const { email, shareLink, fileName, fileId } = z.object({ 
         email: z.string().email(),
         shareLink: z.string(),
-        fileName: z.string()
+        fileName: z.string(),
+        fileId: z.string()
       }).parse(req.body);
 
       // Check if email is registered in the system
@@ -982,16 +1030,25 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Não pode partilhar ficheiros consigo mesmo" });
       }
 
-      // TODO: Integrate with email service (SendGrid, Resend, etc.)
-      // For now, just log and return success
-      console.log(`[Share Email] Sending share link to ${email}`);
-      console.log(`[Share Email] File: ${fileName}`);
-      console.log(`[Share Email] Link: ${shareLink}`);
-      console.log(`[Share Email] From user: ${req.user!.email}`);
+      // Check if already shared with this user
+      const existingPermission = await storage.getFilePermission(fileId, targetUser.id);
+      if (existingPermission) {
+        return res.status(400).json({ message: "Ficheiro já partilhado com este utilizador" });
+      }
+
+      // Create file permission for the target user
+      await storage.createFilePermission({
+        fileId,
+        userId: targetUser.id,
+        role: "viewer",
+        grantedBy: req.user!.id
+      });
+
+      console.log(`[Share] File ${fileName} shared with ${email} by ${req.user!.email}`);
 
       res.json({ 
         success: true, 
-        message: `Link enviado para ${email}` 
+        message: `Ficheiro partilhado com ${targetUser.nome}` 
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
