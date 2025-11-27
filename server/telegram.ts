@@ -277,7 +277,7 @@ class TelegramService {
       try {
         console.log(`📥 Download tentativa ${attempt + 1}/${this.retryConfig.maxRetries + 1}`);
         
-        const url = await this.getDownloadUrl(fileId, botId);
+        const url = await this.fetchDownloadUrl(fileId, botId);
         const buffer = await this.fetchFileBuffer(url);
         
         console.log(`✅ Download bem-sucedido`);
@@ -297,9 +297,31 @@ class TelegramService {
   }
 
   /**
-   * Obtém URL de download
+   * Obtém URL de download com retry automático
    */
-  private async getDownloadUrl(fileId: string, botId: string): Promise<string> {
+  public async getDownloadUrl(fileId: string, botId: string): Promise<string> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        return await this.fetchDownloadUrl(fileId, botId);
+      } catch (error) {
+        lastError = error as Error;
+        if (attempt < this.retryConfig.maxRetries) {
+          const delay = this.calculateBackoffDelay(attempt);
+          console.log(`⏳ getDownloadUrl: Aguardando ${Math.round(delay)}ms antes de retry...`);
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    throw new Error(`Falha ao obter URL de download após ${this.retryConfig.maxRetries + 1} tentativas: ${lastError?.message}`);
+  }
+
+  /**
+   * Fetch interno da URL de download
+   */
+  private async fetchDownloadUrl(fileId: string, botId: string): Promise<string> {
     const bot = this.bots.find(b => b.id === botId);
     
     if (!bot) {
