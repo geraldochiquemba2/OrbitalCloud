@@ -971,7 +971,7 @@ export default function Dashboard() {
                                     </button>
                                     <div className="relative">
                                       <button
-                                        onClick={() => setShowFileMenu(showFileMenu === file.id ? null : file.id)}
+                                        onClick={(e) => { e.stopPropagation(); setShowFileMenu(showFileMenu === file.id ? null : file.id); }}
                                         className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
                                         data-testid={`button-menu-${file.id}`}
                                       >
@@ -985,6 +985,7 @@ export default function Dashboard() {
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.9 }}
                                             className="absolute right-0 top-8 z-50 bg-slate-800 border border-white/20 rounded-lg shadow-xl py-1 min-w-[130px]"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
                                             <button
                                               onClick={() => { setSelectedFile(file); setNewFileName(file.nome); setShowRenameModal(true); setShowFileMenu(null); }}
