@@ -39,7 +39,7 @@ export function ThreeDCard({
     y.set(0);
   }
 
-  const rotateX = useTransform(mouseY, [-100, 100], [5, -5]); // Inverted for natural tilt
+  const rotateX = useTransform(mouseY, [-100, 100], [5, -5]);
   const rotateY = useTransform(mouseX, [-100, 100], [-5, 5]);
 
   return (
@@ -77,7 +77,7 @@ export function ThreeDCardBody({
   return (
     <div
       className={cn(
-        "h-96 w-96 [transform-style:preserve-3d]  [&>*]:[transform-style:preserve-3d]",
+        "h-96 w-96 [transform-style:preserve-3d] [&>*]:[transform-style:preserve-3d]",
         className
       )}
     >
@@ -109,15 +109,15 @@ export function ThreeDCardItem({
   rotateZ?: number | string;
   [key: string]: any;
 }) {
-  return (
-    <Component
-      className={cn("w-full transition-all duration-200 ease-linear", className)}
-      style={{
+  return React.createElement(
+    Component,
+    {
+      className: cn("w-full transition-all duration-200 ease-linear", className),
+      style: {
         transform: `translateX(${translateX}px) translateY(${translateY}px) translateZ(${translateZ}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg)`,
-      }}
-      {...rest}
-    >
-      {children}
-    </Component>
+      },
+      ...rest,
+    },
+    children
   );
 }
