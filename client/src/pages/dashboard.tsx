@@ -1199,21 +1199,21 @@ export default function Dashboard() {
                                 className="aspect-square flex items-center justify-center bg-black/20 cursor-pointer overflow-hidden"
                                 onClick={() => openPreview(file)}
                               >
-                                {(file.tipoMime.startsWith("image/") || file.tipoMime.startsWith("video/")) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
+                                {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
                                   <img 
                                     src={fileThumbnails[file.id]} 
                                     alt={file.nome}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                   />
-                                ) : file.tipoMime.startsWith("video/") ? (
+                                ) : getEffectiveMimeType(file).startsWith("video/") ? (
                                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50">
                                     <Video className="w-10 h-10 text-white/60" />
                                   </div>
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center p-4">
                                     <div className="w-12 h-12 flex items-center justify-center">
-                                      {getFileIcon(file.tipoMime)}
+                                      {getFileIcon(getEffectiveMimeType(file))}
                                     </div>
                                   </div>
                                 )}
