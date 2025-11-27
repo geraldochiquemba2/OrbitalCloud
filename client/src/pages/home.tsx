@@ -141,7 +141,6 @@ export default function Home() {
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
       }}>
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Tecnologia de Ponta</h2>
