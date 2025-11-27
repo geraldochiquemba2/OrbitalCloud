@@ -5,7 +5,7 @@ import { Check, Cloud, Shield, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Import assets
-import heroImage from "@assets/generated_images/ultra-realistic_cloud_storage_hero.png";
+import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
 import cubeImage from "@assets/generated_images/3d_abstract_floating_cube.png";
 
 export default function Home() {
