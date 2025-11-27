@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import VideoBackground from "@/components/ui/video-background";
+import aboutHeroVideo from "@assets/4351798-hd_1280_720_50fps_1764253527054.mp4";
+import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
 
 export default function About() {
   const [, navigate] = useLocation();
@@ -70,7 +73,11 @@ export default function About() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden bg-gradient-to-br from-primary/10 via-background to-accent/5">
+      <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden">
+        {/* Video Background */}
+        <div className="absolute inset-0 z-0">
+          <VideoBackground videoSrc={aboutHeroVideo} posterSrc={heroImage} />
+        </div>
         <div className="max-w-7xl mx-auto relative z-10 w-full">
           <motion.div
             initial={{ opacity: 0, y: -30 }}
