@@ -12,12 +12,36 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const { login } = useAuth();
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { signup } = useAuth();
 
-  const handleSignup = () => {
-    if (fullName && email && password && confirmPassword && password === confirmPassword) {
-      login(email);
+  const handleSignup = async () => {
+    if (!fullName || !email || !password || !confirmPassword) {
+      setError("Por favor, preencha todos os campos");
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setError("As palavras-passe não coincidem");
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError("A palavra-passe deve ter pelo menos 6 caracteres");
+      return;
+    }
+    
+    setError("");
+    setIsLoading(true);
+    
+    try {
+      await signup(email, password, fullName);
       navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Erro ao criar conta");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -132,30 +156,43 @@ export default function Signup() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.35 }}
-              className="mb-8"
+              className="mb-2"
             >
               <label className="block text-sm font-medium text-white mb-2">Confirmar Palavra-passe</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSignup()}
                 placeholder="••••••••"
                 className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-white/50 transition-colors"
                 data-testid="input-confirm-password"
               />
             </motion.div>
 
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-100 text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+
             {/* Signup Button */}
             <motion.button
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
-              whileHover={{ scale: 1.02 }}
+              whileHover={!isLoading ? { scale: 1.02 } : {}}
               onClick={handleSignup}
-              className="w-full bg-white hover:bg-white/90 text-primary font-bold py-3 rounded-lg transition-all duration-300 mb-4"
+              disabled={isLoading}
+              className="w-full bg-white hover:bg-white/90 text-primary font-bold py-3 rounded-lg transition-all duration-300 mb-4 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
               data-testid="button-signup"
             >
-              Criar Conta
+              {isLoading ? "Criando conta..." : "Criar Conta"}
             </motion.button>
 
             {/* Login Link */}

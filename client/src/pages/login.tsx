@@ -10,12 +10,26 @@ export default function Login() {
   const [, navigate] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
-  const handleLogin = () => {
-    if (email && password) {
-      login(email);
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError("Por favor, preencha todos os campos");
+      return;
+    }
+    
+    setError("");
+    setIsLoading(true);
+    
+    try {
+      await login(email, password);
       navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Erro ao fazer login");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,30 +108,43 @@ export default function Login() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-              className="mb-8"
+              className="mb-2"
             >
               <label className="block text-sm font-medium text-white mb-2">Palavra-passe</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                 placeholder="••••••••"
                 className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-white/50 transition-colors"
                 data-testid="input-password"
               />
             </motion.div>
 
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-100 text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+
             {/* Login Button */}
             <motion.button
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
-              whileHover={{ scale: 1.02 }}
+              whileHover={!isLoading ? { scale: 1.02 } : {}}
               onClick={handleLogin}
-              className="w-full bg-white hover:bg-white/90 text-primary font-bold py-3 rounded-lg transition-all duration-300 mb-4"
+              disabled={isLoading}
+              className="w-full bg-white hover:bg-white/90 text-primary font-bold py-3 rounded-lg transition-all duration-300 mb-4 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
               data-testid="button-login"
             >
-              Entrar
+              {isLoading ? "Entrando..." : "Entrar"}
             </motion.button>
 
             {/* Sign Up Link */}
