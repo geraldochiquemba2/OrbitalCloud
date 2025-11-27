@@ -157,8 +157,12 @@ export default function Home() {
             ].map((feature, i) => (
               <motion.div 
                 key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 whileHover={{ y: -5 }}
-                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-colors group"
+                transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.1 }}
+                viewport={{ once: true, margin: "-100px" }}
+                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-all duration-300 ease-out group"
               >
                 <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-6 group-hover:bg-white/30 transition-colors">
                   <feature.icon className="w-6 h-6 text-white" />
@@ -190,15 +194,28 @@ export default function Home() {
         
         <div className="max-w-7xl mx-auto relative z-10 w-full flex-1 flex items-center">
           <div className="w-full">
-            <div className="text-center mb-16">
+            <motion.div 
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              viewport={{ once: true, margin: "-100px" }}
+            >
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Planos Flexíveis</h2>
               <p className="text-white/80">Escolha o espaço que você precisa.</p>
-            </div>
+            </motion.div>
 
             <div className="flex flex-wrap justify-center gap-4 md:gap-8">
               {pricingPlans.map((plan, i) => (
-                <ThreeDCard key={i} className="w-full md:w-auto" containerClassName="md:!py-0">
-                  <ThreeDCardBody className="backdrop-blur-3xl bg-transparent relative group/card hover:shadow-lg hover:shadow-white/10 w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-white/30">
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.12 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                >
+                  <ThreeDCard className="w-full md:w-auto" containerClassName="md:!py-0">
+                    <ThreeDCardBody className="backdrop-blur-3xl bg-transparent relative group/card hover:shadow-lg hover:shadow-white/10 transition-all duration-500 ease-out w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-white/30">
                     <ThreeDCardItem
                       translateZ="50"
                       className="text-xl font-bold text-white"
@@ -257,6 +274,7 @@ export default function Home() {
                     </ThreeDCardItem>
                   </ThreeDCardBody>
                 </ThreeDCard>
+                </motion.div>
               ))}
             </div>
           </div>
