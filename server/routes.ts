@@ -9,6 +9,7 @@ import { insertUserSchema, insertFileSchema, insertFolderSchema, insertShareSche
 import crypto from "crypto";
 import multer, { type Multer } from "multer";
 import { telegramService } from "./telegram";
+import bcrypt from "bcrypt";
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -16,9 +17,17 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 * 1024 } // 2GB limit
 });
 
-// Hash password
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex");
+// Bcrypt config
+const SALT_ROUNDS = 12;
+
+// Hash password with bcrypt
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS);
+}
+
+// Verify password with bcrypt
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 // Extend Express Request to include user and file
@@ -50,8 +59,8 @@ passport.use(
           return done(null, false, { message: "Email ou senha incorretos" });
         }
 
-        const hashedPassword = hashPassword(password);
-        if (user.passwordHash !== hashedPassword) {
+        const isValidPassword = await verifyPassword(password, user.passwordHash);
+        if (!isValidPassword) {
           return done(null, false, { message: "Email ou senha incorretos" });
         }
 
@@ -152,10 +161,11 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Email já está em uso" });
       }
 
-      // Create user
+      // Create user with bcrypt hashed password
+      const hashedPassword = await hashPassword(password);
       const user = await storage.createUser({
         email,
-        passwordHash: hashPassword(password),
+        passwordHash: hashedPassword,
         nome,
         plano: "gratis",
       });
