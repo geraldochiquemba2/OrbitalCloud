@@ -53,10 +53,9 @@ export default function About() {
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
           <span className="text-white drop-shadow-md">AngoCloud</span>
         </button>
-        <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80 hover:text-white transition-colors">
-          <a href="/#features" className="hover:text-white transition-colors">Funcionalidades</a>
-          <a href="/#pricing" className="hover:text-white transition-colors">Preços</a>
-          <a href="/about" className="hover:text-white transition-colors text-white">Sobre</a>
+        <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80">
+          <button onClick={() => navigate("/")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Voltar</button>
+          <button onClick={() => navigate("/")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-white text-inherit">Sobre</button>
         </div>
         <div className="flex gap-2 md:gap-4">
           <Button className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>

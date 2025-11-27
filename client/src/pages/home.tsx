@@ -57,14 +57,17 @@ export default function Home() {
 
       {/* Navigation */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 absolute top-0 left-0">
-        <div className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter">
+        <button 
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none"
+        >
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
           <span className="text-white drop-shadow-md">AngoCloud</span>
-        </div>
+        </button>
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80">
           <a href="#features" className="hover:text-white transition-colors cursor-pointer">Funcionalidades</a>
           <a href="#pricing" className="hover:text-white transition-colors cursor-pointer">Preços</a>
-          <button onClick={() => navigate("/about")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none">Sobre</button>
+          <button onClick={() => navigate("/about")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Sobre</button>
         </div>
         <div className="flex gap-2 md:gap-4">
           <Button className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
