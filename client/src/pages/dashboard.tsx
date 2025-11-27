@@ -18,6 +18,7 @@ interface FileItem {
   createdAt: string;
   folderId: string | null;
   isDeleted: boolean;
+  deletedAt: string | null;
 }
 
 interface FolderItem {
@@ -81,6 +82,10 @@ export default function Dashboard() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [fileThumbnails, setFileThumbnails] = useState<Record<string, string>>({});
+  
+  // Delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -454,11 +459,19 @@ export default function Dashboard() {
     }
   };
 
-  // File action handlers - eliminar permanentemente
-  const deleteFile = async (fileId: string) => {
+  // Mostrar diálogo de confirmação antes de eliminar
+  const confirmDeleteFile = (file: FileItem) => {
+    setFileToDelete(file);
+    setShowDeleteConfirm(true);
+  };
+
+  // File action handlers - mover para lixeira (soft delete)
+  const deleteFile = async () => {
+    if (!fileToDelete) return;
+    
     try {
-      console.log("Deleting file permanently:", fileId);
-      const response = await fetch(`/api/files/${fileId}/permanent`, {
+      console.log("Moving file to trash:", fileToDelete.id);
+      const response = await fetch(`/api/files/${fileToDelete.id}`, {
         method: "DELETE",
         credentials: "include"
       });
@@ -466,10 +479,11 @@ export default function Dashboard() {
       console.log("Delete response status:", response.status);
       
       if (response.ok) {
-        toast.success("Ficheiro eliminado permanentemente");
+        toast.success("Ficheiro movido para a lixeira. Tens 15 dias para recuperar.");
         setShowFileMenu(null);
+        setShowDeleteConfirm(false);
+        setFileToDelete(null);
         fetchContent();
-        refreshUser();
       } else {
         const error = await response.json();
         console.error("Delete error:", error);
@@ -650,6 +664,15 @@ export default function Dashboard() {
     if (diffDays < 7) return `${diffDays} dias`;
     
     return date.toLocaleDateString("pt-PT");
+  };
+
+  const getDaysRemaining = (deletedAt: string | null) => {
+    if (!deletedAt) return 15;
+    const deleteDate = new Date(deletedAt);
+    const now = new Date();
+    const diffTime = now.getTime() - deleteDate.getTime();
+    const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, 15 - daysPassed);
   };
 
   const getFileIcon = (mimeType: string) => {
@@ -991,6 +1014,11 @@ export default function Dashboard() {
                               <div className="p-2 flex-1">
                                 <p className="text-white text-xs font-medium truncate" title={file.nome}>{file.nome}</p>
                                 <p className="text-white/50 text-[10px]">{formatFileSize(file.tamanho)}</p>
+                                {viewMode === "trash" && file.deletedAt && (
+                                  <p className={`text-[10px] mt-0.5 ${getDaysRemaining(file.deletedAt) <= 3 ? 'text-red-400' : 'text-amber-400'}`}>
+                                    {getDaysRemaining(file.deletedAt)} dias restantes
+                                  </p>
+                                )}
                               </div>
                               
                               <div 
@@ -1065,7 +1093,7 @@ export default function Dashboard() {
                                       onClick={(e) => { 
                                         e.stopPropagation(); 
                                         e.preventDefault();
-                                        deleteFile(file.id); 
+                                        confirmDeleteFile(file); 
                                       }}
                                       className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
                                       title="Eliminar"
@@ -1486,6 +1514,62 @@ export default function Dashboard() {
           }}
         />
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && fileToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => { setShowDeleteConfirm(false); setFileToDelete(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-full bg-red-500/20">
+                  <Trash2 className="w-6 h-6 text-red-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Eliminar ficheiro?</h2>
+              </div>
+              
+              <p className="text-white/70 mb-2">
+                Tens a certeza que queres eliminar <span className="text-white font-medium">"{fileToDelete.nome}"</span>?
+              </p>
+              
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-6">
+                <p className="text-amber-400 text-sm">
+                  O ficheiro será movido para a lixeira e poderás recuperá-lo durante 15 dias. Após esse período, será eliminado permanentemente.
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setFileToDelete(null); }}
+                  className="flex-1 py-2.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors font-medium"
+                  data-testid="button-cancel-delete"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={deleteFile}
+                  className="flex-1 py-2.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors font-medium"
+                  data-testid="button-confirm-delete"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       {/* Footer */}
       <motion.footer 
         initial={{ opacity: 0 }}
