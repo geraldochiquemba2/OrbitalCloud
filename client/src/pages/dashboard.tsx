@@ -619,10 +619,26 @@ export default function Dashboard() {
 
   if (!user) return null;
 
+  const storageUsedMB = user.storageUsed / (1024 * 1024);
   const storageUsedGB = user.storageUsed / (1024 * 1024 * 1024);
   const storageTotalGB = user.storageLimit / (1024 * 1024 * 1024);
   const storagePercent = (user.storageUsed / user.storageLimit) * 100;
   const displayFiles = searchResults || files;
+  
+  const formatStorageUsed = () => {
+    if (storageUsedGB >= 1) {
+      return `${storageUsedGB.toFixed(2)} GB`;
+    }
+    return `${storageUsedMB.toFixed(2)} MB`;
+  };
+  
+  const formatStorageAvailable = () => {
+    const availableGB = storageTotalGB - storageUsedGB;
+    if (availableGB >= 1) {
+      return `${availableGB.toFixed(2)} GB`;
+    }
+    return `${(availableGB * 1024).toFixed(2)} MB`;
+  };
 
   return (
     <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-foreground selection:bg-primary/10">
@@ -750,10 +766,10 @@ export default function Dashboard() {
               <h2 className="text-lg font-bold text-white mb-4">Armazenamento</h2>
               <div className="mb-4 p-4 bg-gradient-to-br from-primary/20 to-accent/10 rounded-xl border border-primary/30">
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-2xl font-bold text-white">{storageUsedGB.toFixed(2)}</span>
-                  <span className="text-white/70">GB já consumidos</span>
+                  <span className="text-2xl font-bold text-white">{formatStorageUsed()}</span>
+                  <span className="text-white/70">já consumidos</span>
                 </div>
-                <p className="text-white/60 text-sm">{storageUsedGB.toFixed(2)} GB de {storageTotalGB.toFixed(0)} GB ({storagePercent.toFixed(0)}%)</p>
+                <p className="text-white/60 text-sm">{formatStorageUsed()} de {storageTotalGB.toFixed(0)} GB ({storagePercent.toFixed(1)}%)</p>
               </div>
               <div className="mb-4">
                 <div className="w-full bg-white/10 rounded-full h-3 border border-white/20 overflow-hidden">
@@ -766,8 +782,8 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex justify-between text-sm text-white/70 mb-4">
-                <span>Usado: {storageUsedGB.toFixed(2)} GB</span>
-                <span>Disponível: {(storageTotalGB - storageUsedGB).toFixed(2)} GB</span>
+                <span>Usado: {formatStorageUsed()}</span>
+                <span>Disponível: {formatStorageAvailable()}</span>
               </div>
               <div className="p-3 bg-white/5 rounded-lg border border-white/10">
                 <p className="text-xs text-white/70">Plano: <span className="font-bold text-white capitalize">{user.plano}</span></p>
@@ -931,11 +947,14 @@ export default function Dashboard() {
                                 <p className="text-white/50 text-[10px]">{formatFileSize(file.tamanho)}</p>
                               </div>
                               
-                              <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div 
+                                className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {viewMode === "trash" ? (
                                   <>
                                     <button
-                                      onClick={() => restoreFile(file.id)}
+                                      onClick={(e) => { e.stopPropagation(); restoreFile(file.id); }}
                                       className="p-1.5 rounded bg-green-500/80 text-white hover:bg-green-500 transition-colors"
                                       title="Restaurar"
                                       data-testid={`button-restore-${file.id}`}
@@ -943,7 +962,7 @@ export default function Dashboard() {
                                       <RefreshCw className="w-3 h-3" />
                                     </button>
                                     <button
-                                      onClick={() => permanentlyDeleteFile(file.id)}
+                                      onClick={(e) => { e.stopPropagation(); permanentlyDeleteFile(file.id); }}
                                       className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
                                       title="Eliminar permanentemente"
                                       data-testid={`button-permanent-delete-${file.id}`}
@@ -954,7 +973,7 @@ export default function Dashboard() {
                                 ) : (
                                   <>
                                     <button
-                                      onClick={() => downloadFile(file.id)}
+                                      onClick={(e) => { e.stopPropagation(); downloadFile(file.id); }}
                                       className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
                                       title="Download"
                                       data-testid={`button-download-${file.id}`}
@@ -962,7 +981,7 @@ export default function Dashboard() {
                                       <Download className="w-3 h-3" />
                                     </button>
                                     <button
-                                      onClick={() => shareFile(file)}
+                                      onClick={(e) => { e.stopPropagation(); shareFile(file); }}
                                       className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
                                       title="Partilhar"
                                       data-testid={`button-share-${file.id}`}
