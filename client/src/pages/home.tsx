@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Check, Cloud, Shield, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import VideoBackground from "@/components/ui/video-background";
 
 // Import assets
 import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
 import cubeImage from "@assets/generated_images/3d_abstract_floating_cube.png";
+import heroVideo from "@assets/4354033-hd_1280_720_25fps_1764245575076.mp4";
 
 export default function Home() {
   const pricingPlans = [
@@ -71,13 +73,18 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12">
-        <div className="grid md:grid-cols-2 gap-12 items-center w-full max-w-7xl mx-auto">
+      <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden">
+        {/* Video Background */}
+        <div className="absolute inset-0 z-0">
+          <VideoBackground videoSrc={heroVideo} posterSrc={heroImage} />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-12 items-center w-full max-w-7xl mx-auto relative z-10">
           <motion.div 
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="z-10"
+            className="z-20 bg-white/80 backdrop-blur-md p-8 rounded-2xl"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-sm text-xs font-medium text-primary mb-6">
               <span className="relative flex h-2 w-2">
@@ -122,24 +129,8 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="relative h-[500px] w-full flex items-center justify-center"
-          >
-            <div className="absolute inset-0 bg-primary/10 blur-[100px] rounded-full transform translate-y-10" />
-            <motion.img 
-              src={heroImage} 
-              alt="Cloud Storage Future" 
-              className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
-              animate={{ 
-                y: [0, -20, 0],
-                rotateZ: [0, 1, 0]
-              }}
-              transition={{ 
-                duration: 6, 
-                repeat: Infinity,
-                ease: "easeInOut" 
-              }}
-            />
-          </motion.div>
+            className="relative h-[500px] w-full flex items-center justify-center hidden md:flex"
+          />
         </div>
       </section>
 
