@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Check, Cloud, Server, Lock, HardDrive, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
+import { useLocation } from "wouter";
 
 // Import assets
 import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
@@ -11,6 +12,7 @@ import cubeImage from "@assets/generated_images/3d_abstract_floating_cube.png";
 import heroVideo from "@assets/4354033-hd_1280_720_25fps_1764245575076.mp4";
 
 export default function Home() {
+  const [, navigate] = useLocation();
   const pricingPlans = [
     {
       name: "Grátis",
@@ -59,10 +61,10 @@ export default function Home() {
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
           <span className="text-white drop-shadow-md">AngoCloud</span>
         </div>
-        <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80 hover:text-white transition-colors">
-          <a href="#features" className="hover:text-white transition-colors">Funcionalidades</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Preços</a>
-          <a href="/about" className="hover:text-white transition-colors">Sobre</a>
+        <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80">
+          <a href="#features" className="hover:text-white transition-colors cursor-pointer">Funcionalidades</a>
+          <a href="#pricing" className="hover:text-white transition-colors cursor-pointer">Preços</a>
+          <button onClick={() => navigate("/about")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none">Sobre</button>
         </div>
         <div className="flex gap-2 md:gap-4">
           <Button className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
