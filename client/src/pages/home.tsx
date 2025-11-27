@@ -174,17 +174,18 @@ export default function Home() {
       {/* Pricing Section */}
       <section id="pricing" className="relative min-h-screen py-24 px-6 md:px-12 overflow-hidden flex items-center">
         {/* Fixed Video Background */}
-        <div className="fixed inset-0 w-full h-full -z-10">
+        <div className="fixed top-0 left-0 w-screen h-screen z-0">
           <video
+            key="pricing-video"
             autoPlay
             muted
             loop
             playsInline
-            className="absolute inset-0 w-full h-full object-cover"
+            className="w-full h-full object-cover"
           >
             <source src="/pricing-video.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-black/40" />
         </div>
         
         <div className="max-w-7xl mx-auto relative z-10 w-full">
