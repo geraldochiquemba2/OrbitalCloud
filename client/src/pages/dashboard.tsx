@@ -208,7 +208,7 @@ export default function Dashboard() {
       const encryptionKey = await getActiveEncryptionKey();
       
       if (meta.isEncrypted && encryptionKey) {
-        const fileResponse = await fetch(meta.downloadUrl);
+        const fileResponse = await fetch(`/api/files/${fileId}/content`, { credentials: "include" });
         if (!fileResponse.ok) return;
         
         const encryptedBuffer = await fileResponse.arrayBuffer();
@@ -216,7 +216,7 @@ export default function Dashboard() {
         const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
         const url = createDownloadUrl(blob);
         
-        if (meta.originalMimeType.startsWith("video/")) {
+        if (meta.originalMimeType?.startsWith("video/")) {
           try {
             const thumbnailDataUrl = await generateVideoThumbnail(url);
             revokeDownloadUrl(url);
@@ -229,6 +229,8 @@ export default function Dashboard() {
         } else {
           setFileThumbnails(prev => ({ ...prev, [fileId]: url }));
         }
+      } else if (meta.isEncrypted && !encryptionKey) {
+        setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
       } else {
         if (mimeType.startsWith("video/") || meta.originalMimeType?.startsWith("video/")) {
           try {
@@ -275,7 +277,7 @@ export default function Dashboard() {
       const encryptionKey = await getActiveEncryptionKey();
       
       if (meta.isEncrypted && encryptionKey) {
-        const fileResponse = await fetch(meta.downloadUrl);
+        const fileResponse = await fetch(`/api/files/${file.id}/content`, { credentials: "include" });
         if (!fileResponse.ok) {
           throw new Error("Could not fetch encrypted file");
         }
@@ -285,6 +287,9 @@ export default function Dashboard() {
         const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
         const url = createDownloadUrl(blob);
         setPreviewUrl(url);
+      } else if (meta.isEncrypted && !encryptionKey) {
+        toast.error("Faça logout e login novamente para desencriptar os ficheiros");
+        throw new Error("No encryption key available");
       } else {
         setPreviewUrl(meta.downloadUrl);
       }
@@ -686,20 +691,30 @@ export default function Dashboard() {
       const data = await response.json();
       const encryptionKey = await getActiveEncryptionKey();
       
-      const fileResponse = await fetch(data.downloadUrl);
-      if (!fileResponse.ok) {
-        throw new Error("Erro ao descarregar ficheiro");
-      }
-      
       let fileBlob: Blob;
-      const encryptedBuffer = await fileResponse.arrayBuffer();
       
-      if (data.isEncrypted && encryptionKey) {
+      if (data.isEncrypted) {
+        if (!encryptionKey) {
+          toast.error("Faça logout e login novamente para desencriptar os ficheiros");
+          throw new Error("No encryption key available");
+        }
+        
+        const fileResponse = await fetch(`/api/files/${file.id}/content`, { credentials: "include" });
+        if (!fileResponse.ok) {
+          throw new Error("Erro ao descarregar ficheiro");
+        }
+        
+        const encryptedBuffer = await fileResponse.arrayBuffer();
         toast.info("A desencriptar ficheiro...");
         const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
         fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
       } else {
-        fileBlob = new Blob([encryptedBuffer], { type: file.tipoMime });
+        const fileResponse = await fetch(data.downloadUrl);
+        if (!fileResponse.ok) {
+          throw new Error("Erro ao descarregar ficheiro");
+        }
+        const buffer = await fileResponse.arrayBuffer();
+        fileBlob = new Blob([buffer], { type: file.tipoMime });
       }
       
       const downloadUrl = createDownloadUrl(fileBlob);

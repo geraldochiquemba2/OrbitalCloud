@@ -665,6 +665,40 @@ export async function registerRoutes(
     }
   });
 
+  // Proxy file content for CORS-safe client-side decryption
+  app.get("/api/files/:id/content", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Arquivo não disponível" });
+      }
+
+      const downloadUrl = await telegramService.getDownloadUrl(
+        file.telegramFileId,
+        file.telegramBotId
+      );
+
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        return res.status(500).json({ message: "Erro ao buscar arquivo" });
+      }
+
+      res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : (file.originalMimeType || file.tipoMime));
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (error) {
+      console.error("Content proxy error:", error);
+      res.status(500).json({ message: "Erro ao buscar conteúdo" });
+    }
+  });
+
   // Download file (legacy redirect)
   app.get("/api/files/:id/download", requireAuth, async (req: Request, res: Response) => {
     try {
