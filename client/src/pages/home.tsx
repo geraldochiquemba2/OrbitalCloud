@@ -64,9 +64,9 @@ export default function Home() {
           <a href="#pricing" className="hover:text-white transition-colors">Preços</a>
           <a href="#about" className="hover:text-white transition-colors">Sobre</a>
         </div>
-        <div className="flex gap-4">
-          <Button className="hidden md:flex text-white rounded-full px-6 border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
-          <Button className="text-white rounded-full px-6 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10">
+        <div className="flex gap-2 md:gap-4">
+          <Button className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
+          <Button className="text-white rounded-full px-4 sm:px-6 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10 text-xs sm:text-base">
             Criar Conta
           </Button>
         </div>
