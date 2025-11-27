@@ -1512,7 +1512,7 @@ export default function Dashboard() {
                         {viewMode === "files" && !searchResults && (
                           <button 
                             onClick={() => setShowUploadModal(true)}
-                            className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-primary/80 text-white font-medium transition-all bg-[#ffffff]"
+                            className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all"
                             data-testid="button-upload-empty"
                           >
                             <Upload className="w-4 h-4" />
