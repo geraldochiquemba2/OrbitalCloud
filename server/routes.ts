@@ -334,6 +334,48 @@ export async function registerRoutes(
     }
   });
 
+  // Get trash files
+  app.get("/api/files/trash", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const files = await storage.getTrashFiles(req.user!.id);
+      res.json(files);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar arquivos da lixeira" });
+    }
+  });
+
+  // Restore file from trash
+  app.post("/api/files/:id/restore", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      await storage.restoreFromTrash(req.params.id);
+      res.json({ message: "Arquivo restaurado com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao restaurar arquivo" });
+    }
+  });
+
+  // Permanently delete file
+  app.delete("/api/files/:id/permanent", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      // Decrease storage used
+      await storage.updateUserStorage(req.user!.id, -file.tamanho);
+      await storage.deleteFile(req.params.id);
+      res.json({ message: "Arquivo deletado permanentemente" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao deletar arquivo permanentemente" });
+    }
+  });
+
   // Rename file
   app.patch("/api/files/:id/rename", requireAuth, async (req: Request, res: Response) => {
     try {

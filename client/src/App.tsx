@@ -9,6 +9,7 @@ import About from "@/pages/about";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Dashboard from "@/pages/dashboard";
+import SharePage from "@/pages/share";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -31,6 +32,7 @@ function Router() {
           <Route path="/login" component={Login} />
           <Route path="/signup" component={Signup} />
           <Route path="/dashboard" component={Dashboard} />
+          <Route path="/share/:linkCode" component={SharePage} />
           <Route component={NotFound} />
         </Switch>
       </motion.div>

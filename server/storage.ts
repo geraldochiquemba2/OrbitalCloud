@@ -30,6 +30,7 @@ export interface IStorage {
   getFile(id: string): Promise<File | undefined>;
   getFilesByUser(userId: string): Promise<File[]>;
   getFilesByFolder(folderId: string | null, userId: string): Promise<File[]>;
+  getTrashFiles(userId: string): Promise<File[]>;
   createFile(file: InsertFile): Promise<File>;
   deleteFile(id: string): Promise<void>;
   moveToTrash(id: string): Promise<void>;
@@ -123,6 +124,17 @@ export class DatabaseStorage implements IStorage {
         eq(files.userId, userId),
         eq(files.folderId, folderId),
         eq(files.isDeleted, false)
+      ))
+      .orderBy(desc(files.createdAt));
+  }
+
+  async getTrashFiles(userId: string): Promise<File[]> {
+    return db
+      .select()
+      .from(files)
+      .where(and(
+        eq(files.userId, userId),
+        eq(files.isDeleted, true)
       ))
       .orderBy(desc(files.createdAt));
   }
