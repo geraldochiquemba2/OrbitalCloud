@@ -36,6 +36,9 @@ export const files = pgTable("files", {
   isDeleted: boolean("is_deleted").notNull().default(false),
   deletedAt: timestamp("deleted_at"),
   sharedLinkId: varchar("shared_link_id"),
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
+  originalMimeType: text("original_mime_type"),
+  originalSize: bigint("original_size", { mode: "number" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -132,6 +135,10 @@ export const insertFileSchema = createInsertSchema(files).omit({
   isDeleted: true,
   deletedAt: true,
   sharedLinkId: true,
+}).extend({
+  isEncrypted: z.boolean().optional(),
+  originalMimeType: z.string().optional(),
+  originalSize: z.number().optional(),
 });
 
 export const insertShareSchema = createInsertSchema(shares).omit({

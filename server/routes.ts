@@ -291,9 +291,12 @@ export async function registerRoutes(
 
       const user = req.user!;
       const fileSize = req.file.size;
+      
+      const isEncrypted = req.body.isEncrypted === "true";
+      const originalMimeType = req.body.originalMimeType || req.file.mimetype;
+      const originalSize = req.body.originalSize ? parseInt(req.body.originalSize, 10) : fileSize;
 
-      // Check storage quota
-      if (user.storageUsed + fileSize > user.storageLimit) {
+      if (user.storageUsed + originalSize > user.storageLimit) {
         return res.status(400).json({ 
           message: "Quota de armazenamento excedida",
           storageUsed: user.storageUsed,
@@ -301,14 +304,12 @@ export async function registerRoutes(
         });
       }
 
-      // Check if Telegram service is available
       if (!telegramService.isAvailable()) {
         return res.status(503).json({ 
           message: "Serviço de armazenamento temporariamente indisponível. Configure os tokens dos bots Telegram."
         });
       }
 
-      // Upload to Telegram
       const uploadResult = await telegramService.uploadFile(
         req.file.buffer,
         req.file.originalname
@@ -321,13 +322,15 @@ export async function registerRoutes(
         folderId,
         nome: req.file.originalname,
         tamanho: fileSize,
-        tipoMime: req.file.mimetype,
+        tipoMime: isEncrypted ? 'application/octet-stream' : originalMimeType,
         telegramFileId: uploadResult.fileId,
         telegramBotId: uploadResult.botId,
+        isEncrypted,
+        originalMimeType,
+        originalSize,
       });
 
-      // Update user storage
-      await storage.updateUserStorage(user.id, fileSize);
+      await storage.updateUserStorage(user.id, originalSize);
 
       res.json(file);
     } catch (error) {
@@ -617,7 +620,7 @@ export async function registerRoutes(
     }
   });
 
-  // Download file
+  // Download file (legacy redirect)
   app.get("/api/files/:id/download", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
@@ -629,17 +632,45 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Arquivo não disponível para download" });
       }
 
-      // Get download URL from Telegram
       const downloadUrl = await telegramService.getDownloadUrl(
         file.telegramFileId,
         file.telegramBotId
       );
 
-      // Redirect to Telegram download URL
       res.redirect(downloadUrl);
     } catch (error) {
       console.error("Download error:", error);
       res.status(500).json({ message: "Erro ao fazer download" });
+    }
+  });
+
+  // Get download data for client-side decryption
+  app.get("/api/files/:id/download-data", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Arquivo não disponível para download" });
+      }
+
+      const downloadUrl = await telegramService.getDownloadUrl(
+        file.telegramFileId,
+        file.telegramBotId
+      );
+
+      res.json({
+        downloadUrl,
+        isEncrypted: file.isEncrypted || false,
+        originalMimeType: file.originalMimeType || file.tipoMime,
+        originalSize: file.originalSize || file.tamanho,
+        nome: file.nome,
+      });
+    } catch (error) {
+      console.error("Download data error:", error);
+      res.status(500).json({ message: "Erro ao obter dados de download" });
     }
   });
 

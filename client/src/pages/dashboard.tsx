@@ -2,13 +2,21 @@ import {
   Cloud, Heart, LogOut, Upload, FileText, Share2, Folder, 
   Search, Trash2, Download, MoreVertical, FolderPlus, 
   ArrowLeft, X, Edit, Move, RefreshCw, Link, Copy, Check,
-  File, Image, Video, Music, FileCode, FileArchive
+  File, Image, Video, Music, FileCode, FileArchive, Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
+import { 
+  encryptFile, 
+  decryptBuffer, 
+  getActiveEncryptionKey,
+  createDownloadUrl,
+  revokeDownloadUrl,
+  isEncryptionSupported
+} from "@/lib/encryption";
 
 interface FileItem {
   id: string;
@@ -331,46 +339,70 @@ export default function Dashboard() {
     }
   }, [currentFolderId]);
 
-  const uploadSingleFile = (file: globalThis.File, folderId: string | null): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      const formData = new FormData();
-      formData.append("file", file);
-      if (folderId) {
-        formData.append("folderId", folderId);
+  const uploadSingleFile = async (file: globalThis.File, folderId: string | null): Promise<boolean> => {
+    try {
+      const encryptionKey = await getActiveEncryptionKey();
+      
+      let fileToUpload: globalThis.File | Blob = file;
+      let originalSize = file.size;
+      
+      if (encryptionKey && isEncryptionSupported()) {
+        setCurrentUploadFile(`A encriptar ${file.name}...`);
+        
+        const encrypted = await encryptFile(file, encryptionKey);
+        fileToUpload = new Blob([encrypted.encryptedBuffer], { type: 'application/octet-stream' });
+        originalSize = encrypted.originalSize;
+        
+        setCurrentUploadFile(`A enviar ${file.name}...`);
       }
       
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = (event.loaded / event.total) * 100;
-          setUploadProgress(percentComplete);
+      return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        const formData = new FormData();
+        formData.append("file", fileToUpload, file.name);
+        formData.append("originalSize", originalSize.toString());
+        formData.append("originalMimeType", file.type);
+        formData.append("isEncrypted", encryptionKey ? "true" : "false");
+        if (folderId) {
+          formData.append("folderId", folderId);
         }
-      };
-      
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          toast.success(`${file.name} enviado com sucesso`);
-          resolve(true);
-        } else {
-          try {
-            const error = JSON.parse(xhr.responseText);
-            toast.error(error.message || `Erro ao enviar ${file.name}`);
-          } catch {
-            toast.error(`Erro ao enviar ${file.name}`);
+        
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = (event.loaded / event.total) * 100;
+            setUploadProgress(percentComplete);
           }
+        };
+        
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            toast.success(`${file.name} enviado com sucesso (encriptado)`);
+            resolve(true);
+          } else {
+            try {
+              const error = JSON.parse(xhr.responseText);
+              toast.error(error.message || `Erro ao enviar ${file.name}`);
+            } catch {
+              toast.error(`Erro ao enviar ${file.name}`);
+            }
+            resolve(false);
+          }
+        };
+        
+        xhr.onerror = () => {
+          toast.error(`Erro ao enviar ${file.name}`);
           resolve(false);
-        }
-      };
-      
-      xhr.onerror = () => {
-        toast.error(`Erro ao enviar ${file.name}`);
-        resolve(false);
-      };
-      
-      xhr.open("POST", "/api/files/upload");
-      xhr.withCredentials = true;
-      xhr.send(formData);
-    });
+        };
+        
+        xhr.open("POST", "/api/files/upload");
+        xhr.withCredentials = true;
+        xhr.send(formData);
+      });
+    } catch (err) {
+      console.error("Error encrypting/uploading file:", err);
+      toast.error(`Erro ao encriptar ${file.name}`);
+      return false;
+    }
   };
 
   const uploadFiles = async (filesToUpload: globalThis.File[]) => {
@@ -562,8 +594,53 @@ export default function Dashboard() {
     }
   };
 
-  const downloadFile = async (fileId: string) => {
-    window.open(`/api/files/${fileId}/download`, "_blank");
+  const downloadFile = async (file: FileItem) => {
+    try {
+      toast.info("A preparar download...");
+      
+      const response = await fetch(`/api/files/${file.id}/download-data`, {
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Erro ao buscar ficheiro");
+      }
+      
+      const data = await response.json();
+      const encryptionKey = await getActiveEncryptionKey();
+      
+      const fileResponse = await fetch(data.downloadUrl);
+      if (!fileResponse.ok) {
+        throw new Error("Erro ao descarregar ficheiro");
+      }
+      
+      let fileBlob: Blob;
+      const encryptedBuffer = await fileResponse.arrayBuffer();
+      
+      if (data.isEncrypted && encryptionKey) {
+        toast.info("A desencriptar ficheiro...");
+        const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+        fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
+      } else {
+        fileBlob = new Blob([encryptedBuffer], { type: file.tipoMime });
+      }
+      
+      const downloadUrl = createDownloadUrl(fileBlob);
+      
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = file.nome;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => revokeDownloadUrl(downloadUrl), 1000);
+      
+      toast.success("Download concluído!");
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Erro ao fazer download");
+    }
   };
 
   // Share handlers
@@ -1046,7 +1123,7 @@ export default function Dashboard() {
                                 ) : (
                                   <>
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); downloadFile(file.id); }}
+                                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); downloadFile(file); }}
                                       className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
                                       title="Download"
                                       data-testid={`button-download-${file.id}`}
@@ -1429,7 +1506,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => downloadFile(previewFile.id)}
+                    onClick={() => downloadFile(previewFile)}
                     className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
                     title="Download"
                   >
@@ -1483,7 +1560,7 @@ export default function Dashboard() {
                         Preview não disponível para este tipo de ficheiro.
                         <br />
                         <button 
-                          onClick={() => downloadFile(previewFile.id)}
+                          onClick={() => downloadFile(previewFile)}
                           className="text-primary hover:underline mt-2"
                         >
                           Fazer download
