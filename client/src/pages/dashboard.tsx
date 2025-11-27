@@ -70,6 +70,13 @@ export default function Dashboard() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [allFolders, setAllFolders] = useState<FolderItem[]>([]);
+  
+  // Preview state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [fileThumbnails, setFileThumbnails] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!user) {
@@ -119,6 +126,54 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error("Error fetching folders:", err);
+    }
+  };
+
+  // Load thumbnails for image/video files
+  const loadThumbnail = useCallback(async (fileId: string) => {
+    if (fileThumbnails[fileId]) return;
+    
+    try {
+      const response = await fetch(`/api/files/${fileId}/preview`, { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setFileThumbnails(prev => ({ ...prev, [fileId]: data.url }));
+      }
+    } catch (err) {
+      console.error("Error loading thumbnail:", err);
+    }
+  }, [fileThumbnails]);
+
+  // Load thumbnails when files change
+  useEffect(() => {
+    const mediaFiles = files.filter(f => 
+      f.tipoMime.startsWith("image/") || f.tipoMime.startsWith("video/")
+    );
+    mediaFiles.forEach(file => {
+      if (!fileThumbnails[file.id]) {
+        loadThumbnail(file.id);
+      }
+    });
+  }, [files, loadThumbnail]);
+
+  // Open file preview
+  const openPreview = async (file: FileItem) => {
+    setPreviewFile(file);
+    setShowPreviewModal(true);
+    setPreviewLoading(true);
+    setPreviewUrl(null);
+    
+    try {
+      const response = await fetch(`/api/files/${file.id}/preview`, { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewUrl(data.url);
+      }
+    } catch (err) {
+      console.error("Error loading preview:", err);
+      toast.error("Erro ao carregar preview");
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -788,14 +843,26 @@ export default function Dashboard() {
                               className="group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all overflow-hidden"
                               data-testid={`file-item-${file.id}`}
                             >
-                              <div className="aspect-square flex items-center justify-center bg-black/20 p-4">
-                                {file.tipoMime.startsWith("image/") ? (
-                                  <div className="w-full h-full flex items-center justify-center text-white/30">
-                                    {getFileIcon(file.tipoMime)}
+                              <div 
+                                className="aspect-square flex items-center justify-center bg-black/20 cursor-pointer overflow-hidden"
+                                onClick={() => openPreview(file)}
+                              >
+                                {(file.tipoMime.startsWith("image/") || file.tipoMime.startsWith("video/")) && fileThumbnails[file.id] ? (
+                                  <img 
+                                    src={fileThumbnails[file.id]} 
+                                    alt={file.nome}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                  />
+                                ) : file.tipoMime.startsWith("video/") ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50">
+                                    <Video className="w-10 h-10 text-white/60" />
                                   </div>
                                 ) : (
-                                  <div className="w-12 h-12">
-                                    {getFileIcon(file.tipoMime)}
+                                  <div className="w-full h-full flex items-center justify-center p-4">
+                                    <div className="w-12 h-12 flex items-center justify-center">
+                                      {getFileIcon(file.tipoMime)}
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -1173,6 +1240,104 @@ export default function Dashboard() {
               <p className="text-white/50 text-xs text-center">
                 Qualquer pessoa com este link pode fazer download do ficheiro
               </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {showPreviewModal && previewFile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+            onClick={() => { setShowPreviewModal(false); setPreviewFile(null); setPreviewUrl(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-5xl max-h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center mb-4 px-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium truncate">{previewFile.nome}</p>
+                  <p className="text-white/50 text-sm">{formatFileSize(previewFile.tamanho)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => downloadFile(previewFile.id)}
+                    className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                    title="Download"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={() => { setShowPreviewModal(false); setPreviewFile(null); setPreviewUrl(null); }} 
+                    className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Content */}
+              <div className="flex-1 flex items-center justify-center bg-black/50 rounded-xl overflow-hidden min-h-[300px]">
+                {previewLoading ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <p className="text-white/50 text-sm">A carregar...</p>
+                  </div>
+                ) : previewUrl ? (
+                  previewFile.tipoMime.startsWith("image/") ? (
+                    <img 
+                      src={previewUrl} 
+                      alt={previewFile.nome}
+                      className="max-w-full max-h-[70vh] object-contain"
+                    />
+                  ) : previewFile.tipoMime.startsWith("video/") ? (
+                    <video 
+                      src={previewUrl} 
+                      controls 
+                      autoPlay
+                      className="max-w-full max-h-[70vh]"
+                    />
+                  ) : previewFile.tipoMime.startsWith("audio/") ? (
+                    <div className="flex flex-col items-center gap-4 p-8">
+                      <Music className="w-20 h-20 text-white/50" />
+                      <audio src={previewUrl} controls autoPlay className="w-full max-w-md" />
+                    </div>
+                  ) : previewFile.tipoMime === "application/pdf" ? (
+                    <iframe 
+                      src={previewUrl} 
+                      className="w-full h-[70vh]"
+                      title={previewFile.nome}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-4 p-8">
+                      {getFileIcon(previewFile.tipoMime)}
+                      <p className="text-white/70 text-center">
+                        Preview não disponível para este tipo de ficheiro.
+                        <br />
+                        <button 
+                          onClick={() => downloadFile(previewFile.id)}
+                          className="text-primary hover:underline mt-2"
+                        >
+                          Fazer download
+                        </button>
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex flex-col items-center gap-4 p-8">
+                    {getFileIcon(previewFile.tipoMime)}
+                    <p className="text-white/50">Não foi possível carregar o preview</p>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}

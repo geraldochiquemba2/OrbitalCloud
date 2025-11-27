@@ -529,6 +529,30 @@ export async function registerRoutes(
 
   // ========== DOWNLOAD ROUTES ==========
 
+  // Get file preview URL (for thumbnails)
+  app.get("/api/files/:id/preview", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Arquivo não disponível" });
+      }
+
+      const previewUrl = await telegramService.getDownloadUrl(
+        file.telegramFileId,
+        file.telegramBotId
+      );
+
+      res.json({ url: previewUrl });
+    } catch (error) {
+      console.error("Preview error:", error);
+      res.status(500).json({ message: "Erro ao obter preview" });
+    }
+  });
+
   // Download file
   app.get("/api/files/:id/download", requireAuth, async (req: Request, res: Response) => {
     try {
