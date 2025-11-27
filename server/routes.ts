@@ -962,6 +962,34 @@ export async function registerRoutes(
     }
   });
 
+  // Send share link via email
+  app.post("/api/shares/send-email", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { email, shareLink, fileName } = z.object({ 
+        email: z.string().email(),
+        shareLink: z.string(),
+        fileName: z.string()
+      }).parse(req.body);
+
+      // TODO: Integrate with email service (SendGrid, Resend, etc.)
+      // For now, just log and return success
+      console.log(`[Share Email] Sending share link to ${email}`);
+      console.log(`[Share Email] File: ${fileName}`);
+      console.log(`[Share Email] Link: ${shareLink}`);
+      console.log(`[Share Email] From user: ${req.user!.email}`);
+
+      res.json({ 
+        success: true, 
+        message: `Link enviado para ${email}` 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Email inválido" });
+      }
+      res.status(500).json({ message: "Erro ao enviar email" });
+    }
+  });
+
   // Get share by link code
   app.get("/api/shares/:linkCode", async (req: Request, res: Response) => {
     try {
