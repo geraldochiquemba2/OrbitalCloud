@@ -1524,41 +1524,40 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* Files */}
-                {displayFiles.length === 0 && folders.length === 0 && (viewMode !== "shared" || (sharedFiles.length === 0 && sharedFolders.length === 0)) ? (
+                {/* Empty state for shared view */}
+                {viewMode === "shared" && sharedFiles.length === 0 && sharedFolders.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-64 text-white/50">
-                    {viewMode === "shared" ? (
-                      <>
-                        <Users className="w-16 h-16 mb-4 opacity-30" />
-                        <p className="text-lg">Nenhum ficheiro partilhado contigo</p>
-                        <p className="text-sm mt-2 text-white/30">
-                          Quando alguém partilhar ficheiros ou pastas contigo, aparecerão aqui
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-16 h-16 mb-4 opacity-30" />
-                        <p className="text-lg">
-                          {viewMode === "trash" 
-                            ? "A lixeira está vazia" 
-                            : searchResults 
-                              ? "Nenhum ficheiro encontrado" 
-                              : "Nenhum ficheiro ainda"}
-                        </p>
-                        {viewMode === "files" && !searchResults && (
-                          <button 
-                            onClick={() => setShowUploadModal(true)}
-                            className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all"
-                            data-testid="button-upload-empty"
-                          >
-                            <Upload className="w-4 h-4" />
-                            Fazer Upload
-                          </button>
-                        )}
-                      </>
+                    <Users className="w-16 h-16 mb-4 opacity-30" />
+                    <p className="text-lg">Nenhum ficheiro partilhado contigo</p>
+                    <p className="text-sm mt-2 text-white/30">
+                      Quando alguém partilhar ficheiros ou pastas contigo, aparecerão aqui
+                    </p>
+                  </div>
+                )}
+
+                {/* Files - only show for non-shared views */}
+                {viewMode !== "shared" && displayFiles.length === 0 && folders.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-white/50">
+                    <FileText className="w-16 h-16 mb-4 opacity-30" />
+                    <p className="text-lg">
+                      {viewMode === "trash" 
+                        ? "A lixeira está vazia" 
+                        : searchResults 
+                          ? "Nenhum ficheiro encontrado" 
+                          : "Nenhum ficheiro ainda"}
+                    </p>
+                    {viewMode === "files" && !searchResults && (
+                      <button 
+                        onClick={() => setShowUploadModal(true)}
+                        className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all"
+                        data-testid="button-upload-empty"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Fazer Upload
+                      </button>
                     )}
                   </div>
-                ) : (
+                ) : viewMode !== "shared" && (
                   <>
                     {displayFiles.length > 0 && (
                       <div>
