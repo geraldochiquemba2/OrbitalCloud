@@ -117,7 +117,9 @@ export default function About() {
           backgroundImage: `url(${valuesBackgroundImage})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'fixed',
+          backgroundRepeat: 'repeat-y',
+          minHeight: 'auto'
         }}
       >
         <div className="absolute inset-0 bg-black/60" />
@@ -165,7 +167,9 @@ export default function About() {
           backgroundImage: `url(${valuesBackgroundImage})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'fixed',
+          backgroundRepeat: 'repeat-y',
+          minHeight: 'auto'
         }}
       >
         <div className="absolute inset-0 bg-black/60" />
