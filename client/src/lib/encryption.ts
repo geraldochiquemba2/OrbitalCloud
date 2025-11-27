@@ -57,7 +57,7 @@ export async function deriveKey(password: string, saltBase64: string): Promise<C
     },
     keyMaterial,
     { name: ALGORITHM, length: KEY_LENGTH },
-    false,
+    true,
     ['encrypt', 'decrypt']
   );
 }
