@@ -8,6 +8,7 @@ import { z } from "zod";
 import { insertUserSchema, insertFileSchema, insertFolderSchema, insertShareSchema } from "@shared/schema";
 import crypto from "crypto";
 import multer, { type Multer } from "multer";
+import { telegramService } from "./telegram";
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -254,7 +255,7 @@ export async function registerRoutes(
     }
   });
 
-  // Upload file (placeholder - Telegram integration needed)
+  // Upload file
   app.post("/api/files/upload", requireAuth, upload.single("file"), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
@@ -273,9 +274,18 @@ export async function registerRoutes(
         });
       }
 
-      // TODO: Upload to Telegram Bot
-      // For now, we'll simulate it
-      const telegramFileId = `temp_${Date.now()}_${req.file.originalname}`;
+      // Check if Telegram service is available
+      if (!telegramService.isAvailable()) {
+        return res.status(503).json({ 
+          message: "Serviço de armazenamento temporariamente indisponível. Configure os tokens dos bots Telegram."
+        });
+      }
+
+      // Upload to Telegram
+      const uploadResult = await telegramService.uploadFile(
+        req.file.buffer,
+        req.file.originalname
+      );
 
       const folderId = req.body.folderId || null;
 
@@ -285,8 +295,8 @@ export async function registerRoutes(
         nome: req.file.originalname,
         tamanho: fileSize,
         tipoMime: req.file.mimetype,
-        telegramFileId,
-        telegramBotId: "bot_placeholder",
+        telegramFileId: uploadResult.fileId,
+        telegramBotId: uploadResult.botId,
       });
 
       // Update user storage
@@ -462,6 +472,73 @@ export async function registerRoutes(
       res.json({ share, file });
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar compartilhamento" });
+    }
+  });
+
+  // ========== DOWNLOAD ROUTES ==========
+
+  // Download file
+  app.get("/api/files/:id/download", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Arquivo não disponível para download" });
+      }
+
+      // Get download URL from Telegram
+      const downloadUrl = await telegramService.getDownloadUrl(
+        file.telegramFileId,
+        file.telegramBotId
+      );
+
+      // Redirect to Telegram download URL
+      res.redirect(downloadUrl);
+    } catch (error) {
+      console.error("Download error:", error);
+      res.status(500).json({ message: "Erro ao fazer download" });
+    }
+  });
+
+  // Download shared file (public)
+  app.get("/api/shares/:linkCode/download", async (req: Request, res: Response) => {
+    try {
+      const share = await storage.getShareByLinkCode(req.params.linkCode);
+      if (!share) {
+        return res.status(404).json({ message: "Link não encontrado" });
+      }
+
+      // Check expiration
+      if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+        return res.status(410).json({ message: "Link expirado" });
+      }
+
+      const file = await storage.getFile(share.fileId);
+      if (!file) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Arquivo não disponível para download" });
+      }
+
+      // Increment download count
+      await storage.incrementShareDownload(share.id);
+
+      // Get download URL from Telegram
+      const downloadUrl = await telegramService.getDownloadUrl(
+        file.telegramFileId,
+        file.telegramBotId
+      );
+
+      // Redirect to Telegram download URL
+      res.redirect(downloadUrl);
+    } catch (error) {
+      console.error("Download error:", error);
+      res.status(500).json({ message: "Erro ao fazer download" });
     }
   });
 
