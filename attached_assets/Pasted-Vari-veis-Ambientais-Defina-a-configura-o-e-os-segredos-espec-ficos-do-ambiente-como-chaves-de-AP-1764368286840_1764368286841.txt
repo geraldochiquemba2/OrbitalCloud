@@ -1,0 +1,119 @@
+Variáveis Ambientais
+Defina a configuração e os segredos específicos do ambiente (como chaves de API), depois leia esses valores do seu código. Saiba Mais.
+
+Exportação
+
+Editar
+Chave	Valor
+Chave
+DATABASE_URL
+Valor
+postgresql://neondb_owner:npg_K1sFWTNOZ7zL@ep-dry-fire-aezxqx5t.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require
+
+Chave
+NODE_ENV
+Valor
+production
+
+Chave
+SESSION_SECRET
+Valor
+ptpe3vzeueuogqLJUZ9eT0WQqZFIU4wbn37py03PQHH50ozca8aUvKttsxUDtdJYUP1p6+uYF5/IlxzrNyfl+Q==
+
+Chave
+TELEGRAM_BOT_1_TOKEN
+Valor
+8223016324:AAE8xZTuOf3-15oa_7xv32vKcNvU2xE-pAs
+
+Chave
+TELEGRAM_BOT_2_TOKEN
+Valor
+8576824412:AAGeYbEXZJHUgtq_0PvmvrF9iPTjYJoG0-c
+
+Chave
+TELEGRAM_BOT_3_TOKEN
+Valor
+8555207296:AAGx8CuDZg23GvHvjsvlRXfw9lJzMv3MZGM
+
+Chave
+TELEGRAM_BOT_4_TOKEN
+Valor
+8594705763:AAFK3lypHEe0J6grp2qJ49viUCbZgCwqa3g
+
+Chave
+TELEGRAM_BOT_5_TOKEN
+Valor
+8519422868:AAGeH02obXLonBLnEBcPXrY7c5MH80M3i9s
+
+Chave
+TELEGRAM_STORAGE_CHAT_ID
+Valor
+-1003232695027
+
+Geral
+Nome
+Um nome único para o seu Serviço Web.
+ OrbitalCloud
+
+Editar
+Região
+Seus serviços no mesmo região pode se comunicar por meio de um rede privada.
+Oregon (US West)
+Tipo de Instância
+Livre
+CPU 0.1
+512 MB
+Atualização
+Por favor Insira suas informações de pagamento para selecionar um tipo de instância com limites mais altos.
+Ver Uso livre restante, ou aprender sobre Limites de serviço gratuito.
+Construir e Implantar
+Repositório
+O repositório usado para o seu Serviço Web.
+https://github.com/geraldochiquemba2/AngoCloud-1
+
+Editar
+Ramo
+O ramo Git para construir e implantar.
+ramo
+
+principal
+
+Editar
+Credenciais Git
+Usuário fornecendo as credenciais para acessar o repositório.
+isabelcanjamba62@gmail.com (you)
+Use Minhas Credenciais
+DiretórioRaiz Opcional
+Se ativado, Render executa comandos a partir desse diretório em vez da raiz do repositório. Além disso, alterações de código fora desse diretório não acionam uma auto-implantação. Mais comumente usado com um Monorrepo.
+
+Editar
+Filtros de construção
+Inclua ou ignore caminhos específicos no seu repositório ao decidir se vai acionar um auto-deploy. Os caminhos são relativos ao diretório raiz do seu repositório. Saiba Mais.
+
+Editar
+Caminhos Incluídos
+Mudanças que combinam com esses caminhos vão desencadear uma nova construção.
+
+
+Adicionar Caminho Incluído
+Caminhos Ignorados
+Mudanças que correspondem a esses caminhos não vão acionar uma nova build.
+
+
+Adicionar Caminho Ignorado
+Comando de Construção
+Render executa esse comando para construir seu app antes de cada implantação.
+$
+npm ci --include=dev && npm run build
+
+Editar
+ComandoPré-Implantação Opcional
+Render executa esse comando antes do comando start. Útil para migrações de banco de dados e uploads de ativos estáticos.
+$
+
+Editar
+Comando Start
+Render executa esse comando para iniciar seu app a cada deploy.
+$
+npm start
+

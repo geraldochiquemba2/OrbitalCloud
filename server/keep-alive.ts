@@ -8,23 +8,43 @@ export function startKeepAlive(port: number, logFn: (msg: string, source?: strin
     return;
   }
 
+  const externalUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+  
+  if (!externalUrl) {
+    logFn("⚠️ Keep-alive: RENDER_EXTERNAL_URL ou APP_URL não definido. Configure um serviço externo como UptimeRobot para evitar hibernação.", "keep-alive");
+    logFn("📋 Para configurar: https://uptimerobot.com -> Adicionar monitor HTTP -> URL: https://seu-app.onrender.com/api/health", "keep-alive");
+    return;
+  }
+
   const selfPing = async () => {
     try {
-      const url = `http://localhost:${port}/api/health`;
-      const response = await fetch(url);
+      const url = `${externalUrl}/api/health`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        headers: { 'User-Agent': 'OrbitalCloud-KeepAlive' }
+      });
+      clearTimeout(timeout);
+      
       if (response.ok) {
-        logFn("Keep-alive ping successful", "keep-alive");
+        logFn(`Keep-alive ping OK (${externalUrl})`, "keep-alive");
       }
-    } catch (error) {
-      logFn(`Keep-alive ping failed: ${error}`, "keep-alive");
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        logFn("Keep-alive ping timeout (10s)", "keep-alive");
+      } else {
+        logFn(`Keep-alive ping failed: ${error.message}`, "keep-alive");
+      }
     }
   };
 
-  selfPing();
+  setTimeout(selfPing, 5000);
 
   keepAliveTimer = setInterval(selfPing, KEEP_ALIVE_INTERVAL);
 
-  logFn(`Keep-alive system started (interval: ${KEEP_ALIVE_INTERVAL / 60000} minutes)`, "keep-alive");
+  logFn(`Keep-alive iniciado: ${externalUrl} a cada ${KEEP_ALIVE_INTERVAL / 60000} minutos`, "keep-alive");
 }
 
 export function stopKeepAlive(logFn?: (msg: string, source?: string) => void): void {
