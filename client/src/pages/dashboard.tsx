@@ -99,6 +99,11 @@ export default function Dashboard() {
   const [currentUploadFile, setCurrentUploadFile] = useState<string>("");
   const [uploadFileIndex, setUploadFileIndex] = useState(0);
   const [totalUploadFiles, setTotalUploadFiles] = useState(0);
+  const [uploadSpeed, setUploadSpeed] = useState<string>("");
+  const [uploadTimeRemaining, setUploadTimeRemaining] = useState<string>("");
+  const [currentFileSize, setCurrentFileSize] = useState<number>(0);
+  const uploadStartTimeRef = useRef<number>(0);
+  const lastProgressRef = useRef<{ time: number; loaded: number }>({ time: 0, loaded: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Folder modal
@@ -783,6 +788,27 @@ export default function Dashboard() {
     }
   };
 
+  // Upload helpers
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    if (seconds < 3600) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60);
+      return `${mins}m ${secs}s`;
+    }
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${mins}m`;
+  };
+
   // Upload handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -820,6 +846,13 @@ export default function Dashboard() {
         setCurrentUploadFile(`A enviar ${file.name}...`);
       }
       
+      // Initialize speed tracking
+      uploadStartTimeRef.current = Date.now();
+      lastProgressRef.current = { time: Date.now(), loaded: 0 };
+      setCurrentFileSize(fileToUpload.size);
+      setUploadSpeed("");
+      setUploadTimeRemaining("");
+      
       return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
         const formData = new FormData();
@@ -833,8 +866,29 @@ export default function Dashboard() {
         
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
+            const now = Date.now();
             const percentComplete = (event.loaded / event.total) * 100;
             setUploadProgress(percentComplete);
+            
+            // Calculate speed (using moving average for smoother display)
+            const timeDiff = (now - lastProgressRef.current.time) / 1000; // in seconds
+            if (timeDiff >= 0.5) { // Update speed every 500ms for smoother display
+              const bytesDiff = event.loaded - lastProgressRef.current.loaded;
+              const speedBps = bytesDiff / timeDiff; // bytes per second
+              
+              if (speedBps > 0) {
+                setUploadSpeed(formatBytes(speedBps) + '/s');
+                
+                // Calculate time remaining
+                const bytesRemaining = event.total - event.loaded;
+                const secondsRemaining = bytesRemaining / speedBps;
+                if (secondsRemaining > 0 && secondsRemaining < 86400) { // Less than 24 hours
+                  setUploadTimeRemaining(formatTime(secondsRemaining));
+                }
+              }
+              
+              lastProgressRef.current = { time: now, loaded: event.loaded };
+            }
           }
         };
         
@@ -904,6 +958,9 @@ export default function Dashboard() {
     setCurrentUploadFile("");
     setUploadFileIndex(0);
     setTotalUploadFiles(0);
+    setUploadSpeed("");
+    setUploadTimeRemaining("");
+    setCurrentFileSize(0);
     setShowUploadModal(false);
     setDragOver(false);
     
@@ -2359,15 +2416,29 @@ export default function Dashboard() {
                     <p className="text-white/90 text-sm font-medium truncate mb-1">
                       {currentUploadFile}
                     </p>
-                    {totalUploadFiles > 1 && (
-                      <p className="text-white/50 text-xs">
-                        Ficheiro {uploadFileIndex} de {totalUploadFiles}
-                      </p>
-                    )}
+                    <div className="flex justify-between items-center">
+                      {totalUploadFiles > 1 && (
+                        <p className="text-white/50 text-xs">
+                          Ficheiro {uploadFileIndex} de {totalUploadFiles}
+                        </p>
+                      )}
+                      {currentFileSize > 0 && (
+                        <p className="text-white/50 text-xs">
+                          {formatBytes(currentFileSize)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-white/70">A enviar...</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/70">A enviar...</span>
+                        {uploadSpeed && (
+                          <span className="text-green-400 font-medium text-xs px-2 py-0.5 bg-green-400/10 rounded-full">
+                            {uploadSpeed}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-primary font-bold">{Math.round(uploadProgress)}%</span>
                     </div>
                     <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
@@ -2377,6 +2448,11 @@ export default function Dashboard() {
                         transition={{ duration: 0.1 }}
                       />
                     </div>
+                    {uploadTimeRemaining && uploadProgress < 99 && (
+                      <p className="text-white/50 text-xs mt-2 text-right">
+                        Tempo restante: ~{uploadTimeRemaining}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
