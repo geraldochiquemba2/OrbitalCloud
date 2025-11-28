@@ -5,8 +5,9 @@ import { Check, Cloud, Server, Lock, HardDrive, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import LoadingScreen from "@/components/LoadingScreen";
 
 // Import assets
 import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
@@ -16,12 +17,20 @@ import heroVideo from "@assets/4354033-hd_1280_720_25fps_1764245575076.mp4";
 export default function Home() {
   const [, navigate] = useLocation();
   const { isLoggedIn } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
       navigate("/dashboard");
     }
   }, [isLoggedIn, navigate]);
+
+  const handleNavigateWithLoading = (path: string) => {
+    setIsLoading(true);
+    setTimeout(() => {
+      navigate(path);
+    }, 100);
+  };
   const pricingPlans = [
     {
       name: "Grátis",
@@ -57,7 +66,9 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10">
+    <>
+      <LoadingScreen isVisible={isLoading} />
+      <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10">
       {/* Background Elements */}
       <div className="fixed inset-0 z-[-1]">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]" />
@@ -78,8 +89,8 @@ export default function Home() {
           <button onClick={() => navigate("/about")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Sobre</button>
         </div>
         <div className="flex gap-2 md:gap-4">
-          <button onClick={() => navigate("/login")} className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all cursor-pointer bg-transparent">Login</button>
-          <button onClick={() => navigate("/signup")} className="text-white rounded-full px-4 sm:px-6 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10 text-xs sm:text-base cursor-pointer bg-transparent">
+          <button onClick={() => handleNavigateWithLoading("/login")} className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all cursor-pointer bg-transparent">Login</button>
+          <button onClick={() => handleNavigateWithLoading("/signup")} className="text-white rounded-full px-4 sm:px-6 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10 text-xs sm:text-base cursor-pointer bg-transparent">
             Criar Conta
           </button>
         </div>
@@ -362,6 +373,7 @@ export default function Home() {
           </div>
         </footer>
       </section>
-    </div>
+      </div>
+    </>
   );
 }
