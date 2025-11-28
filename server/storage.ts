@@ -121,6 +121,7 @@ export interface IStorage {
   getPendingUpgradeRequests(): Promise<UpgradeRequest[]>;
   getUpgradeRequestsByUser(userId: string): Promise<UpgradeRequest[]>;
   processUpgradeRequest(id: string, status: string, adminNote?: string): Promise<void>;
+  cancelOtherUpgradeRequests(userId: string, excludeRequestId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -683,6 +684,20 @@ export class DatabaseStorage implements IStorage {
         processedAt: new Date()
       })
       .where(eq(upgradeRequests.id, id));
+  }
+
+  async cancelOtherUpgradeRequests(userId: string, excludeRequestId: string): Promise<void> {
+    await db
+      .update(upgradeRequests)
+      .set({ status: "rejected" })
+      .where(
+        and(
+          eq(upgradeRequests.userId, userId),
+          eq(upgradeRequests.status, "pending"),
+          // Don't update the current request
+          sql`${upgradeRequests.id} != ${excludeRequestId}`
+        )
+      );
   }
 }
 

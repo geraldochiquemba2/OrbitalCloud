@@ -1631,7 +1631,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Solicitação já foi processada" });
       }
       
-      // If approved, update user's plan
+      // If approved, update user's plan and cancel other requests
       if (status === "approved") {
         const planConfig = PLANS[upgradeRequest.requestedPlan as keyof typeof PLANS];
         if (planConfig) {
@@ -1641,6 +1641,9 @@ export async function registerRoutes(
             planConfig.uploadLimit,
             planConfig.storageLimit
           );
+          
+          // Cancel other pending requests from the same user
+          await storage.cancelOtherUpgradeRequests(upgradeRequest.userId, req.params.id);
         }
       }
       
@@ -1707,8 +1710,7 @@ export async function registerRoutes(
         try {
           const result = await telegramService.uploadFile(
             req.file.buffer,
-            req.file.originalname,
-            req.file.mimetype
+            req.file.originalname
           );
           proofTelegramFileId = result.fileId;
           proofTelegramBotId = result.botId;
