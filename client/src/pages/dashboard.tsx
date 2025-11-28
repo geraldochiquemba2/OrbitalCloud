@@ -17,7 +17,9 @@ import {
   getActiveEncryptionKey,
   createDownloadUrl,
   revokeDownloadUrl,
-  isEncryptionSupported
+  isEncryptionSupported,
+  getStoredEncryptionKey,
+  importKey
 } from "@/lib/encryption";
 
 interface FileItem {
@@ -384,7 +386,18 @@ export default function Dashboard() {
       if (!metaResponse.ok) return;
       
       const meta = await metaResponse.json();
-      const encryptionKey = await getActiveEncryptionKey();
+      let encryptionKey = await getActiveEncryptionKey();
+      
+      // Use shared encryption key for shared encrypted files
+      if (meta.isEncrypted && !meta.isOwner && meta.sharedEncryptionKey) {
+        try {
+          encryptionKey = await importKey(meta.sharedEncryptionKey);
+        } catch (err) {
+          console.error("Error importing shared encryption key for thumbnail:", err);
+          setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+          return;
+        }
+      }
       
       if (meta.isEncrypted && encryptionKey) {
         const fileResponse = await fetch(`/api/files/${fileId}/content`, { credentials: "include" });
@@ -464,12 +477,20 @@ export default function Dashboard() {
       }
       
       const meta = await metaResponse.json();
-      const encryptionKey = await getActiveEncryptionKey();
+      let encryptionKey = await getActiveEncryptionKey();
       
-      // Check if this is an encrypted shared file (not owned by current user)
-      if (meta.isEncrypted && !meta.isOwner) {
-        toast.error("Este ficheiro está encriptado e não pode ser visualizado. Apenas o dono pode ver ficheiros encriptados.");
-        throw new Error("Cannot decrypt shared encrypted file");
+      // Use shared encryption key for shared encrypted files
+      if (meta.isEncrypted && !meta.isOwner && meta.sharedEncryptionKey) {
+        try {
+          encryptionKey = await importKey(meta.sharedEncryptionKey);
+        } catch (err) {
+          console.error("Error importing shared encryption key:", err);
+          toast.error("Erro ao carregar chave de encriptação partilhada");
+          throw new Error("Cannot import shared encryption key");
+        }
+      } else if (meta.isEncrypted && !meta.isOwner && !meta.sharedEncryptionKey) {
+        toast.error("Este ficheiro está encriptado e não tem a chave de acesso partilhada.");
+        throw new Error("No shared encryption key available");
       }
       
       if (meta.isEncrypted && encryptionKey) {
@@ -885,14 +906,22 @@ export default function Dashboard() {
       }
       
       const data = await response.json();
-      const encryptionKey = await getActiveEncryptionKey();
+      let encryptionKey = await getActiveEncryptionKey();
       
       let fileBlob: Blob;
       
-      // Check if this is an encrypted shared file (not owned by current user)
-      if (data.isEncrypted && !data.isOwner) {
-        toast.error("Este ficheiro está encriptado e não pode ser baixado. Apenas o dono pode baixar ficheiros encriptados.");
-        throw new Error("Cannot decrypt shared encrypted file");
+      // Use shared encryption key for shared encrypted files
+      if (data.isEncrypted && !data.isOwner && data.sharedEncryptionKey) {
+        try {
+          encryptionKey = await importKey(data.sharedEncryptionKey);
+        } catch (err) {
+          console.error("Error importing shared encryption key:", err);
+          toast.error("Erro ao carregar chave de encriptação partilhada");
+          throw new Error("Cannot import shared encryption key");
+        }
+      } else if (data.isEncrypted && !data.isOwner && !data.sharedEncryptionKey) {
+        toast.error("Este ficheiro está encriptado e não tem a chave de acesso partilhada.");
+        throw new Error("No shared encryption key available");
       }
       
       if (data.isEncrypted) {
@@ -993,6 +1022,15 @@ export default function Dashboard() {
     
     setShareSending(true);
     try {
+      // Get encryption key to share if the file is encrypted
+      let sharedEncryptionKey: string | undefined;
+      if (selectedFile.isEncrypted) {
+        const storedKey = getStoredEncryptionKey();
+        if (storedKey) {
+          sharedEncryptionKey = storedKey;
+        }
+      }
+      
       const response = await fetch("/api/shares/send-email", {
         method: "POST",
         credentials: "include",
@@ -1001,7 +1039,8 @@ export default function Dashboard() {
           email: shareEmail.trim(),
           shareLink: shareLink,
           fileName: selectedFile.nome,
-          fileId: selectedFile.id
+          fileId: selectedFile.id,
+          sharedEncryptionKey
         })
       });
       

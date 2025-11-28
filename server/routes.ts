@@ -1088,11 +1088,12 @@ export async function registerRoutes(
   // Send share link via email (and create file permission)
   app.post("/api/shares/send-email", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { email, shareLink, fileName, fileId } = z.object({ 
+      const { email, shareLink, fileName, fileId, sharedEncryptionKey } = z.object({ 
         email: z.string().email(),
         shareLink: z.string(),
         fileName: z.string(),
-        fileId: z.string()
+        fileId: z.string(),
+        sharedEncryptionKey: z.string().optional()
       }).parse(req.body);
 
       // Check if email is registered in the system
@@ -1112,15 +1113,16 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Ficheiro já partilhado com este utilizador" });
       }
 
-      // Create file permission for the target user
+      // Create file permission for the target user with shared encryption key
       await storage.createFilePermission({
         fileId,
         userId: targetUser.id,
         role: "viewer",
-        grantedBy: req.user!.id
+        grantedBy: req.user!.id,
+        sharedEncryptionKey: sharedEncryptionKey
       });
 
-      console.log(`[Share] File ${fileName} shared with ${email} by ${req.user!.email}`);
+      console.log(`[Share] File ${fileName} shared with ${email} by ${req.user!.email}${sharedEncryptionKey ? ' (with encryption key)' : ''}`);
 
       res.json({ 
         success: true, 
@@ -1335,11 +1337,21 @@ export async function registerRoutes(
 
       // Check if current user is the file owner
       const isOwner = file.userId === req.user!.id;
+      
+      // Get shared encryption key if user is not owner but has file permission
+      let sharedEncryptionKey: string | null = null;
+      if (!isOwner && file.isEncrypted) {
+        const permission = await storage.getFilePermission(req.params.id, req.user!.id);
+        if (permission?.sharedEncryptionKey) {
+          sharedEncryptionKey = permission.sharedEncryptionKey;
+        }
+      }
 
       res.json({
         downloadUrl,
         isEncrypted: file.isEncrypted || false,
         isOwner,
+        sharedEncryptionKey,
         originalMimeType: file.originalMimeType || file.tipoMime,
         originalSize: file.originalSize || file.tamanho,
         nome: file.nome,
