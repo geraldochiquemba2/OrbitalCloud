@@ -934,6 +934,82 @@ export async function registerRoutes(
     }
   });
 
+  // Remove file from shared list (invitee removes themselves from the share)
+  app.delete("/api/shared/files/:fileId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const fileId = req.params.fileId;
+      const userId = req.user!.id;
+      
+      // Get the file to check ownership
+      const file = await storage.getFile(fileId);
+      if (!file) {
+        return res.status(404).json({ message: "Ficheiro não encontrado" });
+      }
+      
+      // Don't allow owner to remove from shared list (they should use delete share instead)
+      if (file.userId === userId) {
+        return res.status(400).json({ message: "Não pode remover os seus próprios ficheiros da lista de partilhados" });
+      }
+      
+      // Get the file permission specifically for THIS user only
+      const permission = await storage.getFilePermission(fileId, userId);
+      if (!permission) {
+        return res.status(404).json({ message: "Não tem permissão direta para este ficheiro" });
+      }
+      
+      // Extra validation: ensure the permission belongs to the current user
+      if (permission.userId !== userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+      
+      // Delete only this user's permission
+      await storage.deleteFilePermission(permission.id);
+      
+      res.json({ success: true, message: "Ficheiro removido da lista de partilhados" });
+    } catch (error) {
+      console.error("Remove shared file error:", error);
+      res.status(500).json({ message: "Erro ao remover ficheiro partilhado" });
+    }
+  });
+
+  // Remove folder from shared list (invitee removes themselves from the share)
+  app.delete("/api/shared/folders/:folderId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const folderId = req.params.folderId;
+      const userId = req.user!.id;
+      
+      // Get the folder to check ownership
+      const folder = await storage.getFolder(folderId);
+      if (!folder) {
+        return res.status(404).json({ message: "Pasta não encontrada" });
+      }
+      
+      // Don't allow owner to remove from shared list
+      if (folder.userId === userId) {
+        return res.status(400).json({ message: "Não pode remover as suas próprias pastas da lista de partilhados" });
+      }
+      
+      // Get the folder permission specifically for THIS user only
+      const permission = await storage.getFolderPermission(folderId, userId);
+      if (!permission) {
+        return res.status(404).json({ message: "Não tem permissão direta para esta pasta" });
+      }
+      
+      // Extra validation: ensure the permission belongs to the current user
+      if (permission.userId !== userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+      
+      // Delete only this user's permission
+      await storage.deleteFolderPermission(permission.id);
+      
+      res.json({ success: true, message: "Pasta removida da lista de partilhados" });
+    } catch (error) {
+      console.error("Remove shared folder error:", error);
+      res.status(500).json({ message: "Erro ao remover pasta partilhada" });
+    }
+  });
+
   // ========== SHARES ROUTES ==========
 
   // Create share link

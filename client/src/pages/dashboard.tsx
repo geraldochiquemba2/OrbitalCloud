@@ -1030,6 +1030,46 @@ export default function Dashboard() {
     }
   };
 
+  const removeFromSharedFiles = async (fileId: string) => {
+    try {
+      const response = await fetch(`/api/shared/files/${fileId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      
+      if (response.ok) {
+        toast.success("Ficheiro removido da lista de partilhados");
+        setSharedFiles(prev => prev.filter(f => f.id !== fileId));
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao remover ficheiro");
+      }
+    } catch (err) {
+      console.error("Error removing from shared files:", err);
+      toast.error("Erro ao remover ficheiro partilhado");
+    }
+  };
+
+  const removeFromSharedFolders = async (folderId: string) => {
+    try {
+      const response = await fetch(`/api/shared/folders/${folderId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      
+      if (response.ok) {
+        toast.success("Pasta removida da lista de partilhados");
+        setSharedFolders(prev => prev.filter(f => f.id !== folderId));
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao remover pasta");
+      }
+    } catch (err) {
+      console.error("Error removing from shared folders:", err);
+      toast.error("Erro ao remover pasta partilhada");
+    }
+  };
+
   // Trash handlers
   const restoreFile = async (fileId: string) => {
     try {
@@ -1506,6 +1546,16 @@ export default function Dashboard() {
                           onClick={() => setCurrentSharedFolderId(folder.id)}
                           data-testid={`shared-folder-item-${folder.id}`}
                         >
+                          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeFromSharedFolders(folder.id); }}
+                              className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                              title="Remover da lista"
+                              data-testid={`button-remove-shared-folder-${folder.id}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
                           <FolderOpen className="w-10 h-10 text-blue-400 mb-2" />
                           <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
                           <span className="text-blue-300/60 text-[10px]">
@@ -1546,7 +1596,7 @@ export default function Dashboard() {
                             <p className="text-blue-300/60 text-[10px]">{file.ownerName}</p>
                           </div>
                           
-                          <div className="absolute top-1 right-1">
+                          <div className="absolute top-1 right-1 flex items-center gap-1">
                             <button
                               onClick={(e) => { e.stopPropagation(); e.preventDefault(); downloadFile(file); }}
                               className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
@@ -1554,6 +1604,14 @@ export default function Dashboard() {
                               data-testid={`button-download-shared-${file.id}`}
                             >
                               <Download className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromSharedFiles(file.id); }}
+                              className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                              title="Remover da lista"
+                              data-testid={`button-remove-shared-${file.id}`}
+                            >
+                              <X className="w-3 h-3" />
                             </button>
                           </div>
                         </motion.div>
