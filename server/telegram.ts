@@ -36,6 +36,8 @@ interface CachedUrl {
   expiresAt: number;
 }
 
+import crypto from "crypto";
+
 class TelegramService {
   private bots: TelegramBot[] = [];
   private currentBotIndex: number = 0;
@@ -230,14 +232,29 @@ class TelegramService {
   }
 
   /**
+   * Gera um nome de ficheiro ofuscado para segurança
+   * Mantém apenas a extensão para compatibilidade
+   */
+  private generateObfuscatedFileName(originalFileName: string): string {
+    const randomId = crypto.randomBytes(16).toString('hex');
+    const extension = originalFileName.includes('.') 
+      ? '.' + originalFileName.split('.').pop()?.toLowerCase() 
+      : '';
+    return `${randomId}${extension}`;
+  }
+
+  /**
    * Upload para um bot específico
    */
   private async uploadFileToBot(bot: TelegramBot, fileBuffer: Buffer, fileName: string): Promise<UploadResult> {
     const chatId = process.env.TELEGRAM_STORAGE_CHAT_ID || bot.id;
+    
+    // Ofusca o nome do ficheiro para segurança
+    const obfuscatedFileName = this.generateObfuscatedFileName(fileName);
 
     const formData = new FormData();
     const blob = new Blob([fileBuffer], { type: "application/octet-stream" });
-    formData.append("document", blob, fileName);
+    formData.append("document", blob, obfuscatedFileName);
     formData.append("chat_id", chatId);
 
     const controller = new AbortController();
