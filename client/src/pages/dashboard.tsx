@@ -463,6 +463,16 @@ export default function Dashboard() {
     });
   }, [files, loadThumbnail]);
 
+  // Also load thumbnails for shared files
+  useEffect(() => {
+    const mediaFiles = sharedFiles.filter(isMediaFile);
+    mediaFiles.forEach(file => {
+      if (!fileThumbnails[file.id]) {
+        loadThumbnail(file.id, getEffectiveMimeType(file));
+      }
+    });
+  }, [sharedFiles, loadThumbnail]);
+
   // Open file preview
   const openPreview = async (file: FileItem) => {
     setPreviewFile(file);
