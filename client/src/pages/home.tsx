@@ -14,6 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
 import cubeImage from "@assets/generated_images/3d_abstract_floating_cube.png";
 import heroVideo from "@assets/4354033-hd_1280_720_25fps_1764245575076.mp4";
+import pricingPoster from "@assets/generated_images/pricing_video_first_frame.png";
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -30,14 +31,17 @@ export default function Home() {
   }, [isLoggedIn, navigate]);
 
   useEffect(() => {
-    // When all videos are loaded, wait 4 seconds then hide loading screen
-    if (videosLoaded === totalVideos) {
+    // On mobile, show content faster (2 seconds) since videos may load slowly
+    // On desktop, wait for videos to load then show after 3 seconds
+    const timeout = isMobile ? 2000 : 3000;
+    
+    if (videosLoaded >= 1 || isMobile) {
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 4000);
+      }, timeout);
       return () => clearTimeout(timer);
     }
-  }, [videosLoaded]);
+  }, [videosLoaded, isMobile]);
 
   const handleVideoLoaded = () => {
     setVideosLoaded(prev => Math.min(prev + 1, totalVideos));
@@ -276,18 +280,28 @@ export default function Home() {
       <section id="pricing" className="relative min-h-screen py-24 px-6 md:px-12 overflow-hidden flex flex-col">
         {/* Video Background Container */}
         <div className="absolute inset-0 z-0">
+          {/* Poster image - always visible until video loads */}
+          <img 
+            src={pricingPoster} 
+            alt="Background" 
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ zIndex: 1 }}
+          />
           <video
             key="pricing-video"
             autoPlay
             muted
             loop
             playsInline
+            preload={isMobile ? "metadata" : "auto"}
             onCanPlay={handleVideoLoaded}
-            className="w-full h-full object-cover"
+            onLoadedData={handleVideoLoaded}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ zIndex: 2 }}
           >
             <source src="/pricing-video.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/40" style={{ zIndex: 3 }} />
         </div>
         
         <div className="max-w-7xl mx-auto relative z-10 w-full flex-1 flex items-center">
