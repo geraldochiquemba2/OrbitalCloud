@@ -1039,13 +1039,20 @@ export default function Dashboard() {
   const fetchFileShares = async (fileId: string) => {
     setSharesLoading(true);
     try {
+      console.log("📥 Fetching shares for file:", fileId);
       const response = await fetch(`/api/files/${fileId}/shares`, { credentials: "include" });
+      console.log("📥 Response status:", response.status);
       if (response.ok) {
         const shares = await response.json();
+        console.log("📥 Shares data:", shares);
         setFileShares(shares);
+      } else {
+        console.error("📥 Failed to fetch shares:", response.statusText);
+        setFileShares([]);
       }
     } catch (err) {
-      console.error("Error fetching shares:", err);
+      console.error("📥 Error fetching shares:", err);
+      setFileShares([]);
     } finally {
       setSharesLoading(false);
     }
