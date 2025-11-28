@@ -13,18 +13,18 @@ export const users = pgTable("users", {
   storageLimit: bigint("storage_limit", { mode: "number" }).notNull().default(16106127360), // 15GB em bytes
   storageUsed: bigint("storage_used", { mode: "number" }).notNull().default(0),
   uploadsCount: integer("uploads_count").notNull().default(0),
-  uploadLimit: integer("upload_limit").notNull().default(50), // Limite de uploads por plano
+  uploadLimit: integer("upload_limit").notNull().default(-1), // -1 = ilimitado, limite é pelo espaço
   isAdmin: boolean("is_admin").notNull().default(false),
   encryptionSalt: text("encryption_salt"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Planos disponíveis com seus limites
+// Planos disponíveis com seus limites (uploads sempre ilimitados, limite é pelo espaço)
 export const PLANS = {
-  gratis: { nome: "Grátis", uploadLimit: 50, storageLimit: 16106127360, preco: 0 },
-  basico: { nome: "Básico", uploadLimit: 200, storageLimit: 53687091200, preco: 2500 }, // 50GB
-  profissional: { nome: "Profissional", uploadLimit: 1000, storageLimit: 107374182400, preco: 5000 }, // 100GB
-  empresarial: { nome: "Empresarial", uploadLimit: -1, storageLimit: 536870912000, preco: 15000 }, // 500GB, ilimitado uploads
+  gratis: { nome: "Grátis", uploadLimit: -1, storageLimit: 16106127360, preco: 0 }, // 15GB
+  basico: { nome: "Básico", uploadLimit: -1, storageLimit: 53687091200, preco: 2500 }, // 50GB
+  profissional: { nome: "Profissional", uploadLimit: -1, storageLimit: 107374182400, preco: 5000 }, // 100GB
+  empresarial: { nome: "Empresarial", uploadLimit: -1, storageLimit: 536870912000, preco: 15000 }, // 500GB
 } as const;
 
 export const folders = pgTable("folders", {
