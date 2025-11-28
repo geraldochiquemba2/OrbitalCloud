@@ -1289,12 +1289,16 @@ export default function Dashboard() {
     return `${(availableGB * 1024).toFixed(2)} MB`;
   };
 
+  // Show loading screen immediately if user not loaded yet
+  if (!user) {
+    return <LoadingScreen isVisible={true} />;
+  }
+
   return (
     <>
       {/* Loading Screen - Always rendered first to cover everything */}
       <LoadingScreen isVisible={showLoading} />
       
-      {user && (
       <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-foreground selection:bg-primary/10">
         {/* Navigation */}
         <nav className="w-full py-4 px-4 md:px-8 flex justify-between items-center z-50 fixed top-0 left-0 backdrop-blur-md bg-black/20 border-b border-white/10">
@@ -3299,7 +3303,6 @@ export default function Dashboard() {
         </div>
       </motion.footer>
       </div>
-      )}
     </>
   );
 }
