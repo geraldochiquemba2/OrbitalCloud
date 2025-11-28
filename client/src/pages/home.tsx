@@ -18,6 +18,8 @@ export default function Home() {
   const [, navigate] = useLocation();
   const { isLoggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [videosLoaded, setVideosLoaded] = useState(0);
+  const totalVideos = 2; // Hero video + Pricing video
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -25,8 +27,21 @@ export default function Home() {
     }
   }, [isLoggedIn, navigate]);
 
+  useEffect(() => {
+    // If all videos are loaded and we're not in navigation loading, hide loading screen
+    if (videosLoaded === totalVideos && !isLoading) {
+      setIsLoading(false);
+    }
+  }, [videosLoaded, isLoading]);
+
+  const handleVideoLoaded = () => {
+    setVideosLoaded(prev => Math.min(prev + 1, totalVideos));
+  };
+
   const handleNavigateWithLoading = (path: string) => {
     setIsLoading(true);
+    // Reset video loaded state when navigating away
+    setVideosLoaded(0);
     setTimeout(() => {
       navigate(path);
     }, 100);
@@ -99,7 +114,7 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden">
         {/* Video Background */}
         <div className="absolute inset-0 z-0">
-          <VideoBackground videoSrc={heroVideo} posterSrc={heroImage} />
+          <VideoBackground videoSrc={heroVideo} posterSrc={heroImage} onLoad={handleVideoLoaded} />
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 md:gap-12 items-center w-full max-w-7xl mx-auto relative z-10">
@@ -255,6 +270,7 @@ export default function Home() {
             muted
             loop
             playsInline
+            onCanPlay={handleVideoLoaded}
             className="w-full h-full object-cover"
           >
             <source src="/pricing-video.mp4" type="video/mp4" />
