@@ -7,7 +7,7 @@ interface LoadingScreenProps {
 export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-500 ease-in-out will-change-opacity ${
         isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
       style={{
