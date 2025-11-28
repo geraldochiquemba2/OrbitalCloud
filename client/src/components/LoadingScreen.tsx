@@ -8,13 +8,15 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
   return (
     <div
       className={`fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-500 ease-in-out will-change-opacity ${
-        isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        isVisible ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'
       }`}
       style={{
         backgroundImage: `url(${loadingBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
+        backgroundAttachment: 'fixed',
+        backfaceVisibility: 'hidden',
+        transform: 'translateZ(0)'
       }}
     >
       {/* Dark overlay for better contrast */}
