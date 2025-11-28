@@ -2373,7 +2373,7 @@ export default function Dashboard() {
                   </div>
                   <h2 className="text-xl font-bold text-white">Partilhar Ficheiro</h2>
                 </div>
-                <button onClick={() => { setShowShareModal(false); setSelectedFile(null); setShareLink(null); setShareEmail(""); }} className="text-white/50 hover:text-white">
+                <button onClick={() => { setShowShareModal(false); setSelectedFile(null); setShareLink(null); setShareEmail(""); fetchFileShares(selectedFile?.id || ""); }} className="text-white/50 hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -2462,7 +2462,7 @@ export default function Dashboard() {
               
               <div className="mt-4 flex justify-end">
                 <button
-                  onClick={() => { setShowShareModal(false); setSelectedFile(null); setShareLink(null); setShareEmail(""); setFileShares([]); }}
+                  onClick={() => { setShowShareModal(false); setSelectedFile(null); setShareLink(null); setShareEmail(""); }}
                   className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors font-medium"
                   data-testid="button-close-share"
                 >
