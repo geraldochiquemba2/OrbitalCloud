@@ -1410,10 +1410,10 @@ export default function Dashboard() {
               <p className="text-white/70">Gerencie os seus ficheiros na nuvem</p>
               
               {/* Quick Actions */}
-              <div className="flex flex-wrap gap-3 mt-6">
+              <div className="grid grid-cols-2 gap-3 mt-6">
                 <button 
                   onClick={() => setShowUploadModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all"
                   data-testid="button-upload"
                 >
                   <Upload className="w-4 h-4" />
@@ -1421,7 +1421,7 @@ export default function Dashboard() {
                 </button>
                 <button 
                   onClick={() => setShowFolderModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium transition-all"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium transition-all"
                   data-testid="button-create-folder"
                 >
                   <FolderPlus className="w-4 h-4" />
@@ -1429,7 +1429,7 @@ export default function Dashboard() {
                 </button>
                 <button 
                   onClick={() => { setViewMode(viewMode === "trash" ? "files" : "trash"); setCurrentFolderId(null); setFolderPath([]); setCurrentSharedFolderId(null); setSharedFolderPath([]); }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 font-medium transition-all ${viewMode === "trash" ? "bg-red-500/20 text-red-300" : "bg-white/10 hover:bg-white/20 text-white"}`}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-white/20 font-medium transition-all ${viewMode === "trash" ? "bg-red-500/20 text-red-300" : "bg-white/10 hover:bg-white/20 text-white"}`}
                   data-testid="button-trash"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -1437,7 +1437,7 @@ export default function Dashboard() {
                 </button>
                 <button 
                   onClick={() => { setViewMode(viewMode === "shared" ? "files" : "shared"); setCurrentFolderId(null); setFolderPath([]); setCurrentSharedFolderId(null); setSharedFolderPath([]); }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 font-medium transition-all ${viewMode === "shared" ? "bg-blue-500/20 text-blue-300" : "bg-white/10 hover:bg-white/20 text-white"}`}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-white/20 font-medium transition-all ${viewMode === "shared" ? "bg-blue-500/20 text-blue-300" : "bg-white/10 hover:bg-white/20 text-white"}`}
                   data-testid="button-shared"
                 >
                   <Users className="w-4 h-4" />
