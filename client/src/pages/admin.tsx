@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import adminBgImage from "@/assets/dashboard-bg.jpg";
+import adminBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
 import { 
   ArrowLeft, 

@@ -11,7 +11,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import dashboardBgImage from "@/assets/dashboard-bg.jpg";
+import dashboardBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
 import { 
   encryptFile, 
