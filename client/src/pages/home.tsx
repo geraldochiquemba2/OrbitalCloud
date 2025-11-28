@@ -86,7 +86,7 @@ export default function Home() {
       storage: "Ilimitado",
       price: "Kz 25.000",
       period: "/mês",
-      features: ["Encriptação Ponta-a-Ponta", "Gestão de Usuários", "SLA Garantido", "Suporte Dedicado 24/7"],
+      features: ["Encriptação Ponta-a-Ponta", "SLA Garantido", "Suporte Dedicado 24/7"],
       highlight: false,
     },
   ];
