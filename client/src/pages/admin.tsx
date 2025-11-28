@@ -72,10 +72,10 @@ interface UpgradeRequest {
 }
 
 const PLANS = {
-  gratis: { name: "Grátis", color: "bg-gray-500" },
-  basico: { name: "Básico", color: "bg-blue-500" },
-  premium: { name: "Premium", color: "bg-purple-500" },
-  empresas: { name: "Empresas", color: "bg-amber-500" },
+  gratis: { name: "Grátis", color: "bg-gray-500", textColor: "text-gray-400" },
+  basico: { name: "Básico", color: "bg-blue-500", textColor: "text-blue-400" },
+  profissional: { name: "Profissional", color: "bg-purple-500", textColor: "text-purple-400" },
+  empresarial: { name: "Empresarial", color: "bg-amber-500", textColor: "text-amber-400" },
 };
 
 function formatBytes(bytes: number): string {
@@ -265,6 +265,20 @@ export default function AdminPage() {
   const processedRequests = upgradeRequests.filter(r => r.status !== "pending");
   const totalStorage = users.reduce((acc, u) => acc + u.storageUsed, 0);
   const totalUploads = users.reduce((acc, u) => acc + u.uploadsCount, 0);
+  
+  const usersByPlan = {
+    gratis: users.filter(u => u.plano === "gratis").length,
+    basico: users.filter(u => u.plano === "basico").length,
+    profissional: users.filter(u => u.plano === "profissional").length,
+    empresarial: users.filter(u => u.plano === "empresarial").length,
+  };
+  
+  const storageByPlan = {
+    gratis: users.filter(u => u.plano === "gratis").reduce((acc, u) => acc + u.storageUsed, 0),
+    basico: users.filter(u => u.plano === "basico").reduce((acc, u) => acc + u.storageUsed, 0),
+    profissional: users.filter(u => u.plano === "profissional").reduce((acc, u) => acc + u.storageUsed, 0),
+    empresarial: users.filter(u => u.plano === "empresarial").reduce((acc, u) => acc + u.storageUsed, 0),
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
@@ -345,6 +359,124 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Users by Plan Section */}
+          <Card className="bg-black/30 border-white/10 backdrop-blur-md mb-8">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-400" />
+                Distribuição por Plano
+              </CardTitle>
+              <CardDescription className="text-white/60">
+                Utilizadores e consumo de armazenamento por plano
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Object.entries(PLANS).map(([planKey, plan]) => {
+                  const count = usersByPlan[planKey as keyof typeof usersByPlan];
+                  const storage = storageByPlan[planKey as keyof typeof storageByPlan];
+                  const percentage = users.length > 0 ? ((count / users.length) * 100).toFixed(1) : 0;
+                  
+                  return (
+                    <div 
+                      key={planKey}
+                      className={`p-4 rounded-xl border ${plan.color}/20 border-${plan.textColor.replace('text-', '')}/30 bg-white/5`}
+                      data-testid={`stats-plan-${planKey}`}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={`w-3 h-3 rounded-full ${plan.color}`} />
+                        <span className={`font-semibold ${plan.textColor}`}>{plan.name}</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-white/50 text-sm">Utilizadores</span>
+                          <span className="text-white font-bold text-xl">{count}</span>
+                        </div>
+                        <div className="w-full bg-white/10 rounded-full h-2">
+                          <div 
+                            className={`${plan.color} h-full rounded-full transition-all`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <p className="text-white/40 text-xs">{percentage}% do total</p>
+                        <div className="pt-2 border-t border-white/10">
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-white/50 text-xs">Armazenamento</span>
+                            <span className="text-white/70 text-sm font-medium">{formatBytes(storage)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Pending Upgrade Requests Alert */}
+          {pendingRequests.length > 0 && (
+            <Card className="bg-amber-500/10 border-amber-500/30 backdrop-blur-md mb-8">
+              <CardHeader>
+                <CardTitle className="text-amber-400 flex items-center gap-2">
+                  <Clock className="w-5 h-5 animate-pulse" />
+                  {pendingRequests.length} Solicitação(ões) de Upgrade Pendente(s)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {pendingRequests.map((req) => (
+                    <div 
+                      key={req.id}
+                      className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10"
+                      data-testid={`pending-request-${req.id}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                          <Crown className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{req.userName}</p>
+                          <p className="text-white/50 text-sm">{req.userEmail}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="border-white/20 text-white/60">
+                              {PLANS[req.currentPlan as keyof typeof PLANS]?.name || req.currentPlan}
+                            </Badge>
+                            <span className="text-white/30">→</span>
+                            <Badge className={PLANS[req.requestedPlan as keyof typeof PLANS]?.color || "bg-gray-500"}>
+                              {PLANS[req.requestedPlan as keyof typeof PLANS]?.name || req.requestedPlan}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-green-500 hover:bg-green-600"
+                          onClick={() => handleApproveRequest(req.id)}
+                          disabled={processingRequest === req.id}
+                          data-testid={`button-quick-approve-${req.id}`}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Aprovar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => openRejectDialog(req)}
+                          disabled={processingRequest === req.id}
+                          data-testid={`button-quick-reject-${req.id}`}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Rejeitar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Tabs defaultValue="users" className="space-y-6">
             <TabsList className="bg-black/30 border border-white/10">
