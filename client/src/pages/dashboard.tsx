@@ -4,7 +4,7 @@ import {
   ArrowLeft, X, Edit, Move, RefreshCw, Link, Copy, Check,
   File, Image, Video, Music, FileCode, FileArchive, Lock,
   Shield, Loader2, AlertTriangle, UserPlus, Mail, Users,
-  CheckCircle, XCircle, Clock, FolderOpen
+  CheckCircle, XCircle, Clock, FolderOpen, Settings
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -1279,14 +1279,26 @@ export default function Dashboard() {
           </button>
         </div>
         
-        <button 
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-white rounded-full px-4 py-2 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all text-sm"
-          data-testid="button-logout"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Sair</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {user?.isAdmin && (
+            <button 
+              onClick={() => navigate("/admin")}
+              className="flex items-center gap-2 text-white rounded-full px-4 py-2 font-bold border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/70 backdrop-blur-sm transition-all text-sm"
+              data-testid="button-admin-panel"
+            >
+              <Settings className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">Admin</span>
+            </button>
+          )}
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-white rounded-full px-4 py-2 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all text-sm"
+            data-testid="button-logout"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Sair</span>
+          </button>
+        </div>
       </nav>
       {/* Encryption Warning Banner */}
       {needsEncryptionSetup && (
