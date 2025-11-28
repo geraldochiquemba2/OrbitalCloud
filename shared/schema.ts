@@ -12,9 +12,20 @@ export const users = pgTable("users", {
   plano: text("plano").notNull().default("gratis"),
   storageLimit: bigint("storage_limit", { mode: "number" }).notNull().default(16106127360), // 15GB em bytes
   storageUsed: bigint("storage_used", { mode: "number" }).notNull().default(0),
+  uploadsCount: integer("uploads_count").notNull().default(0),
+  uploadLimit: integer("upload_limit").notNull().default(50), // Limite de uploads por plano
+  isAdmin: boolean("is_admin").notNull().default(false),
   encryptionSalt: text("encryption_salt"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// Planos disponíveis com seus limites
+export const PLANS = {
+  gratis: { nome: "Grátis", uploadLimit: 50, storageLimit: 16106127360, preco: 0 },
+  basico: { nome: "Básico", uploadLimit: 200, storageLimit: 53687091200, preco: 2500 }, // 50GB
+  profissional: { nome: "Profissional", uploadLimit: 1000, storageLimit: 107374182400, preco: 5000 }, // 100GB
+  empresarial: { nome: "Empresarial", uploadLimit: -1, storageLimit: 536870912000, preco: 15000 }, // 500GB, ilimitado uploads
+} as const;
 
 export const folders = pgTable("folders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -94,6 +105,17 @@ export const folderPermissions = pgTable("folder_permissions", {
   role: text("role").notNull().default("viewer"), // 'viewer' ou 'collaborator'
   grantedBy: varchar("granted_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const upgradeRequests = pgTable("upgrade_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  currentPlan: text("current_plan").notNull(),
+  requestedPlan: text("requested_plan").notNull(),
+  status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
+  adminNote: text("admin_note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  processedAt: timestamp("processed_at"),
 });
 
 // Relations
@@ -247,6 +269,14 @@ export const insertFolderPermissionSchema = createInsertSchema(folderPermissions
   createdAt: true,
 });
 
+export const insertUpgradeRequestSchema = createInsertSchema(upgradeRequests).omit({
+  id: true,
+  createdAt: true,
+  status: true,
+  processedAt: true,
+  adminNote: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -271,3 +301,6 @@ export type InsertFilePermission = z.infer<typeof insertFilePermissionSchema>;
 
 export type FolderPermission = typeof folderPermissions.$inferSelect;
 export type InsertFolderPermission = z.infer<typeof insertFolderPermissionSchema>;
+
+export type UpgradeRequest = typeof upgradeRequests.$inferSelect;
+export type InsertUpgradeRequest = z.infer<typeof insertUpgradeRequestSchema>;

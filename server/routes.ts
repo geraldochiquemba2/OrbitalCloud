@@ -5,7 +5,7 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { z } from "zod";
-import { insertUserSchema, insertFileSchema, insertFolderSchema, insertShareSchema } from "@shared/schema";
+import { insertUserSchema, insertFileSchema, insertFolderSchema, insertShareSchema, PLANS } from "@shared/schema";
 import crypto from "crypto";
 import multer, { type Multer } from "multer";
 import { telegramService } from "./telegram";
@@ -40,6 +40,9 @@ declare global {
       plano: string;
       storageLimit: number;
       storageUsed: number;
+      uploadsCount: number;
+      uploadLimit: number;
+      isAdmin: boolean;
     }
     
     interface Request {
@@ -71,6 +74,9 @@ passport.use(
           plano: user.plano,
           storageLimit: user.storageLimit,
           storageUsed: user.storageUsed,
+          uploadsCount: user.uploadsCount,
+          uploadLimit: user.uploadLimit,
+          isAdmin: user.isAdmin,
         });
       } catch (error) {
         return done(error);
@@ -96,6 +102,9 @@ passport.deserializeUser(async (id: string, done) => {
       plano: user.plano,
       storageLimit: user.storageLimit,
       storageUsed: user.storageUsed,
+      uploadsCount: user.uploadsCount,
+      uploadLimit: user.uploadLimit,
+      isAdmin: user.isAdmin,
     });
   } catch (error) {
     done(error);
@@ -108,6 +117,19 @@ function requireAuth(req: Request, res: Response, next: Function) {
     return next();
   }
   res.status(401).json({ message: "Não autorizado" });
+}
+
+// Admin middleware
+async function requireAdmin(req: Request, res: Response, next: Function) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Não autorizado" });
+  }
+  
+  const user = await storage.getUser(req.user!.id);
+  if (!user?.isAdmin) {
+    return res.status(403).json({ message: "Acesso negado - requer privilégios de administrador" });
+  }
+  return next();
 }
 
 // Get storage limits by plan
@@ -184,6 +206,9 @@ export async function registerRoutes(
           plano: user.plano,
           storageLimit: user.storageLimit,
           storageUsed: user.storageUsed,
+          uploadsCount: user.uploadsCount,
+          uploadLimit: user.uploadLimit,
+          isAdmin: user.isAdmin,
         },
         (err) => {
           if (err) {
@@ -196,6 +221,9 @@ export async function registerRoutes(
             plano: user.plano,
             storageLimit: user.storageLimit,
             storageUsed: user.storageUsed,
+            uploadsCount: user.uploadsCount,
+            uploadLimit: user.uploadLimit,
+            isAdmin: user.isAdmin,
             encryptionSalt: salt,
           });
         }
@@ -369,6 +397,17 @@ export async function registerRoutes(
         return res.status(500).json({ message: "Erro ao verificar quota de armazenamento" });
       }
       
+      // Check upload limit (only for own uploads, not shared folder uploads)
+      if (storageOwnerId === user.id && storageOwner.uploadLimit !== -1) {
+        if (storageOwner.uploadsCount >= storageOwner.uploadLimit) {
+          return res.status(400).json({ 
+            message: "Limite de uploads atingido. Faça upgrade do seu plano para continuar.",
+            uploadsCount: storageOwner.uploadsCount,
+            uploadLimit: storageOwner.uploadLimit,
+          });
+        }
+      }
+      
       if (storageOwner.storageUsed + originalSize > storageOwner.storageLimit) {
         return res.status(400).json({ 
           message: storageOwnerId === user.id 
@@ -406,6 +445,9 @@ export async function registerRoutes(
 
       // Update storage for the storage owner (folder owner if shared folder)
       await storage.updateUserStorage(storageOwnerId, originalSize);
+      
+      // Increment upload count for the uploader
+      await storage.incrementUserUploadCount(user.id);
 
       res.json(file);
     } catch (error) {
@@ -1474,6 +1516,186 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Preview error:", error);
       res.status(500).json({ message: "Erro ao obter preview" });
+    }
+  });
+
+  // ========== ADMIN ROUTES ==========
+
+  // Get all users (admin only)
+  app.get("/api/admin/users", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users.map(u => ({
+        id: u.id,
+        email: u.email,
+        nome: u.nome,
+        plano: u.plano,
+        storageLimit: u.storageLimit,
+        storageUsed: u.storageUsed,
+        uploadsCount: u.uploadsCount,
+        uploadLimit: u.uploadLimit,
+        isAdmin: u.isAdmin,
+        createdAt: u.createdAt,
+      })));
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar utilizadores" });
+    }
+  });
+
+  // Update user plan (admin only)
+  app.patch("/api/admin/users/:id/plan", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { plano } = z.object({ plano: z.string() }).parse(req.body);
+      
+      const planConfig = PLANS[plano as keyof typeof PLANS];
+      if (!planConfig) {
+        return res.status(400).json({ message: "Plano inválido" });
+      }
+      
+      await storage.updateUserPlanFull(
+        req.params.id,
+        plano,
+        planConfig.uploadLimit,
+        planConfig.storageLimit
+      );
+      
+      res.json({ message: "Plano atualizado com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao atualizar plano" });
+    }
+  });
+
+  // Toggle admin status (admin only)
+  app.patch("/api/admin/users/:id/admin", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { isAdmin } = z.object({ isAdmin: z.boolean() }).parse(req.body);
+      
+      // Prevent removing own admin status
+      if (req.params.id === req.user!.id && !isAdmin) {
+        return res.status(400).json({ message: "Não pode remover o seu próprio estatuto de admin" });
+      }
+      
+      await storage.updateUserAdmin(req.params.id, isAdmin);
+      res.json({ message: isAdmin ? "Admin adicionado" : "Admin removido" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao atualizar admin" });
+    }
+  });
+
+  // Get all upgrade requests (admin only)
+  app.get("/api/admin/upgrade-requests", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const requests = await storage.getAllUpgradeRequests();
+      
+      // Get user details for each request
+      const requestsWithUsers = await Promise.all(
+        requests.map(async (req) => {
+          const user = await storage.getUser(req.userId);
+          return {
+            ...req,
+            userName: user?.nome || "Desconhecido",
+            userEmail: user?.email || "Desconhecido",
+          };
+        })
+      );
+      
+      res.json(requestsWithUsers);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar solicitações" });
+    }
+  });
+
+  // Process upgrade request (admin only)
+  app.patch("/api/admin/upgrade-requests/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { status, adminNote } = z.object({
+        status: z.enum(["approved", "rejected"]),
+        adminNote: z.string().optional(),
+      }).parse(req.body);
+      
+      const upgradeRequest = await storage.getUpgradeRequest(req.params.id);
+      if (!upgradeRequest) {
+        return res.status(404).json({ message: "Solicitação não encontrada" });
+      }
+      
+      if (upgradeRequest.status !== "pending") {
+        return res.status(400).json({ message: "Solicitação já foi processada" });
+      }
+      
+      // If approved, update user's plan
+      if (status === "approved") {
+        const planConfig = PLANS[upgradeRequest.requestedPlan as keyof typeof PLANS];
+        if (planConfig) {
+          await storage.updateUserPlanFull(
+            upgradeRequest.userId,
+            upgradeRequest.requestedPlan,
+            planConfig.uploadLimit,
+            planConfig.storageLimit
+          );
+        }
+      }
+      
+      await storage.processUpgradeRequest(req.params.id, status, adminNote);
+      res.json({ message: status === "approved" ? "Solicitação aprovada" : "Solicitação rejeitada" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao processar solicitação" });
+    }
+  });
+
+  // ========== USER PLAN ROUTES ==========
+
+  // Get available plans
+  app.get("/api/plans", async (req: Request, res: Response) => {
+    res.json(PLANS);
+  });
+
+  // Request plan upgrade
+  app.post("/api/upgrade-requests", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { requestedPlan } = z.object({
+        requestedPlan: z.string(),
+      }).parse(req.body);
+      
+      const planConfig = PLANS[requestedPlan as keyof typeof PLANS];
+      if (!planConfig) {
+        return res.status(400).json({ message: "Plano inválido" });
+      }
+      
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "Utilizador não encontrado" });
+      }
+      
+      if (user.plano === requestedPlan) {
+        return res.status(400).json({ message: "Já possui este plano" });
+      }
+      
+      // Check for existing pending request
+      const existingRequests = await storage.getUpgradeRequestsByUser(user.id);
+      const hasPending = existingRequests.some(r => r.status === "pending");
+      if (hasPending) {
+        return res.status(400).json({ message: "Já existe uma solicitação pendente" });
+      }
+      
+      const request = await storage.createUpgradeRequest({
+        userId: user.id,
+        currentPlan: user.plano,
+        requestedPlan,
+      });
+      
+      res.json({ message: "Solicitação enviada com sucesso", request });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao solicitar upgrade" });
+    }
+  });
+
+  // Get my upgrade requests
+  app.get("/api/my-upgrade-requests", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const requests = await storage.getUpgradeRequestsByUser(req.user!.id);
+      res.json(requests);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar solicitações" });
     }
   });
 

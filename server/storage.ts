@@ -7,6 +7,8 @@ import {
   invitations,
   filePermissions,
   folderPermissions,
+  upgradeRequests,
+  PLANS,
   type User, 
   type InsertUser,
   type File,
@@ -23,6 +25,8 @@ import {
   type InsertFilePermission,
   type FolderPermission,
   type InsertFolderPermission,
+  type UpgradeRequest,
+  type InsertUpgradeRequest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, or } from "drizzle-orm";
@@ -103,6 +107,20 @@ export interface IStorage {
   getSharedFoldersForUser(userId: string): Promise<Folder[]>;
   getFilesInSharedFolder(folderId: string, userId: string): Promise<File[]>;
   getFoldersInSharedFolder(parentId: string, userId: string): Promise<Folder[]>;
+
+  // Admin functions
+  getAllUsers(): Promise<User[]>;
+  updateUserAdmin(userId: string, isAdmin: boolean): Promise<void>;
+  incrementUserUploadCount(userId: string): Promise<void>;
+  updateUserPlanFull(userId: string, plano: string, uploadLimit: number, storageLimit: number): Promise<void>;
+
+  // Upgrade Requests
+  createUpgradeRequest(request: InsertUpgradeRequest): Promise<UpgradeRequest>;
+  getUpgradeRequest(id: string): Promise<UpgradeRequest | undefined>;
+  getAllUpgradeRequests(): Promise<UpgradeRequest[]>;
+  getPendingUpgradeRequests(): Promise<UpgradeRequest[]>;
+  getUpgradeRequestsByUser(userId: string): Promise<UpgradeRequest[]>;
+  processUpgradeRequest(id: string, status: string, adminNote?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -600,6 +618,71 @@ export class DatabaseStorage implements IStorage {
       .from(folders)
       .where(eq(folders.parentId, parentId))
       .orderBy(desc(folders.createdAt));
+  }
+
+  // Admin functions
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUserAdmin(userId: string, isAdmin: boolean): Promise<void> {
+    await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
+  }
+
+  async incrementUserUploadCount(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ uploadsCount: sql`${users.uploadsCount} + 1` })
+      .where(eq(users.id, userId));
+  }
+
+  async updateUserPlanFull(userId: string, plano: string, uploadLimit: number, storageLimit: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ plano, uploadLimit, storageLimit })
+      .where(eq(users.id, userId));
+  }
+
+  // Upgrade Requests
+  async createUpgradeRequest(request: InsertUpgradeRequest): Promise<UpgradeRequest> {
+    const [result] = await db.insert(upgradeRequests).values(request).returning();
+    return result;
+  }
+
+  async getUpgradeRequest(id: string): Promise<UpgradeRequest | undefined> {
+    const [request] = await db.select().from(upgradeRequests).where(eq(upgradeRequests.id, id));
+    return request || undefined;
+  }
+
+  async getAllUpgradeRequests(): Promise<UpgradeRequest[]> {
+    return db.select().from(upgradeRequests).orderBy(desc(upgradeRequests.createdAt));
+  }
+
+  async getPendingUpgradeRequests(): Promise<UpgradeRequest[]> {
+    return db
+      .select()
+      .from(upgradeRequests)
+      .where(eq(upgradeRequests.status, "pending"))
+      .orderBy(desc(upgradeRequests.createdAt));
+  }
+
+  async getUpgradeRequestsByUser(userId: string): Promise<UpgradeRequest[]> {
+    return db
+      .select()
+      .from(upgradeRequests)
+      .where(eq(upgradeRequests.userId, userId))
+      .orderBy(desc(upgradeRequests.createdAt));
+  }
+
+  async processUpgradeRequest(id: string, status: string, adminNote?: string): Promise<void> {
+    await db
+      .update(upgradeRequests)
+      .set({ 
+        status, 
+        adminNote: adminNote || null,
+        processedAt: new Date()
+      })
+      .where(eq(upgradeRequests.id, id));
   }
 }
 
