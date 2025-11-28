@@ -9,7 +9,7 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      className="fixed inset-0 z-[9999] flex items-center justify-center !opacity-100 !transition-none"
       style={{
         backgroundImage: `url(${loadingBg})`,
         backgroundSize: 'cover',
@@ -18,10 +18,10 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
       }}
     >
       {/* Dark overlay for better contrast */}
-      <div className="absolute inset-0 bg-black/70" />
+      <div className="absolute inset-0 bg-black/70 !transition-none" />
 
       {/* Content */}
-      <div className="relative flex flex-col items-center gap-8">
+      <div className="relative flex flex-col items-center gap-8 !transition-none">
         {/* Logo text */}
         <div className="text-center">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-2xl">
