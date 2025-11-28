@@ -2759,32 +2759,39 @@ export default function Dashboard() {
               </p>
 
               {/* Current Shares List */}
-              {fileShares.length > 0 && (
+              {inviteResourceType === "file" && (
                 <div className="mt-6 pt-6 border-t border-white/10">
-                  <h3 className="text-white/70 text-sm font-medium mb-3">Utilizadores com acesso ({fileShares.length})</h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {fileShares.map((share) => (
-                      <div 
-                        key={share.id}
-                        className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{share.email}</p>
-                          <p className="text-white/50 text-xs">
-                            {share.role === "editor" ? "Colaborador (Ver, download e upload)" : "Visualizador (Ver e download)"}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => removeFileShare(share.id)}
-                          className="ml-2 p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-colors flex-shrink-0"
-                          title="Remover acesso"
-                          data-testid={`button-remove-share-${share.id}`}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-white/70 text-sm font-medium">Utilizadores com acesso ({fileShares.length})</h3>
+                    {sharesLoading && <Loader2 className="w-4 h-4 animate-spin text-blue-400" />}
                   </div>
+                  {fileShares.length === 0 ? (
+                    <p className="text-white/40 text-xs text-center py-4">Nenhuma partilha ativa neste ficheiro</p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {fileShares.map((share) => (
+                        <div 
+                          key={share.id}
+                          className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{share.email}</p>
+                            <p className="text-white/50 text-xs">
+                              {share.role === "editor" ? "Colaborador (Ver, download e upload)" : "Visualizador (Ver e download)"}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeFileShare(share.id)}
+                            className="ml-2 p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-colors flex-shrink-0"
+                            title="Remover acesso"
+                            data-testid={`button-remove-share-${share.id}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
