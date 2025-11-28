@@ -21,7 +21,8 @@ import {
   revokeDownloadUrl,
   isEncryptionSupported,
   getStoredEncryptionKey,
-  importKey
+  importKey,
+  exportKey
 } from "@/lib/encryption";
 
 interface FileItem {
@@ -314,6 +315,19 @@ export default function Dashboard() {
     
     setInviteLoading(true);
     try {
+      // Get encryption key if user has encryption enabled (for sharing encrypted content)
+      let sharedEncryptionKey: string | undefined;
+      if (user?.encryptionSalt) {
+        try {
+          const encryptionKey = await getActiveEncryptionKey();
+          if (encryptionKey) {
+            sharedEncryptionKey = await exportKey(encryptionKey);
+          }
+        } catch (err) {
+          console.log("No encryption key available for sharing");
+        }
+      }
+
       const response = await fetch("/api/invitations", {
         method: "POST",
         credentials: "include",
@@ -323,6 +337,7 @@ export default function Dashboard() {
           resourceId: inviteResourceId,
           inviteeEmail: inviteEmail,
           role: inviteRole,
+          sharedEncryptionKey,
         }),
       });
       

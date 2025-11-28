@@ -84,6 +84,7 @@ export const invitations = pgTable("invitations", {
   role: text("role").notNull().default("viewer"), // 'viewer' ou 'collaborator'
   status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'declined', 'cancelled'
   token: text("token").notNull().unique(),
+  sharedEncryptionKey: text("shared_encryption_key"), // Chave de encriptação partilhada (base64)
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -104,6 +105,7 @@ export const folderPermissions = pgTable("folder_permissions", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: text("role").notNull().default("viewer"), // 'viewer' ou 'collaborator'
   grantedBy: varchar("granted_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sharedEncryptionKey: text("shared_encryption_key"), // Chave de encriptação partilhada (base64)
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -640,9 +640,10 @@ export async function registerRoutes(
         resourceId: z.string(),
         inviteeEmail: z.string().email(),
         role: z.enum(["viewer", "collaborator"]).optional().default("viewer"),
+        sharedEncryptionKey: z.string().optional(),
       });
 
-      const { resourceType, resourceId, inviteeEmail, role } = schema.parse(req.body);
+      const { resourceType, resourceId, inviteeEmail, role, sharedEncryptionKey } = schema.parse(req.body);
       const inviterId = req.user!.id;
 
       // Verify the resource exists and belongs to the user
@@ -680,6 +681,7 @@ export async function registerRoutes(
         inviteeEmail,
         role,
         token,
+        sharedEncryptionKey,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       });
 
@@ -822,13 +824,14 @@ export async function registerRoutes(
       // Update invitation status
       await storage.updateInvitationStatus(invitation.id, "accepted", req.user!.id);
       
-      // Create the appropriate permission
+      // Create the appropriate permission with encryption key if provided
       if (invitation.resourceType === "file") {
         await storage.createFilePermission({
           fileId: invitation.resourceId,
           userId: req.user!.id,
           role: invitation.role === "collaborator" ? "editor" : "viewer",
           grantedBy: invitation.inviterId,
+          sharedEncryptionKey: invitation.sharedEncryptionKey || undefined,
         });
       } else {
         await storage.createFolderPermission({
@@ -836,6 +839,7 @@ export async function registerRoutes(
           userId: req.user!.id,
           role: invitation.role,
           grantedBy: invitation.inviterId,
+          sharedEncryptionKey: invitation.sharedEncryptionKey || undefined,
         });
       }
       
@@ -1472,12 +1476,19 @@ export async function registerRoutes(
       // Check if current user is the file owner
       const isOwner = file.userId === req.user!.id;
       
-      // Get shared encryption key if user is not owner but has file permission
+      // Get shared encryption key if user is not owner but has file/folder permission
       let sharedEncryptionKey: string | null = null;
       if (!isOwner && file.isEncrypted) {
-        const permission = await storage.getFilePermission(req.params.id, req.user!.id);
-        if (permission?.sharedEncryptionKey) {
-          sharedEncryptionKey = permission.sharedEncryptionKey;
+        // First check direct file permission
+        const filePermission = await storage.getFilePermission(req.params.id, req.user!.id);
+        if (filePermission?.sharedEncryptionKey) {
+          sharedEncryptionKey = filePermission.sharedEncryptionKey;
+        } else if (file.folderId) {
+          // Check folder permission if file is in a folder
+          const folderPermission = await storage.getFolderPermission(file.folderId, req.user!.id);
+          if (folderPermission?.sharedEncryptionKey) {
+            sharedEncryptionKey = folderPermission.sharedEncryptionKey;
+          }
         }
       }
 
