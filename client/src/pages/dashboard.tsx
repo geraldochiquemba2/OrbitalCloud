@@ -1650,19 +1650,50 @@ export default function Dashboard() {
                             onClick={() => !file.isEncrypted && openPreview(file)}
                             title={file.isEncrypted ? "Ficheiro encriptado - não pode ser visualizado" : "Clique para ver"}
                           >
-                            <div className="w-full h-full flex items-center justify-center p-4 relative">
-                              <div className="w-12 h-12 flex items-center justify-center">
-                                {getFileIcon(getEffectiveMimeType(file))}
-                              </div>
-                              {file.isEncrypted && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                  <div className="flex flex-col items-center">
-                                    <Lock className="w-6 h-6 text-amber-400" />
-                                    <span className="text-[8px] text-amber-400 mt-1">Encriptado</span>
+                            {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
+                              <div className="w-full h-full relative">
+                                <img 
+                                  src={fileThumbnails[file.id]} 
+                                  alt={file.nome}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                                {file.isEncrypted && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                    <div className="flex flex-col items-center">
+                                      <Lock className="w-6 h-6 text-amber-400" />
+                                      <span className="text-[8px] text-amber-400 mt-1">Encriptado</span>
+                                    </div>
                                   </div>
+                                )}
+                              </div>
+                            ) : getEffectiveMimeType(file).startsWith("video/") ? (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50 relative">
+                                <Video className="w-10 h-10 text-white/60" />
+                                {file.isEncrypted && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                    <div className="flex flex-col items-center">
+                                      <Lock className="w-6 h-6 text-amber-400" />
+                                      <span className="text-[8px] text-amber-400 mt-1">Encriptado</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center p-4 relative">
+                                <div className="w-12 h-12 flex items-center justify-center">
+                                  {getFileIcon(getEffectiveMimeType(file))}
                                 </div>
-                              )}
-                            </div>
+                                {file.isEncrypted && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                    <div className="flex flex-col items-center">
+                                      <Lock className="w-6 h-6 text-amber-400" />
+                                      <span className="text-[8px] text-amber-400 mt-1">Encriptado</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           
                           <div className="p-2 flex-1">
