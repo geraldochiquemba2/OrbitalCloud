@@ -10,6 +10,9 @@ import { startKeepAlive } from "./keep-alive";
 const app = express();
 const httpServer = createServer(app);
 
+// Trust proxy - necessário para Render, Heroku, etc. (detecta HTTPS corretamente)
+app.set('trust proxy', 1);
+
 // Compressão gzip para respostas mais rápidas
 app.use(compression());
 
