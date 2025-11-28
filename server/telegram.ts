@@ -34,7 +34,7 @@ interface ChunkUploadResult {
   isChunked: boolean;
 }
 
-const CHUNK_SIZE = 45 * 1024 * 1024; // 45MB per chunk (with safety margin)
+const CHUNK_SIZE = 19 * 1024 * 1024; // 19MB per chunk (Telegram download limit is 20MB)
 const MAX_SINGLE_FILE_SIZE = 48 * 1024 * 1024; // 48MB - files larger than this will be chunked
 
 interface RetryConfig {
