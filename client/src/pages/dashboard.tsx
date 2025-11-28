@@ -159,6 +159,11 @@ export default function Dashboard() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
   const proofInputRef = useRef<HTMLInputElement>(null);
+  
+  // Upgrade requests tracking
+  const [upgradeRequests, setUpgradeRequests] = useState<Array<{id: string; status: string; requestedPlan: string; adminNote?: string; currentPlan: string}>>([]);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [selectedRejection, setSelectedRejection] = useState<{id: string; message?: string; plan: string} | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -167,7 +172,20 @@ export default function Dashboard() {
     }
     fetchContent();
     fetchPendingInvitations();
+    fetchUpgradeRequests();
   }, [user, navigate, currentFolderId, viewMode]);
+
+  const fetchUpgradeRequests = async () => {
+    try {
+      const response = await fetch("/api/my-upgrade-requests", { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setUpgradeRequests(data);
+      }
+    } catch (err) {
+      console.error("Error fetching upgrade requests:", err);
+    }
+  };
 
   const fetchPendingInvitations = async () => {
     try {
@@ -2697,6 +2715,44 @@ export default function Dashboard() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
+              {upgradeRequests.some(r => r.status === "rejected") && (
+                <div className="mb-6 p-4 bg-red-500/10 rounded-lg border border-red-500/30">
+                  <h3 className="text-red-400 font-medium mb-3 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Solicitações Rejeitadas
+                  </h3>
+                  <div className="space-y-2">
+                    {upgradeRequests.filter(r => r.status === "rejected").map(req => (
+                      <div key={req.id} className="p-3 bg-white/5 rounded-lg border border-red-500/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white text-sm">Upgrade para <span className="font-bold capitalize">{req.requestedPlan}</span></span>
+                          {req.adminNote && (
+                            <button
+                              onClick={() => {
+                                setSelectedRejection({id: req.id, message: req.adminNote, plan: req.requestedPlan});
+                                setShowRejectionModal(true);
+                              }}
+                              className="text-blue-400 text-xs hover:text-blue-300"
+                            >
+                              Ver motivo
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedPlanForUpgrade(req.requestedPlan);
+                            setShowUpgradeProofModal(true);
+                          }}
+                          className="text-xs px-3 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                        >
+                          Tentar Novamente
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Plano Grátis */}
@@ -2898,6 +2954,62 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rejection Modal */}
+      <AnimatePresence>
+        {showRejectionModal && selectedRejection && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] flex items-center justify-center p-4"
+            onClick={() => setShowRejectionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 w-full max-w-md border border-red-500/30"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-red-500/20">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white">Motivo da Rejeição</h3>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-white/70 text-sm mb-4">
+                  Sua solicitação de upgrade para o plano <span className="font-bold capitalize">{selectedRejection.plan}</span> foi rejeitada:
+                </p>
+                <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                  <p className="text-white text-sm">{selectedRejection.message || "Nenhuma mensagem fornecida"}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRejectionModal(false)}
+                  className="flex-1 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"
+                >
+                  OK
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRejectionModal(false);
+                    setSelectedPlanForUpgrade(selectedRejection.plan);
+                    setShowUpgradeProofModal(true);
+                  }}
+                  className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors"
+                >
+                  Tentar Novamente
+                </button>
               </div>
             </motion.div>
           </motion.div>
