@@ -1177,6 +1177,9 @@ export default function Dashboard() {
       
       if (response.ok) {
         toast.success("Ficheiro clonado com sucesso nos seus ficheiros!");
+        setViewMode("files");
+        setCurrentFolderId(null);
+        setFolderPath([]);
         await fetchContent();
         await refreshUser();
       } else {
