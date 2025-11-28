@@ -164,6 +164,8 @@ export default function Dashboard() {
   const [upgradeRequests, setUpgradeRequests] = useState<Array<{id: string; status: string; requestedPlan: string; adminNote?: string; currentPlan: string}>>([]);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [selectedRejection, setSelectedRejection] = useState<{id: string; message?: string; plan: string} | null>(null);
+  const [showApprovedSection, setShowApprovedSection] = useState(true);
+  const [showRejectedSection, setShowRejectedSection] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -2734,12 +2736,21 @@ export default function Dashboard() {
               )}
 
               {/* Approved Requests */}
-              {upgradeRequests.some(r => r.status === "approved") && (
+              {upgradeRequests.some(r => r.status === "approved") && showApprovedSection && (
                 <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-green-500/10 rounded-lg border border-green-500/30">
-                  <h3 className="text-green-400 font-medium mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>Solicitações Aprovadas ({upgradeRequests.filter(r => r.status === "approved").length})</span>
-                  </h3>
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-green-400 font-medium flex items-center gap-2 text-sm sm:text-base">
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>Solicitações Aprovadas ({upgradeRequests.filter(r => r.status === "approved").length})</span>
+                    </h3>
+                    <button
+                      onClick={() => setShowApprovedSection(false)}
+                      className="text-green-400 hover:text-green-300 transition-colors"
+                      data-testid="button-close-approved-section"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="space-y-2">
                     {upgradeRequests.filter(r => r.status === "approved").map(req => (
                       <div key={req.id} className="p-2 sm:p-3 bg-white/5 rounded-lg border border-green-500/20">
@@ -2751,12 +2762,21 @@ export default function Dashboard() {
               )}
 
               {/* Rejected Requests */}
-              {upgradeRequests.some(r => r.status === "rejected") && (
+              {upgradeRequests.some(r => r.status === "rejected") && showRejectedSection && (
                 <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-500/10 rounded-lg border border-red-500/30">
-                  <h3 className="text-red-400 font-medium mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                    <span>Solicitações Rejeitadas ({upgradeRequests.filter(r => r.status === "rejected").length})</span>
-                  </h3>
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="text-red-400 font-medium flex items-center gap-2 text-sm sm:text-base">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>Solicitações Rejeitadas ({upgradeRequests.filter(r => r.status === "rejected").length})</span>
+                    </h3>
+                    <button
+                      onClick={() => setShowRejectedSection(false)}
+                      className="text-red-400 hover:text-red-300 transition-colors"
+                      data-testid="button-close-rejected-section"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="space-y-2">
                     {upgradeRequests.filter(r => r.status === "rejected").map(req => (
                       <div key={req.id} className="p-2 sm:p-3 bg-white/5 rounded-lg border border-red-500/20">
