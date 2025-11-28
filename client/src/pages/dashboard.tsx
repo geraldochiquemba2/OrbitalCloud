@@ -152,6 +152,13 @@ export default function Dashboard() {
   // Plans modal
   const [showPlansModal, setShowPlansModal] = useState(false);
   const [requestingPlan, setRequestingPlan] = useState<string | null>(null);
+  
+  // Upgrade proof upload modal
+  const [showUpgradeProofModal, setShowUpgradeProofModal] = useState(false);
+  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<string | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const proofInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) {
@@ -2767,33 +2774,13 @@ export default function Dashboard() {
                     </button>
                   ) : (
                     <button 
-                      onClick={async () => {
-                        setRequestingPlan("basico");
-                        try {
-                          const response = await fetch("/api/upgrade-requests", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ requestedPlan: "basico" })
-                          });
-                          if (response.ok) {
-                            toast.success("Solicitação de upgrade enviada! Aguarde aprovação.");
-                            setShowPlansModal(false);
-                          } else {
-                            const data = await response.json();
-                            toast.error(data.message || "Erro ao solicitar upgrade");
-                          }
-                        } catch {
-                          toast.error("Erro ao solicitar upgrade");
-                        } finally {
-                          setRequestingPlan(null);
-                        }
+                      onClick={() => {
+                        setSelectedPlanForUpgrade("basico");
+                        setShowUpgradeProofModal(true);
                       }}
-                      disabled={requestingPlan === "basico"}
-                      className="w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
                       data-testid="button-request-basico"
                     >
-                      {requestingPlan === "basico" ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                       Solicitar Upgrade
                     </button>
                   )}
@@ -2837,33 +2824,13 @@ export default function Dashboard() {
                     </button>
                   ) : (
                     <button 
-                      onClick={async () => {
-                        setRequestingPlan("profissional");
-                        try {
-                          const response = await fetch("/api/upgrade-requests", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ requestedPlan: "profissional" })
-                          });
-                          if (response.ok) {
-                            toast.success("Solicitação de upgrade enviada! Aguarde aprovação.");
-                            setShowPlansModal(false);
-                          } else {
-                            const data = await response.json();
-                            toast.error(data.message || "Erro ao solicitar upgrade");
-                          }
-                        } catch {
-                          toast.error("Erro ao solicitar upgrade");
-                        } finally {
-                          setRequestingPlan(null);
-                        }
+                      onClick={() => {
+                        setSelectedPlanForUpgrade("profissional");
+                        setShowUpgradeProofModal(true);
                       }}
-                      disabled={requestingPlan === "profissional"}
-                      className="w-full py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
                       data-testid="button-request-profissional"
                     >
-                      {requestingPlan === "profissional" ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                       Solicitar Upgrade
                     </button>
                   )}
@@ -2904,33 +2871,13 @@ export default function Dashboard() {
                     </button>
                   ) : (
                     <button 
-                      onClick={async () => {
-                        setRequestingPlan("empresarial");
-                        try {
-                          const response = await fetch("/api/upgrade-requests", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ requestedPlan: "empresarial" })
-                          });
-                          if (response.ok) {
-                            toast.success("Solicitação de upgrade enviada! Aguarde aprovação.");
-                            setShowPlansModal(false);
-                          } else {
-                            const data = await response.json();
-                            toast.error(data.message || "Erro ao solicitar upgrade");
-                          }
-                        } catch {
-                          toast.error("Erro ao solicitar upgrade");
-                        } finally {
-                          setRequestingPlan(null);
-                        }
+                      onClick={() => {
+                        setSelectedPlanForUpgrade("empresarial");
+                        setShowUpgradeProofModal(true);
                       }}
-                      disabled={requestingPlan === "empresarial"}
-                      className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
                       data-testid="button-request-empresarial"
                     >
-                      {requestingPlan === "empresarial" ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                       Solicitar Upgrade
                     </button>
                   )}
@@ -2945,12 +2892,178 @@ export default function Dashboard() {
                   <div>
                     <h4 className="text-white font-medium text-sm mb-1">Como funciona o upgrade?</h4>
                     <p className="text-white/50 text-xs">
-                      Ao solicitar um upgrade, a nossa equipa irá entrar em contacto consigo para confirmar o pagamento. 
-                      Após confirmação, o seu plano será activado imediatamente. 
+                      Ao solicitar um upgrade, envie o comprovativo de pagamento (PDF ou imagem). 
+                      Após verificação, o seu plano será activado imediatamente. 
                       Para pagamento, aceitamos Multicaixa Express e transferência bancária.
                     </p>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Upgrade Proof Upload Modal */}
+      <AnimatePresence>
+        {showUpgradeProofModal && selectedPlanForUpgrade && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4"
+            onClick={() => {
+              if (!uploadingProof) {
+                setShowUpgradeProofModal(false);
+                setSelectedPlanForUpgrade(null);
+                setProofFile(null);
+              }
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/10"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white">Enviar Comprovativo</h3>
+                <button 
+                  onClick={() => {
+                    if (!uploadingProof) {
+                      setShowUpgradeProofModal(false);
+                      setSelectedPlanForUpgrade(null);
+                      setProofFile(null);
+                    }
+                  }}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  disabled={uploadingProof}
+                >
+                  <X className="w-5 h-5 text-white/70" />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-white/70 text-sm mb-4">
+                  Para solicitar o upgrade para o plano <span className="font-bold text-white capitalize">{selectedPlanForUpgrade}</span>, 
+                  envie o comprovativo de pagamento (PDF ou imagem).
+                </p>
+
+                <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30 mb-4">
+                  <h4 className="text-blue-400 font-medium text-sm mb-2">Dados para pagamento:</h4>
+                  <p className="text-white/70 text-xs mb-1">
+                    <span className="font-medium text-white">Multicaixa Express:</span> 923 456 789
+                  </p>
+                  <p className="text-white/70 text-xs">
+                    <span className="font-medium text-white">IBAN:</span> AO06 0040 0000 1234 5678 9012 3
+                  </p>
+                </div>
+
+                <input 
+                  type="file" 
+                  ref={proofInputRef}
+                  accept=".pdf,image/jpeg,image/png,image/jpg"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setProofFile(file);
+                    }
+                  }}
+                />
+
+                <div 
+                  onClick={() => proofInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                    proofFile 
+                      ? "border-green-500 bg-green-500/10" 
+                      : "border-white/20 hover:border-white/40"
+                  }`}
+                >
+                  {proofFile ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-400" />
+                      <div className="text-left">
+                        <p className="text-white font-medium text-sm truncate max-w-[200px]">{proofFile.name}</p>
+                        <p className="text-white/50 text-xs">{(proofFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProofFile(null);
+                        }}
+                        className="p-1 hover:bg-white/10 rounded-lg"
+                      >
+                        <X className="w-4 h-4 text-white/50" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-white/40 mx-auto mb-2" />
+                      <p className="text-white/70 text-sm">Clique para selecionar o comprovativo</p>
+                      <p className="text-white/40 text-xs mt-1">PDF, JPG ou PNG (máx. 10MB)</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowUpgradeProofModal(false);
+                    setSelectedPlanForUpgrade(null);
+                    setProofFile(null);
+                  }}
+                  disabled={uploadingProof}
+                  className="flex-1 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!proofFile || !selectedPlanForUpgrade) return;
+                    
+                    setUploadingProof(true);
+                    try {
+                      const formData = new FormData();
+                      formData.append("proof", proofFile);
+                      formData.append("requestedPlan", selectedPlanForUpgrade);
+                      
+                      const response = await fetch("/api/upgrade-requests", {
+                        method: "POST",
+                        credentials: "include",
+                        body: formData
+                      });
+                      
+                      if (response.ok) {
+                        toast.success("Solicitação enviada com sucesso! Aguarde aprovação.");
+                        setShowUpgradeProofModal(false);
+                        setShowPlansModal(false);
+                        setSelectedPlanForUpgrade(null);
+                        setProofFile(null);
+                      } else {
+                        const data = await response.json();
+                        toast.error(data.message || "Erro ao enviar solicitação");
+                      }
+                    } catch {
+                      toast.error("Erro ao enviar solicitação");
+                    } finally {
+                      setUploadingProof(false);
+                    }
+                  }}
+                  disabled={!proofFile || uploadingProof}
+                  className="flex-1 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {uploadingProof ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Enviar Solicitação"
+                  )}
+                </button>
               </div>
             </motion.div>
           </motion.div>
