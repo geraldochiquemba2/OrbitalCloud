@@ -2834,8 +2834,10 @@ export default function Dashboard() {
                         setSelectedPlanForUpgrade("basico");
                         setShowUpgradeProofModal(true);
                       }}
-                      className="w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      disabled={upgradeRequests.some(r => r.status === "pending")}
+                      className="w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       data-testid="button-request-basico"
+                      title={upgradeRequests.some(r => r.status === "pending") ? "Aguarde a resposta da solicitação atual" : ""}
                     >
                       Solicitar Upgrade
                     </button>
@@ -2884,8 +2886,10 @@ export default function Dashboard() {
                         setSelectedPlanForUpgrade("profissional");
                         setShowUpgradeProofModal(true);
                       }}
-                      className="w-full py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      disabled={upgradeRequests.some(r => r.status === "pending")}
+                      className="w-full py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       data-testid="button-request-profissional"
+                      title={upgradeRequests.some(r => r.status === "pending") ? "Aguarde a resposta da solicitação atual" : ""}
                     >
                       Solicitar Upgrade
                     </button>
@@ -2931,8 +2935,10 @@ export default function Dashboard() {
                         setSelectedPlanForUpgrade("empresarial");
                         setShowUpgradeProofModal(true);
                       }}
-                      className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      disabled={upgradeRequests.some(r => r.status === "pending")}
+                      className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       data-testid="button-request-empresarial"
+                      title={upgradeRequests.some(r => r.status === "pending") ? "Aguarde a resposta da solicitação atual" : ""}
                     >
                       Solicitar Upgrade
                     </button>
