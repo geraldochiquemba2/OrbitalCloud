@@ -1,6 +1,7 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function ThreeDCard({
   children,
@@ -12,6 +13,7 @@ export function ThreeDCard({
   containerClassName?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -20,7 +22,7 @@ export function ThreeDCard({
   const mouseY = useSpring(y);
 
   function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
-    if (!ref.current) return;
+    if (!ref.current || isMobile) return;
 
     const rect = ref.current.getBoundingClientRect();
 
@@ -41,6 +43,16 @@ export function ThreeDCard({
 
   const rotateX = useTransform(mouseY, [-100, 100], [5, -5]);
   const rotateY = useTransform(mouseX, [-100, 100], [-5, 5]);
+
+  if (isMobile) {
+    return (
+      <div className={cn("py-4 flex items-center justify-center", containerClassName)}>
+        <div className={cn("relative", className)}>
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -74,10 +86,13 @@ export function ThreeDCardBody({
   children: React.ReactNode;
   className?: string;
 }) {
+  const isMobile = useIsMobile();
+  
   return (
     <div
       className={cn(
-        "h-96 w-96 [transform-style:preserve-3d] [&>*]:[transform-style:preserve-3d]",
+        "h-96 w-96",
+        !isMobile && "[transform-style:preserve-3d] [&>*]:[transform-style:preserve-3d]",
         className
       )}
     >
@@ -109,11 +124,13 @@ export function ThreeDCardItem({
   rotateZ?: number | string;
   [key: string]: any;
 }) {
+  const isMobile = useIsMobile();
+  
   return React.createElement(
     Component,
     {
       className: cn("w-full transition-all duration-200 ease-linear", className),
-      style: {
+      style: isMobile ? {} : {
         transform: `translateX(${translateX}px) translateY(${translateY}px) translateZ(${translateZ}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg)`,
       },
       ...rest,
