@@ -858,12 +858,20 @@ export default function Dashboard() {
         };
         
         xhr.onerror = () => {
-          toast.error(`Erro ao enviar ${file.name}`);
+          console.error(`XHR error uploading ${file.name}`);
+          toast.error(`Erro de rede ao enviar ${file.name}. Verifique a sua conexão.`);
+          resolve(false);
+        };
+        
+        xhr.ontimeout = () => {
+          console.error(`XHR timeout uploading ${file.name} (file size: ${fileToUpload.size} bytes)`);
+          toast.error(`Timeout ao enviar ${file.name}. O ficheiro é muito grande ou a conexão é lenta.`);
           resolve(false);
         };
         
         xhr.open("POST", "/api/files/upload");
         xhr.withCredentials = true;
+        xhr.timeout = 600000; // 10 minutes timeout for large files
         xhr.send(formData);
       });
     } catch (err) {
