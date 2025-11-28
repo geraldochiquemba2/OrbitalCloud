@@ -1190,6 +1190,26 @@ export async function registerRoutes(
     }
   });
 
+  // Remove folder share/permission (remove all folder permissions)
+  app.delete("/api/folders/:id/shares", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const folder = await storage.getFolder(req.params.id);
+      if (!folder || folder.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Pasta não encontrada" });
+      }
+
+      // Get all folder permissions and delete them
+      const permissions = await storage.getFolderPermissionsByFolder(req.params.id);
+      for (const perm of permissions) {
+        await storage.deleteFolderPermission(perm.id);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete folder share error:", error);
+      res.status(500).json({ message: "Erro ao remover permissão" });
+    }
+  });
+
   // Send share link via email (and create file permission)
   app.post("/api/shares/send-email", requireAuth, async (req: Request, res: Response) => {
     try {

@@ -4,7 +4,7 @@ import {
   ArrowLeft, X, Edit, Move, RefreshCw, Link, Copy, Check,
   File, Image, Video, Music, FileCode, FileArchive, Lock,
   Shield, Loader2, AlertTriangle, UserPlus, Mail, Users,
-  CheckCircle, XCircle, Clock, FolderOpen, Settings
+  CheckCircle, XCircle, Clock, FolderOpen, Settings, UserX,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -1173,6 +1173,26 @@ export default function Dashboard() {
     }
   };
 
+  const removeFolderPermission = async (folderId: string) => {
+    try {
+      const response = await fetch(`/api/folders/${folderId}/shares`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      
+      if (response.ok) {
+        toast.success("Permissão removida");
+        setSharedFolders(prev => prev.filter(f => f.id !== folderId));
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao remover permissão");
+      }
+    } catch (err) {
+      console.error("Error removing folder permission:", err);
+      toast.error("Erro ao remover permissão");
+    }
+  };
+
   const removeFromSharedFiles = async (fileId: string) => {
     try {
       const response = await fetch(`/api/shared/files/${fileId}`, {
@@ -1778,7 +1798,15 @@ export default function Dashboard() {
                           onClick={() => setCurrentSharedFolderId(folder.id)}
                           data-testid={`shared-folder-item-${folder.id}`}
                         >
-                          <div className="absolute top-1 right-1 transition-opacity">
+                          <div className="absolute top-1 right-1 flex items-center gap-1 transition-opacity">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeFolderPermission(folder.id); }}
+                              className="p-1.5 rounded bg-amber-500/80 text-white hover:bg-amber-500 transition-colors"
+                              title="Remover permissão"
+                              data-testid={`button-remove-folder-permission-${folder.id}`}
+                            >
+                              <UserX className="w-3 h-3" />
+                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); removeFromSharedFolders(folder.id); }}
                               className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
@@ -1799,6 +1827,98 @@ export default function Dashboard() {
                   </div>
                 )}
                 
+                {/* Content inside Shared Folder */}
+                {viewMode === "shared" && currentSharedFolderId && (
+                  <>
+                    {folders.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-sm font-medium text-white/50 mb-3">Pastas</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          {folders.map((folder) => (
+                            <motion.div
+                              key={folder.id}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/20 cursor-pointer transition-all"
+                              onClick={() => { setCurrentSharedFolderId(folder.id); setSharedFolderPath([...sharedFolderPath, folder]); }}
+                              data-testid={`shared-subfolder-item-${folder.id}`}
+                            >
+                              <Folder className="w-10 h-10 text-blue-400 mb-2" />
+                              <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {files.length > 0 && (
+                      <div>
+                        {folders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                          {files.map((file) => (
+                            <motion.div
+                              key={file.id}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border transition-all overflow-hidden ${
+                                file.isEncrypted ? 'border-amber-500/50' : 'border-white/20'
+                              }`}
+                              data-testid={`shared-subfolder-file-item-${file.id}`}
+                            >
+                              <div 
+                                className={`aspect-square flex items-center justify-center bg-black/20 overflow-hidden ${
+                                  file.isEncrypted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                                }`}
+                                onClick={() => !file.isEncrypted && openPreview(file)}
+                              >
+                                {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
+                                  <img 
+                                    src={fileThumbnails[file.id]} 
+                                    alt={file.nome}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                  />
+                                ) : getEffectiveMimeType(file).startsWith("video/") ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50">
+                                    <Video className="w-10 h-10 text-white/60" />
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center p-4">
+                                    <div className="w-12 h-12 flex items-center justify-center">
+                                      {getFileIcon(getEffectiveMimeType(file))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="p-2 flex-1">
+                                <p className="text-white text-xs font-medium truncate" title={file.nome}>{file.nome}</p>
+                                {!file.isEncrypted && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); downloadFile(file); }}
+                                    className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors w-full mt-1"
+                                    title="Download"
+                                    data-testid={`button-download-shared-subfolder-${file.id}`}
+                                  >
+                                    <Download className="w-3 h-3 mx-auto" />
+                                  </button>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {files.length === 0 && folders.length === 0 && (
+                      <div className="flex flex-col items-center justify-center h-64 text-white/50">
+                        <FolderOpen className="w-16 h-16 mb-4 opacity-30" />
+                        <p className="text-lg">Pasta vazia</p>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 {/* Shared Files */}
                 {viewMode === "shared" && !currentSharedFolderId && sharedFiles.length > 0 && (
                   <div className="mb-6">
