@@ -338,6 +338,9 @@ export default function Dashboard() {
     setInviteResourceName(name);
     setInviteEmail("");
     setInviteRole("viewer");
+    if (type === "file") {
+      fetchFileShares(id);
+    }
     setShowInviteModal(true);
   };
 
