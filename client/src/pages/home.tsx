@@ -95,7 +95,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 absolute top-0 left-0">
         <button 
-          onClick={() => navigate("/")}
+          onClick={() => window.location.href = "/"}
           className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none"
         >
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
@@ -104,7 +104,7 @@ export default function Home() {
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80">
           <a href="#features" className="hover:text-white transition-colors cursor-pointer">Funcionalidades</a>
           <a href="#pricing" className="hover:text-white transition-colors cursor-pointer">Preços</a>
-          <button onClick={() => navigate("/about")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Sobre</button>
+          <button onClick={() => handleNavigateWithLoading("/about")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Sobre</button>
         </div>
         <div className="flex gap-2 md:gap-4">
           <button onClick={() => handleNavigateWithLoading("/login")} className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all cursor-pointer bg-transparent">Login</button>
@@ -162,7 +162,7 @@ export default function Home() {
               transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-11 sm:h-12 px-6 sm:px-8 rounded-full shadow-xl text-sm sm:text-base font-bold transition-all duration-300">
+              <Button onClick={() => handleNavigateWithLoading("/signup")} size="lg" className="bg-white hover:bg-white/90 text-primary h-11 sm:h-12 px-6 sm:px-8 rounded-full shadow-xl text-sm sm:text-base font-bold transition-all duration-300">
                 Começar Grátis
               </Button>
               <button 
