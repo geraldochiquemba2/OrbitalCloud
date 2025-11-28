@@ -12,11 +12,16 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
       }`}
       style={{
         backgroundImage: `url(${loadingBg})`,
+        backgroundColor: '#0f172a',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
         backfaceVisibility: 'hidden',
-        transform: 'translateZ(0)'
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+        transform: 'translateZ(0)',
+        margin: 0,
+        padding: 0
       }}
     >
       {/* Dark overlay for better contrast */}
