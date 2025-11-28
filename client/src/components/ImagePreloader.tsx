@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import dashboardBg from "@/assets/dashboard-bg.jpg";
-import loadingBg from "@/assets/loading-bg.jpg";
+import loadingBg from "@/assets/pexels-shkrabaanthony-5475785_1764342747703.jpg";
 
 export default function ImagePreloader() {
   useEffect(() => {

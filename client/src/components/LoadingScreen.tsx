@@ -1,3 +1,5 @@
+import loadingBg from "@/assets/pexels-shkrabaanthony-5475785_1764342747703.jpg";
+
 interface LoadingScreenProps {
   isVisible: boolean;
 }
@@ -6,9 +8,17 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      style={{
+        backgroundImage: `url(${loadingBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       {/* Dark overlay for better contrast */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/70" />
 
       {/* Content */}
       <div className="relative flex flex-col items-center gap-8">
