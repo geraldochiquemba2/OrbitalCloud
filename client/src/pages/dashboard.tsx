@@ -1882,7 +1882,8 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="backdrop-blur-md bg-white/10 p-6 rounded-2xl border border-white/30 min-h-[400px]"
+            className="bg-white/5 p-6 rounded-2xl border border-white/20 min-h-[400px]"
+            style={{ willChange: 'auto', contain: 'layout' }}
           >
             {loading ? (
               <div className="flex items-center justify-center h-64">
@@ -1894,13 +1895,14 @@ export default function Dashboard() {
                 {viewMode === "files" && !searchResults && folders.length > 0 && (
                   <div className="mb-6">
                     <h3 className="text-sm font-medium text-white/50 mb-3">Pastas</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" style={{ contain: 'layout paint' }}>
                       {folders.map((folder) => (
                         <div
                           key={folder.id}
-                          className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-colors"
+                          className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer"
                           onClick={() => navigateToFolder(folder.id)}
                           data-testid={`folder-item-${folder.id}`}
+                          style={{ transition: 'background-color 0.15s' }}
                         >
                           <Folder className="w-10 h-10 text-yellow-400 mb-2" />
                           <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
@@ -2210,16 +2212,18 @@ export default function Dashboard() {
                     {displayFiles.length > 0 && (
                       <div>
                         {!searchResults && folders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3" style={{ contain: 'layout paint' }}>
                           {displayFiles.map((file) => (
                             <div
                               key={file.id}
-                              className="group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors overflow-hidden"
+                              className="group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 overflow-hidden"
                               data-testid={`file-item-${file.id}`}
+                              style={{ transition: 'background-color 0.15s' }}
                             >
                               <div 
                                 className="aspect-square flex items-center justify-center bg-black/20 cursor-pointer overflow-hidden"
                                 onClick={() => openPreview(file)}
+                                style={{ contain: 'layout paint' }}
                               >
                                 {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
                                   <img 
@@ -2227,9 +2231,10 @@ export default function Dashboard() {
                                     alt={file.nome}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
+                                    decoding="async"
                                   />
                                 ) : getEffectiveMimeType(file).startsWith("video/") ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50">
+                                  <div className="w-full h-full flex items-center justify-center bg-slate-900">
                                     <Video className="w-10 h-10 text-white/60" />
                                   </div>
                                 ) : (
