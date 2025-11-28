@@ -153,6 +153,8 @@ export default function Dashboard() {
   const [sharedFolders, setSharedFolders] = useState<SharedFolderItem[]>([]);
   const [currentSharedFolderId, setCurrentSharedFolderId] = useState<string | null>(null);
   const [sharedFolderPath, setSharedFolderPath] = useState<SharedFolderItem[]>([]);
+  const [sharedFolderFiles, setSharedFolderFiles] = useState<FileItem[]>([]);
+  const [sharedFolderFolders, setSharedFolderFolders] = useState<FolderItem[]>([]);
   
   // Plans modal
   const [showPlansModal, setShowPlansModal] = useState(false);
@@ -232,8 +234,8 @@ export default function Dashboard() {
         const response = await fetch(`/api/shared/folders/${currentSharedFolderId}/content`, { credentials: "include" });
         if (response.ok) {
           const data = await response.json();
-          setFiles(data.files);
-          setFolders(data.folders);
+          setSharedFolderFiles(data.files);
+          setSharedFolderFolders(data.folders);
         }
       } else {
         const [filesRes, foldersRes] = await Promise.all([
@@ -1832,11 +1834,11 @@ export default function Dashboard() {
                 {/* Content inside Shared Folder */}
                 {viewMode === "shared" && currentSharedFolderId && (
                   <>
-                    {folders.length > 0 && (
+                    {sharedFolderFolders.length > 0 && (
                       <div className="mb-6">
                         <h3 className="text-sm font-medium text-white/50 mb-3">Pastas</h3>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                          {folders.map((folder) => (
+                          {sharedFolderFolders.map((folder) => (
                             <motion.div
                               key={folder.id}
                               initial={{ opacity: 0, scale: 0.9 }}
@@ -1853,11 +1855,11 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {files.length > 0 && (
+                    {sharedFolderFiles.length > 0 && (
                       <div>
-                        {folders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
+                        {sharedFolderFolders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                          {files.map((file) => (
+                          {sharedFolderFiles.map((file) => (
                             <motion.div
                               key={file.id}
                               initial={{ opacity: 0, scale: 0.9 }}
@@ -1912,7 +1914,7 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {files.length === 0 && folders.length === 0 && (
+                    {sharedFolderFiles.length === 0 && sharedFolderFolders.length === 0 && (
                       <div className="flex flex-col items-center justify-center h-64 text-white/50">
                         <FolderOpen className="w-16 h-16 mb-4 opacity-30" />
                         <p className="text-lg">Pasta vazia</p>
