@@ -10,6 +10,7 @@ import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Dashboard from "@/pages/dashboard";
 import SharePage from "@/pages/share";
+import AdminPage from "@/pages/admin";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/AuthContext";

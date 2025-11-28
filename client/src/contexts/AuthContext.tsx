@@ -15,6 +15,9 @@ interface User {
   plano: string;
   storageLimit: number;
   storageUsed: number;
+  uploadsCount: number;
+  uploadLimit: number;
+  isAdmin: boolean;
   encryptionSalt?: string | null;
 }
 
