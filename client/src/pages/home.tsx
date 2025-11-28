@@ -17,7 +17,7 @@ import heroVideo from "@assets/4354033-hd_1280_720_25fps_1764245575076.mp4";
 export default function Home() {
   const [, navigate] = useLocation();
   const { isLoggedIn } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [videosLoaded, setVideosLoaded] = useState(0);
   const totalVideos = 2; // Hero video + Pricing video
 
@@ -28,11 +28,14 @@ export default function Home() {
   }, [isLoggedIn, navigate]);
 
   useEffect(() => {
-    // If all videos are loaded and we're not in navigation loading, hide loading screen
-    if (videosLoaded === totalVideos && !isLoading) {
-      setIsLoading(false);
+    // When all videos are loaded, wait 4 seconds then hide loading screen
+    if (videosLoaded === totalVideos) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 4000);
+      return () => clearTimeout(timer);
     }
-  }, [videosLoaded, isLoading]);
+  }, [videosLoaded]);
 
   const handleVideoLoaded = () => {
     setVideosLoaded(prev => Math.min(prev + 1, totalVideos));
