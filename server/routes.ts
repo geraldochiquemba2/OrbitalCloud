@@ -913,6 +913,51 @@ export async function registerRoutes(
     }
   });
 
+  // Update invitation role (by the inviter)
+  app.patch("/api/invitations/:id/role", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const invitation = await storage.getInvitationById(req.params.id);
+      
+      if (!invitation) {
+        return res.status(404).json({ message: "Convite não encontrado" });
+      }
+      
+      if (invitation.inviterId !== req.user!.id) {
+        return res.status(403).json({ message: "Você não pode alterar este convite" });
+      }
+
+      const { role } = z.object({
+        role: z.enum(["viewer", "collaborator", "editor"]),
+      }).parse(req.body);
+      
+      // Update invitation role
+      await storage.updateInvitationRole(invitation.id, role);
+      
+      // If the invitation was already accepted, also update the permission
+      if (invitation.status === "accepted" && invitation.inviteeUserId) {
+        if (invitation.resourceType === "file") {
+          const permission = await storage.getFilePermission(invitation.resourceId, invitation.inviteeUserId);
+          if (permission) {
+            await storage.updateFilePermissionRole(permission.id, role === "collaborator" ? "editor" : role);
+          }
+        } else {
+          const permission = await storage.getFolderPermission(invitation.resourceId, invitation.inviteeUserId);
+          if (permission) {
+            await storage.updateFolderPermissionRole(permission.id, role);
+          }
+        }
+      }
+      
+      res.json({ message: "Permissão atualizada" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      console.error("Update invitation role error:", error);
+      res.status(500).json({ message: "Erro ao atualizar permissão" });
+    }
+  });
+
   // ========== SHARED CONTENT ROUTES ==========
 
   // Get files shared with the current user

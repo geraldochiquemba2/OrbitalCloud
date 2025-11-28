@@ -82,6 +82,7 @@ export interface IStorage {
   getInvitationsByInviteeEmail(email: string): Promise<Invitation[]>;
   getPendingInvitationsForUser(email: string): Promise<Invitation[]>;
   updateInvitationStatus(id: string, status: string, inviteeUserId?: string): Promise<void>;
+  updateInvitationRole(id: string, role: string): Promise<void>;
   deleteInvitation(id: string): Promise<void>;
   getInvitationsForResource(resourceType: string, resourceId: string): Promise<Invitation[]>;
 
@@ -423,6 +424,10 @@ export class DatabaseStorage implements IStorage {
     await db.update(invitations).set(updateData).where(eq(invitations.id, id));
   }
 
+  async updateInvitationRole(id: string, role: string): Promise<void> {
+    await db.update(invitations).set({ role }).where(eq(invitations.id, id));
+  }
+
   async deleteInvitation(id: string): Promise<void> {
     await db.delete(invitations).where(eq(invitations.id, id));
   }
@@ -526,6 +531,14 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFolderPermission(id: string): Promise<void> {
     await db.delete(folderPermissions).where(eq(folderPermissions.id, id));
+  }
+
+  async updateFolderPermissionRole(id: string, role: string): Promise<void> {
+    await db.update(folderPermissions).set({ role }).where(eq(folderPermissions.id, id));
+  }
+
+  async updateFilePermissionRole(id: string, role: string): Promise<void> {
+    await db.update(filePermissions).set({ role }).where(eq(filePermissions.id, id));
   }
 
   async hasFolderAccess(folderId: string, userId: string): Promise<boolean> {

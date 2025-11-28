@@ -374,6 +374,50 @@ export default function Dashboard() {
     }
   };
 
+  const cancelInvitation = async (invitationId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${invitationId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        toast.success("Convite/acesso removido");
+        setResourceInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao remover convite");
+      }
+    } catch (err) {
+      console.error("Error cancelling invitation:", err);
+      toast.error("Erro ao remover convite");
+    }
+  };
+
+  const updateInvitationRole = async (invitationId: string, newRole: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${invitationId}/role`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+      
+      if (response.ok) {
+        toast.success("Permissão atualizada");
+        setResourceInvitations(prev => prev.map(inv => 
+          inv.id === invitationId ? { ...inv, role: newRole } : inv
+        ));
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao atualizar permissão");
+      }
+    } catch (err) {
+      console.error("Error updating invitation role:", err);
+      toast.error("Erro ao atualizar permissão");
+    }
+  };
+
   const openInviteModal = (type: "file" | "folder", id: string, name: string) => {
     setInviteResourceType(type);
     setInviteResourceId(id);
@@ -3004,17 +3048,30 @@ export default function Dashboard() {
                               </p>
                             </div>
                           </div>
-                          {inv.status === "pending" && (
-                            <button
-                              onClick={() => {
-                                setResourceInvitations(prevInvitations => prevInvitations.filter(i => i.id !== inv.id));
-                              }}
-                              className="ml-2 p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-colors flex-shrink-0"
-                              title="Cancelar convite"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {(inv.status === "pending" || inv.status === "accepted") && (
+                              <select
+                                value={inv.role === "editor" ? "collaborator" : inv.role}
+                                onChange={(e) => updateInvitationRole(inv.id, e.target.value)}
+                                className="text-xs bg-white/10 border border-white/20 rounded px-1.5 py-1 text-white focus:outline-none focus:border-blue-500"
+                                title="Alterar permissão"
+                                data-testid={`select-role-${inv.id}`}
+                              >
+                                <option value="viewer" className="bg-slate-800">Visualizador</option>
+                                <option value="collaborator" className="bg-slate-800">Colaborador</option>
+                              </select>
+                            )}
+                            {(inv.status === "pending" || inv.status === "accepted") && (
+                              <button
+                                onClick={() => cancelInvitation(inv.id)}
+                                className="ml-1 p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-colors"
+                                title={inv.status === "accepted" ? "Remover acesso" : "Cancelar convite"}
+                                data-testid={`button-cancel-invitation-${inv.id}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
