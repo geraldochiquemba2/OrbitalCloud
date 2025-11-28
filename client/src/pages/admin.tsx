@@ -15,7 +15,8 @@ import {
   Upload,
   Mail,
   Calendar,
-  Search
+  Search,
+  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -67,6 +68,10 @@ interface UpgradeRequest {
   requestedPlan: string;
   status: string;
   adminNote?: string;
+  proofFileName?: string;
+  proofFileSize?: number;
+  proofTelegramFileId?: string;
+  proofTelegramBotId?: string;
   createdAt: string;
   userName: string;
   userEmail: string;
@@ -674,9 +679,26 @@ export default function AdminPage() {
                                     {PLANS[req.requestedPlan as keyof typeof PLANS]?.name || req.requestedPlan}
                                   </Badge>
                                 </div>
+                                {req.proofFileName && (
+                                  <p className="text-white/40 text-xs mt-1">
+                                    Comprovativo: {req.proofFileName}
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
+                              {req.proofTelegramFileId && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                                  onClick={() => window.open(`/api/admin/upgrade-requests/${req.id}/proof`, '_blank')}
+                                  data-testid={`button-view-proof-${req.id}`}
+                                >
+                                  <FileText className="w-4 h-4 mr-1" />
+                                  Ver Comprovativo
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 className="bg-green-500 hover:bg-green-600"
