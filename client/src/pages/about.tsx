@@ -13,6 +13,12 @@ import { useState, useEffect } from "react";
 export default function About() {
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState([
+    { number: "0", label: "Utilizadores" },
+    { number: "99.9%", label: "Disponibilidade" },
+    { number: "15GB", label: "Grátis" },
+    { number: "0", label: "Ficheiros Guardados" }
+  ]);
 
   useEffect(() => {
     // Show loading for 3 seconds when page loads
@@ -20,6 +26,25 @@ export default function About() {
       setIsLoading(false);
     }, 3000);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Fetch real stats from API
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/stats");
+        const data = await response.json();
+        setStats([
+          { number: data.utilizadores.toString(), label: "Utilizadores" },
+          { number: "99.9%", label: "Disponibilidade" },
+          { number: "15GB", label: "Grátis" },
+          { number: data.ficheiros.toString(), label: "Ficheiros Guardados" }
+        ]);
+      } catch (error) {
+        console.error("Erro ao buscar estatísticas:", error);
+      }
+    };
+    fetchStats();
   }, []);
 
   const values = [
@@ -38,13 +63,6 @@ export default function About() {
       title: "Compromisso",
       desc: "Priorizar privacidade, segurança e infraestrutura local de qualidade."
     }
-  ];
-
-  const stats = [
-    { number: "2.547", label: "Utilizadores" },
-    { number: "99.9%", label: "Disponibilidade" },
-    { number: "15GB", label: "Grátis" },
-    { number: "8.934", label: "Ficheiros Guardados" }
   ];
 
   return (

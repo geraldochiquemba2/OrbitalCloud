@@ -1801,5 +1801,21 @@ export async function registerRoutes(
     });
   });
 
+  // Stats endpoint (public) - for displaying real stats on about page
+  app.get("/api/stats", async (req: Request, res: Response) => {
+    try {
+      const usersCount = await storage.countUsers();
+      const filesCount = await storage.countFiles();
+      
+      res.json({
+        utilizadores: usersCount,
+        ficheiros: filesCount,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao obter estatísticas" });
+    }
+  });
+
   return httpServer;
 }

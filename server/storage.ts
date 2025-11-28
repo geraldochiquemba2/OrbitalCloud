@@ -110,6 +110,8 @@ export interface IStorage {
 
   // Admin functions
   getAllUsers(): Promise<User[]>;
+  countUsers(): Promise<number>;
+  countFiles(): Promise<number>;
   updateUserAdmin(userId: string, isAdmin: boolean): Promise<void>;
   incrementUserUploadCount(userId: string): Promise<void>;
   updateUserPlanFull(userId: string, plano: string, uploadLimit: number, storageLimit: number): Promise<void>;
@@ -624,6 +626,16 @@ export class DatabaseStorage implements IStorage {
   // Admin functions
   async getAllUsers(): Promise<User[]> {
     return db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async countUsers(): Promise<number> {
+    const result = await db.select({ count: sql`count(*)` }).from(users);
+    return result[0]?.count ? Number(result[0].count) : 0;
+  }
+
+  async countFiles(): Promise<number> {
+    const result = await db.select({ count: sql`count(*)` }).from(files);
+    return result[0]?.count ? Number(result[0].count) : 0;
   }
 
   async updateUserAdmin(userId: string, isAdmin: boolean): Promise<void> {
