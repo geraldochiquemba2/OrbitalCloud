@@ -169,6 +169,7 @@ export default function Dashboard() {
   const [showApprovedSection, setShowApprovedSection] = useState(true);
   const [showRejectedSection, setShowRejectedSection] = useState(true);
   const [showLoading, setShowLoading] = useState(true);
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -653,8 +654,11 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
+    setIsLogoutLoading(true);
     await logout();
-    navigate("/");
+    setTimeout(() => {
+      navigate("/");
+    }, 100);
   };
 
   const handleEnableEncryption = async () => {
@@ -1297,7 +1301,7 @@ export default function Dashboard() {
   return (
     <>
       {/* Loading Screen - Always rendered first to cover everything */}
-      <LoadingScreen isVisible={showLoading} />
+      <LoadingScreen isVisible={showLoading || isLogoutLoading} />
       
       <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-foreground selection:bg-primary/10">
         {/* Navigation */}
