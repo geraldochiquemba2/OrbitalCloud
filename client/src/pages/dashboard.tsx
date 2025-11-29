@@ -2308,7 +2308,7 @@ export default function Dashboard() {
                               <div className="absolute top-2 right-2">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowFileMenu(showFileMenu === file.id ? null : file.id); setMenuOpenTime(Date.now()); setSelectedFile(file); }}
-                                  className="p-2 rounded bg-black/60 text-white hover:bg-black/80 transition-colors opacity-0 group-hover:opacity-100"
+                                  className="p-2 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
                                   title="Mais opções"
                                   data-testid={`button-menu-${file.id}`}
                                 >
@@ -2320,7 +2320,7 @@ export default function Dashboard() {
                                     initial={{ opacity: 0, scale: 0.95, y: -10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                    className="absolute top-10 right-0 bg-slate-800 border border-white/20 rounded-lg shadow-xl z-40 w-44 overflow-hidden"
+                                    className="absolute top-10 right-0 bg-slate-800 border border-white/20 rounded-lg shadow-xl z-50 w-48 overflow-visible"
                                   >
                                     {viewMode === "trash" ? (
                                       <>
