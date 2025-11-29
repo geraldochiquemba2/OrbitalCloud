@@ -12,10 +12,12 @@ export function useWebSocket(userId?: string, isAdmin?: boolean) {
   const wsRef = useRef<WebSocket | null>(null);
   const handlersRef = useRef<Map<string, Set<MessageHandler>>>(new Map());
   const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttemptsRef = useRef(5);
+  const maxReconnectAttemptsRef = useRef(3);
+  const isDisabledRef = useRef(false);
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (isDisabledRef.current) return;
 
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -23,7 +25,6 @@ export function useWebSocket(userId?: string, isAdmin?: boolean) {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        console.log("WebSocket connected");
         reconnectAttemptsRef.current = 0;
         
         if (userId) {
@@ -43,24 +44,27 @@ export function useWebSocket(userId?: string, isAdmin?: boolean) {
         }
       };
 
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+      ws.onerror = () => {
+        // Silently handle errors - WebSocket may be disabled in development
       };
 
       ws.onclose = () => {
-        console.log("WebSocket disconnected");
         wsRef.current = null;
 
-        if (reconnectAttemptsRef.current < maxReconnectAttemptsRef.current) {
+        if (reconnectAttemptsRef.current < maxReconnectAttemptsRef.current && !isDisabledRef.current) {
           reconnectAttemptsRef.current++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
           setTimeout(connect, delay);
+        } else if (reconnectAttemptsRef.current >= maxReconnectAttemptsRef.current) {
+          // WebSocket likely disabled in development mode
+          isDisabledRef.current = true;
         }
       };
 
       wsRef.current = ws;
     } catch (error) {
-      console.error("WebSocket connection error:", error);
+      // Silently handle connection errors
+      isDisabledRef.current = true;
     }
   }, [userId, isAdmin]);
 

@@ -47,10 +47,22 @@ The `server/monitoring.ts` module provides:
 - Admin API endpoints for monitoring dashboard
 - Error rate tracking and trend analysis
 
+### WebSocket Real-Time Features
+
+The platform includes a WebSocket server (`server/websocket.ts`) for real-time updates in production:
+- File upload/delete/restore notifications
+- Folder creation/deletion events
+- Storage quota updates
+- Upgrade request notifications (for admins)
+- Share and invitation notifications
+
+**Important:** WebSocket is disabled in development mode to avoid conflicts with Vite's HMR (Hot Module Replacement) WebSocket. The client-side hook (`useWebSocket`) gracefully handles this by silently disabling after a few failed connection attempts.
+
 ### Known Limitations
 
 - **Telegram Dependency:** Primary storage relies on Telegram Bot API. Monitor ToS changes and prepare Cloudflare R2 fallback.
 - **Single Instance:** Current architecture assumes single server instance. Multi-instance scaling requires shared session/quota storage.
+- **WebSocket in Development:** Real-time WebSocket features are disabled in development mode due to Vite HMR conflicts. Test real-time features in production builds.
 
 ## External Dependencies
 

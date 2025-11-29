@@ -81,14 +81,34 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || "5000", 10);
+  
+  // Configure HTTP server timeouts for large file uploads (15 minutes)
+  // Only in production - dev mode uses defaults to avoid Vite HMR conflicts
+  if (process.env.NODE_ENV === "production") {
+    httpServer.timeout = 900000; // 15 minutes
+    httpServer.keepAliveTimeout = 900000;
+    httpServer.headersTimeout = 910000; // Slightly higher than keepAliveTimeout
+  }
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
+    // Initialize WebSocket server in production only
+    // In development, WebSocket causes conflicts with Vite's HMR
+    wsManager.initialize(httpServer);
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
+    // WebSocket server disabled in development to avoid Vite HMR conflicts
+    // Real-time features will use polling fallback in dev mode
+    log("WebSocket server disabled in development (Vite HMR compatibility)", "websocket");
   }
 
   // Limpeza automática de cache do Telegram a cada 10 minutos
@@ -132,20 +152,6 @@ app.use((req, res, next) => {
   // Executar limpeza ao iniciar e depois a cada hora
   purgeExpiredTrash();
   setInterval(purgeExpiredTrash, 60 * 60 * 1000);
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
-  
-  // Configure HTTP server timeouts for large file uploads (15 minutes)
-  httpServer.timeout = 900000; // 15 minutes
-  httpServer.keepAliveTimeout = 900000;
-  httpServer.headersTimeout = 910000; // Slightly higher than keepAliveTimeout
-  
-  // Initialize WebSocket server
-  wsManager.initialize(httpServer);
   
   httpServer.listen(
     {
@@ -157,7 +163,9 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
       log(`🚀 Sistema com retry/fallback e cache ativo`);
       log(`⏱️ Timeout do servidor: 15 minutos para uploads grandes`);
-      log(`🔌 WebSocket server ativo em /ws`);
+      if (process.env.NODE_ENV === "production") {
+        log(`🔌 WebSocket server ativo em /ws`);
+      }
       
       // Iniciar sistema de keep-alive para evitar hibernação no Render (plano free)
       startKeepAlive(port, log);

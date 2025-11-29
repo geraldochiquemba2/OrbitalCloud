@@ -110,7 +110,7 @@ export default function AdminPage() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [showLoading, setShowLoading] = useState(true);
 
-  // WebSocket connection for real-time admin updates
+  // WebSocket for real-time admin updates (production only)
   const { on: wsOn } = useWebSocket(user?.id, true);
 
   useEffect(() => {

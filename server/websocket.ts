@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
-import { Server } from "http";
+import { Server, IncomingMessage } from "http";
+import { Socket } from "net";
 import { log } from "./index";
 
 interface WebSocketClient extends WebSocket {
@@ -21,7 +22,22 @@ class WebSocketManager {
   private pingInterval: NodeJS.Timeout | null = null;
 
   initialize(server: Server) {
-    this.wss = new WebSocketServer({ server, path: "/ws" });
+    // Use noServer mode to manually handle upgrades
+    // This prevents conflicts with Vite's HMR WebSocket
+    this.wss = new WebSocketServer({ noServer: true });
+
+    // Handle WebSocket upgrades only for /ws path
+    server.on("upgrade", (request: IncomingMessage, socket: Socket, head: Buffer) => {
+      const pathname = request.url;
+      
+      // Only handle /ws connections, let other paths (like Vite HMR) pass through
+      if (pathname === "/ws") {
+        this.wss?.handleUpgrade(request, socket, head, (ws) => {
+          this.wss?.emit("connection", ws, request);
+        });
+      }
+      // Don't destroy socket for other paths - let Vite handle them
+    });
 
     this.wss.on("connection", (ws: WebSocketClient) => {
       ws.isAlive = true;
