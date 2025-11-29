@@ -23,6 +23,10 @@ function Router() {
   
   const animationDuration = isMobile ? 0.2 : 0.3;
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location]);
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
