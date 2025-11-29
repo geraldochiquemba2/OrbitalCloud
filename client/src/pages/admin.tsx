@@ -389,60 +389,6 @@ export default function AdminPage() {
             </Card>
           </div>
           
-          {/* Users by Plan Section */}
-          <Card className="backdrop-blur-md bg-white/10 border border-white/30 mb-8">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Crown className="w-5 h-5 text-amber-400" />
-                Distribuição por Plano
-              </CardTitle>
-              <CardDescription className="text-white/60">
-                Utilizadores e consumo de armazenamento por plano
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {Object.entries(PLANS).map(([planKey, plan]) => {
-                  const count = usersByPlan[planKey as keyof typeof usersByPlan];
-                  const storage = storageByPlan[planKey as keyof typeof storageByPlan];
-                  const percentage = users.length > 0 ? ((count / users.length) * 100).toFixed(1) : 0;
-                  
-                  return (
-                    <div 
-                      key={planKey}
-                      className={`p-4 rounded-xl border ${plan.color}/20 border-${plan.textColor.replace('text-', '')}/30 bg-white/5`}
-                      data-testid={`stats-plan-${planKey}`}
-                    >
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className={`w-3 h-3 rounded-full ${plan.color}`} />
-                        <span className={`font-semibold ${plan.textColor}`}>{plan.name}</span>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-baseline">
-                          <span className="text-white text-sm">Utilizadores</span>
-                          <span className="text-white font-bold text-xl">{count}</span>
-                        </div>
-                        <div className="w-full bg-white/10 rounded-full h-2">
-                          <div 
-                            className={`${plan.color} h-full rounded-full transition-all`}
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                        <p className="text-white text-xs">{percentage}% do total</p>
-                        <div className="pt-2 border-t border-white/10">
-                          <div className="flex justify-between items-baseline">
-                            <span className="text-white text-xs">Armazenamento</span>
-                            <span className="text-white text-sm font-medium">{formatBytes(storage)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-          
           {/* Pending Upgrade Requests Alert */}
           {pendingRequests.length > 0 && (
             <Card className="backdrop-blur-md bg-amber-500/10 border border-amber-500/30 mb-8">
