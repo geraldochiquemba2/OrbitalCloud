@@ -76,9 +76,6 @@ interface UpgradeRequest {
 
 const PLANS = {
   gratis: { name: "Grátis", color: "bg-gray-500", textColor: "text-gray-400" },
-  basico: { name: "Básico", color: "bg-blue-500", textColor: "text-blue-400" },
-  profissional: { name: "Profissional", color: "bg-purple-500", textColor: "text-purple-400" },
-  empresarial: { name: "Empresarial", color: "bg-amber-500", textColor: "text-amber-400" },
 };
 
 function formatBytes(bytes: number): string {
@@ -257,19 +254,7 @@ export default function AdminPage() {
   const totalStorage = users.reduce((acc, u) => acc + u.storageUsed, 0);
   const totalUploads = users.reduce((acc, u) => acc + u.uploadsCount, 0);
   
-  const usersByPlan = {
-    gratis: users.filter(u => u.plano === "gratis").length,
-    basico: users.filter(u => u.plano === "basico").length,
-    profissional: users.filter(u => u.plano === "profissional").length,
-    empresarial: users.filter(u => u.plano === "empresarial").length,
-  };
-  
-  const storageByPlan = {
-    gratis: users.filter(u => u.plano === "gratis").reduce((acc, u) => acc + u.storageUsed, 0),
-    basico: users.filter(u => u.plano === "basico").reduce((acc, u) => acc + u.storageUsed, 0),
-    profissional: users.filter(u => u.plano === "profissional").reduce((acc, u) => acc + u.storageUsed, 0),
-    empresarial: users.filter(u => u.plano === "empresarial").reduce((acc, u) => acc + u.storageUsed, 0),
-  };
+  const totalUsers = users.length;
 
   return (
     <>
@@ -367,7 +352,7 @@ export default function AdminPage() {
               <CardHeader>
                 <CardTitle className="text-amber-400 flex items-center gap-2">
                   <Clock className="w-5 h-5 animate-pulse" />
-                  {pendingRequests.length} Solicitação(ões) de Upgrade Pendente(s)
+                  {pendingRequests.length} Solicitação(ões) de Armazenamento Pendente(s)
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -386,13 +371,6 @@ export default function AdminPage() {
                           <p className="text-white font-medium">{req.userName}</p>
                           <p className="text-white/50 text-sm">{req.userEmail}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="border-white/20 text-white/60">
-                              {PLANS[req.currentPlan as keyof typeof PLANS]?.name || req.currentPlan}
-                            </Badge>
-                            <span className="text-white/30">→</span>
-                            <Badge className={PLANS[req.requestedPlan as keyof typeof PLANS]?.color || "bg-gray-500"}>
-                              {PLANS[req.requestedPlan as keyof typeof PLANS]?.name || req.requestedPlan}
-                            </Badge>
                             {typeof req.requestedExtraGB === 'number' && req.requestedExtraGB > 0 && (
                               <Badge className="bg-emerald-500 text-white" data-testid={`badge-extra-gb-${req.id}`}>
                                 +{req.requestedExtraGB} GB = {req.totalPrice || req.requestedExtraGB * 500} Kz
@@ -439,7 +417,7 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="requests" className="data-[state=active]:bg-white/10 text-white">
                 <Crown className="w-4 h-4 mr-2" />
-                Solicitações de Upgrade
+                Armazenamento Extra
                 {pendingRequests.length > 0 && (
                   <Badge variant="destructive" className="ml-2">{pendingRequests.length}</Badge>
                 )}
@@ -590,13 +568,6 @@ export default function AdminPage() {
                                 <p className="text-white font-medium">{req.userName}</p>
                                 <p className="text-white/50 text-sm">{req.userEmail}</p>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                  <Badge variant="outline" className="border-white/20 text-white/60">
-                                    {PLANS[req.currentPlan as keyof typeof PLANS]?.name || req.currentPlan}
-                                  </Badge>
-                                  <span className="text-white/30">→</span>
-                                  <Badge className={PLANS[req.requestedPlan as keyof typeof PLANS]?.color || "bg-gray-500"}>
-                                    {PLANS[req.requestedPlan as keyof typeof PLANS]?.name || req.requestedPlan}
-                                  </Badge>
                                   {typeof req.requestedExtraGB === 'number' && req.requestedExtraGB > 0 && (
                                     <Badge className="bg-emerald-500 text-white" data-testid={`badge-tab-extra-gb-${req.id}`}>
                                       +{req.requestedExtraGB} GB = {req.totalPrice || req.requestedExtraGB * 500} Kz
@@ -676,10 +647,9 @@ export default function AdminPage() {
                               <div>
                                 <p className="text-white text-sm">{req.userName}</p>
                                 <p className="text-white/40 text-xs">
-                                  {PLANS[req.currentPlan as keyof typeof PLANS]?.name} → {PLANS[req.requestedPlan as keyof typeof PLANS]?.name}
                                   {typeof req.requestedExtraGB === 'number' && req.requestedExtraGB > 0 && (
-                                    <span className="ml-2 text-emerald-400">
-                                      (+{req.requestedExtraGB} GB = {req.totalPrice || req.requestedExtraGB * 500} Kz)
+                                    <span className="text-emerald-400">
+                                      +{req.requestedExtraGB} GB = {req.totalPrice || req.requestedExtraGB * 500} Kz
                                     </span>
                                   )}
                                 </p>
