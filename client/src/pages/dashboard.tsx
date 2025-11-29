@@ -3779,7 +3779,7 @@ export default function Dashboard() {
             className="fixed z-50 bg-gradient-to-br from-blue-900/80 via-purple-900/80 to-slate-900/80 border border-blue-500/40 rounded-lg shadow-2xl w-44 max-h-[400px] overflow-y-auto backdrop-blur-sm"
             style={{
               top: `${menuPosition.top}px`,
-              left: `${menuPosition.left}px`
+              left: `${menuPosition.left + 38}px`
             }}
           >
             {viewMode === "trash" ? (
