@@ -114,6 +114,8 @@ export default function Dashboard() {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [showFileMenu, setShowFileMenu] = useState<string | null>(null);
   const [menuOpenTime, setMenuOpenTime] = useState<number>(0);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -2307,7 +2309,20 @@ export default function Dashboard() {
                               
                               <div className="absolute top-2 right-2 z-20">
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowFileMenu(showFileMenu === file.id ? null : file.id); setMenuOpenTime(Date.now()); setSelectedFile(file); }}
+                                  ref={file.id === showFileMenu ? menuButtonRef : null}
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    e.preventDefault(); 
+                                    const newRef = e.currentTarget;
+                                    const rect = newRef.getBoundingClientRect();
+                                    setMenuPosition({ 
+                                      top: rect.bottom + 8, 
+                                      left: rect.left - 180 
+                                    });
+                                    setShowFileMenu(showFileMenu === file.id ? null : file.id); 
+                                    setMenuOpenTime(Date.now()); 
+                                    setSelectedFile(file); 
+                                  }}
                                   className="p-2 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
                                   title="Mais opções"
                                   data-testid={`button-menu-${file.id}`}
@@ -3695,9 +3710,8 @@ export default function Dashboard() {
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed z-50 bg-slate-800 border border-white/20 rounded-lg shadow-2xl w-56 max-h-[400px] overflow-y-auto"
             style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)"
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`
             }}
           >
             {viewMode === "trash" ? (
