@@ -3205,7 +3205,7 @@ export default function Dashboard() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gradient-to-br from-blue-900/80 via-purple-900/80 to-slate-900/80 rounded-2xl p-3 sm:p-4 md:p-6 w-full max-w-2xl sm:max-w-4xl lg:max-w-7xl border border-blue-500/40 my-4 sm:my-6 md:my-8 max-h-[90vh] overflow-y-auto backdrop-blur-sm"
+              className="bg-white/10 rounded-2xl p-3 sm:p-4 md:p-6 w-full max-w-2xl sm:max-w-4xl lg:max-w-7xl border border-white/20 my-4 sm:my-6 md:my-8 max-h-[90vh] overflow-y-auto backdrop-blur-md"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-start sm:items-center mb-6 gap-4">
