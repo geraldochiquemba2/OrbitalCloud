@@ -524,7 +524,7 @@ export default function Dashboard() {
       video.crossOrigin = "anonymous";
       video.setAttribute("webkit-playsinline", "true");
       
-      const timeoutMs = isMobile ? 15000 : 20000;
+      const timeoutMs = isMobile ? 12000 : 15000;
       let resolved = false;
       
       const timeoutId = setTimeout(() => {
@@ -535,25 +535,10 @@ export default function Dashboard() {
         }
       }, timeoutMs);
       
-      const cleanup = () => {
-        clearTimeout(timeoutId);
-        video.src = "";
-      };
-      
-      video.onloadedmetadata = () => {
-        if (!resolved) {
-          try {
-            video.currentTime = Math.min(0.5, video.duration * 0.05);
-          } catch (err) {
-            console.error("Error seeking video:", err);
-          }
-        }
-      };
-      
-      video.onseeked = () => {
+      const drawThumbnail = () => {
         if (resolved) return;
         resolved = true;
-        cleanup();
+        clearTimeout(timeoutId);
         
         try {
           const canvas = document.createElement("canvas");
@@ -569,6 +554,7 @@ export default function Dashboard() {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const quality = isMobile ? 0.7 : 0.8;
             const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
+            video.src = "";
             resolve(thumbnailUrl);
           } else {
             reject(new Error("Could not get canvas context"));
@@ -578,10 +564,21 @@ export default function Dashboard() {
         }
       };
       
+      video.onloadedmetadata = () => {
+        try {
+          video.currentTime = Math.min(1, video.duration * 0.1);
+        } catch (err) {
+          console.error("Error seeking:", err);
+        }
+      };
+      
+      video.onseeked = drawThumbnail;
+      video.oncanplay = drawThumbnail;
+      
       video.onerror = (e) => {
         if (!resolved) {
           resolved = true;
-          cleanup();
+          clearTimeout(timeoutId);
           reject(new Error("Video load error: " + (e as any)?.message));
         }
       };
