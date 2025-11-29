@@ -33,13 +33,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -161,27 +154,6 @@ export default function AdminPage() {
       });
     } finally {
       setLoadingData(false);
-    }
-  };
-
-  const handlePlanChange = async (userId: string, newPlan: string) => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}/plan`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ plano: newPlan }),
-      });
-
-      if (response.ok) {
-        toast({ title: "Sucesso", description: "Plano atualizado com sucesso" });
-        fetchData();
-      } else {
-        const data = await response.json();
-        toast({ title: "Erro", description: data.message, variant: "destructive" });
-      }
-    } catch (error) {
-      toast({ title: "Erro", description: "Erro ao atualizar plano", variant: "destructive" });
     }
   };
 
@@ -515,9 +487,8 @@ export default function AdminPage() {
                         <TableHeader>
                           <TableRow className="border-white/10 hover:bg-white/5">
                             <TableHead className="text-white/70">Utilizador</TableHead>
-                            <TableHead className="text-white/70">Plano</TableHead>
-                            <TableHead className="text-white/70">Armazenamento</TableHead>
-                            <TableHead className="text-white/70">Uploads</TableHead>
+                            <TableHead className="text-white/70">Armazenamento Usado</TableHead>
+                            <TableHead className="text-white/70">Limite</TableHead>
                             <TableHead className="text-white/70">Admin</TableHead>
                             <TableHead className="text-white/70">Data</TableHead>
                           </TableRow>
@@ -545,40 +516,14 @@ export default function AdminPage() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Select 
-                                  value={u.plano} 
-                                  onValueChange={(value) => handlePlanChange(u.id, value)}
-                                >
-                                  <SelectTrigger 
-                                    className="w-32 bg-white/5 border-white/10 text-white"
-                                    data-testid={`select-plan-${u.id}`}
-                                  >
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="bg-gray-900 border-white/10">
-                                    {Object.entries(PLANS).map(([key, plan]) => (
-                                      <SelectItem key={key} value={key} className="text-white hover:bg-white/10">
-                                        <div className="flex items-center gap-2">
-                                          <div className={`w-2 h-2 rounded-full ${plan.color}`} />
-                                          {plan.name}
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
                                 <div className="text-white">
                                   <span className="font-medium">{formatBytes(u.storageUsed)}</span>
-                                  <span className="text-white/50"> / {formatBytes(u.storageLimit)}</span>
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <div className="text-white">
-                                  <span className="font-medium">{u.uploadsCount}</span>
-                                  <span className="text-white/50">
-                                    {u.uploadLimit === -1 ? " / ∞" : ` / ${u.uploadLimit}`}
-                                  </span>
+                                <div className="text-white text-sm">
+                                  <span className="font-medium">{formatBytes(u.storageLimit)}</span>
+                                  <span className="text-white/50"> (20GB grátis + extras)</span>
                                 </div>
                               </TableCell>
                               <TableCell>
