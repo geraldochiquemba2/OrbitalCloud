@@ -12,21 +12,25 @@ import Dashboard from "@/pages/dashboard";
 import SharePage from "@/pages/share";
 import AdminPage from "@/pages/admin";
 import ImagePreloader from "@/components/ImagePreloader";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function Router() {
   const [location] = useLocation();
+  const isMobile = useIsMobile();
+  
+  const animationDuration = isMobile ? 0.2 : 0.3;
 
   return (
     <AnimatePresence mode="wait">
       <motion.div
         key={location}
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.4, ease: "easeInOut" }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: animationDuration, ease: "easeOut" }}
       >
         <Switch>
           <Route path="/" component={Home} />
@@ -108,19 +112,20 @@ function App() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      setIsLoaded(true);
+      return;
+    }
+    
+    const isMobileDevice = window.innerWidth < 768;
+    
     const preloadImages = [
       "/src/assets/generated_images/minimalist_cloud_storage_icon.png",
       "/src/assets/generated_images/about_page_video_first_frame.png",
-      "/src/assets/pexels-yankrukov-7315485_1764254260497.jpg",
-    ];
-
-    const preloadVideos = [
-      "/src/assets/4354033-hd_1280_720_25fps_1764245575076.mp4",
-      "/src/assets/4351798-hd_1280_720_50fps_1764253527054.mp4",
     ];
 
     let loadedCount = 0;
-    const totalAssets = preloadImages.length + preloadVideos.length;
+    const totalAssets = preloadImages.length;
 
     const checkAllLoaded = () => {
       loadedCount++;
@@ -136,14 +141,8 @@ function App() {
       img.onerror = checkAllLoaded;
     });
 
-    preloadVideos.forEach((src) => {
-      const video = document.createElement("video");
-      video.src = src;
-      video.onloadeddata = checkAllLoaded;
-      video.onerror = checkAllLoaded;
-    });
-
-    const timeout = setTimeout(() => setIsLoaded(true), 3000);
+    const timeoutMs = isMobileDevice ? 1000 : 2000;
+    const timeout = setTimeout(() => setIsLoaded(true), timeoutMs);
     return () => clearTimeout(timeout);
   }, []);
 
@@ -154,11 +153,7 @@ function App() {
           <Toaster />
           {!isLoaded && (
             <div className="fixed inset-0 bg-background flex items-center justify-center z-[9999]">
-              <motion.div
-                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-12 h-12 rounded-full border-3 border-primary border-t-transparent"
-              />
+              <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           )}
           <Router />

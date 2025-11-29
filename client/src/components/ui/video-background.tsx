@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 
-export default function VideoBackground({ 
+const VideoBackground = memo(function VideoBackground({ 
   videoSrc, 
   posterSrc,
   className = "",
@@ -14,6 +14,7 @@ export default function VideoBackground({
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -21,13 +22,21 @@ export default function VideoBackground({
       setIsMobile(window.innerWidth < 768);
     };
     checkMobile();
+    
+    const timer = setTimeout(() => {
+      setShouldLoadVideo(true);
+    }, isMobile ? 500 : 200);
+    
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || videoFailed) return;
+    if (!video || videoFailed || !shouldLoadVideo) return;
 
     const handleCanPlay = () => {
       setVideoReady(true);
@@ -45,36 +54,38 @@ export default function VideoBackground({
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('loadeddata', handleLoadedData);
     };
-  }, [onLoad, videoFailed]);
+  }, [onLoad, videoFailed, shouldLoadVideo]);
 
   const handleVideoError = () => {
     setVideoFailed(true);
     if (onLoad) onLoad();
   };
 
+  const transitionDuration = isMobile ? 'duration-200' : 'duration-300';
+
   return (
     <div className={`relative w-full h-full overflow-hidden ${className}`}>
-      {/* Poster image - always visible until video is ready */}
       <img 
         src={posterSrc} 
-        alt="Background" 
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+        alt="Background"
+        loading="eager"
+        decoding="async"
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity ${transitionDuration} ${
           videoReady && !videoFailed ? 'opacity-0' : 'opacity-100'
         }`}
         style={{ zIndex: 1 }}
       />
       
-      {/* Video - loads in background, fades in when ready */}
-      {!videoFailed && (
+      {!videoFailed && shouldLoadVideo && (
         <video
           ref={videoRef}
           autoPlay
           muted
           loop
           playsInline
-          preload={isMobile ? "metadata" : "auto"}
+          preload={isMobile ? "none" : "metadata"}
           onError={handleVideoError}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity ${transitionDuration} ${
             videoReady ? 'opacity-100' : 'opacity-0'
           }`}
           style={{ zIndex: 2 }}
@@ -83,8 +94,9 @@ export default function VideoBackground({
         </video>
       )}
       
-      {/* Overlay para garantir legibilidade do texto */}
       <div className="absolute inset-0 bg-black/30" style={{ zIndex: 3 }} />
     </div>
   );
-}
+});
+
+export default VideoBackground;

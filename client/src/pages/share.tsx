@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { useEffect, useState, useCallback } from "react";
 import LoadingScreen from "@/components/LoadingScreen";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FileInfo {
   id: string;
@@ -26,6 +27,7 @@ interface ShareInfo {
 export default function SharePage() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/share/:linkCode");
+  const isMobile = useIsMobile();
   const [file, setFile] = useState<FileInfo | null>(null);
   const [share, setShare] = useState<ShareInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,29 +87,34 @@ export default function SharePage() {
   const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement("video");
-      video.preload = "auto";
+      video.preload = isMobile ? "metadata" : "auto";
       video.muted = true;
       video.playsInline = true;
       
+      const timeoutMs = isMobile ? 8000 : 15000;
       const timeoutId = setTimeout(() => {
         video.src = "";
         reject(new Error("Video load timeout"));
-      }, 15000);
+      }, timeoutMs);
       
       video.onloadeddata = () => {
-        video.currentTime = Math.min(2, video.duration * 0.1);
+        video.currentTime = Math.min(1, video.duration * 0.1);
       };
       
       video.onseeked = () => {
         clearTimeout(timeoutId);
         try {
           const canvas = document.createElement("canvas");
-          canvas.width = video.videoWidth || 320;
-          canvas.height = video.videoHeight || 180;
+          const maxWidth = isMobile ? 160 : 320;
+          const maxHeight = isMobile ? 90 : 180;
+          const scale = Math.min(maxWidth / (video.videoWidth || 320), maxHeight / (video.videoHeight || 180));
+          canvas.width = Math.round((video.videoWidth || 320) * scale);
+          canvas.height = Math.round((video.videoHeight || 180) * scale);
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const thumbnailDataUrl = canvas.toDataURL("image/jpeg", 0.8);
+            const quality = isMobile ? 0.6 : 0.8;
+            const thumbnailDataUrl = canvas.toDataURL("image/jpeg", quality);
             video.src = "";
             resolve(thumbnailDataUrl);
           } else {
@@ -125,7 +132,7 @@ export default function SharePage() {
       
       video.src = videoUrl;
     });
-  }, []);
+  }, [isMobile]);
 
   const loadThumbnail = async (linkCode: string, mimeType: string) => {
     try {
@@ -421,7 +428,11 @@ export default function SharePage() {
                       src={previewUrl} 
                       controls 
                       autoPlay
-                      className="max-w-full max-h-[70vh]"
+                      playsInline
+                      preload={isMobile ? "metadata" : "auto"}
+                      controlsList={isMobile ? "nodownload" : undefined}
+                      className="max-w-full max-h-[70vh] w-full"
+                      style={{ touchAction: 'manipulation' }}
                     />
                   ) : getEffectiveMimeType(file).startsWith("audio/") ? (
                     <div className="flex flex-col items-center gap-4 p-8">

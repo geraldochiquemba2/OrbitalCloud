@@ -9,7 +9,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import dashboardBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -82,6 +83,7 @@ type ViewMode = "files" | "trash" | "shared";
 export default function Dashboard() {
   const [, navigate] = useLocation();
   const { user, logout, refreshUser, needsEncryptionSetup, enableEncryption, hasEncryptionKey, loading: authLoading } = useAuth();
+  const isMobile = useIsMobile();
   const [files, setFiles] = useState<FileItem[]>([]);
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -515,29 +517,34 @@ export default function Dashboard() {
   const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement("video");
-      video.preload = "auto";
+      video.preload = isMobile ? "metadata" : "auto";
       video.muted = true;
       video.playsInline = true;
       
+      const timeoutMs = isMobile ? 8000 : 15000;
       const timeoutId = setTimeout(() => {
         video.src = "";
         reject(new Error("Video load timeout"));
-      }, 15000);
+      }, timeoutMs);
       
       video.onloadeddata = () => {
-        video.currentTime = Math.min(2, video.duration * 0.1);
+        video.currentTime = Math.min(1, video.duration * 0.1);
       };
       
       video.onseeked = () => {
         clearTimeout(timeoutId);
         try {
           const canvas = document.createElement("canvas");
-          canvas.width = video.videoWidth || 320;
-          canvas.height = video.videoHeight || 180;
+          const maxWidth = isMobile ? 160 : 320;
+          const maxHeight = isMobile ? 90 : 180;
+          const scale = Math.min(maxWidth / (video.videoWidth || 320), maxHeight / (video.videoHeight || 180));
+          canvas.width = Math.round((video.videoWidth || 320) * scale);
+          canvas.height = Math.round((video.videoHeight || 180) * scale);
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const thumbnailUrl = canvas.toDataURL("image/jpeg", 0.8);
+            const quality = isMobile ? 0.6 : 0.8;
+            const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
             video.src = "";
             resolve(thumbnailUrl);
           } else {
@@ -555,7 +562,7 @@ export default function Dashboard() {
       
       video.src = videoUrl;
     });
-  }, []);
+  }, [isMobile]);
 
   const loadThumbnail = useCallback(async (fileId: string, mimeType: string) => {
     if (fileThumbnails[fileId]) return;
@@ -635,7 +642,7 @@ export default function Dashboard() {
 
   const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string}>>([]);
   const loadingCountRef = useRef(0);
-  const MAX_CONCURRENT_LOADS = 4;
+  const MAX_CONCURRENT_LOADS = isMobile ? 2 : 4;
 
   const processQueue = useCallback(async () => {
     while (thumbnailQueueRef.current.length > 0 && loadingCountRef.current < MAX_CONCURRENT_LOADS) {
@@ -2859,7 +2866,11 @@ export default function Dashboard() {
                       src={previewUrl} 
                       controls 
                       autoPlay
-                      className="max-w-full max-h-[70vh]"
+                      playsInline
+                      preload={isMobile ? "metadata" : "auto"}
+                      controlsList={isMobile ? "nodownload" : undefined}
+                      className="max-w-full max-h-[70vh] w-full"
+                      style={{ touchAction: 'manipulation' }}
                     />
                   ) : getEffectiveMimeType(previewFile).startsWith("audio/") ? (
                     <div className="flex flex-col items-center gap-4 p-8">
