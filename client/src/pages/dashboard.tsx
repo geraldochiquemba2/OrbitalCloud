@@ -14,7 +14,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import dashboardBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
-import BetaWarningBanner from "@/components/BetaWarningBanner";
 import { 
   encryptFile, 
   decryptBuffer, 
@@ -1621,9 +1620,6 @@ export default function Dashboard() {
     <>
       {/* Loading Screen - Always rendered first to cover everything */}
       <LoadingScreen isVisible={showLoading || isLogoutLoading} />
-      
-      {/* Beta Warning Banner */}
-      <BetaWarningBanner />
       
       <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-foreground selection:bg-primary/10 pt-8">
         {/* Navigation */}

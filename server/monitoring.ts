@@ -59,15 +59,12 @@ class MonitoringService {
   private alerts: Alert[] = [];
   private alertCallbacks: Array<(alert: Alert) => void> = [];
   
-  // Limites de segurança
+  // Limites do sistema
   public readonly LIMITS = {
-    FREE_STORAGE_GB: 5, // Reduzido de 20GB para 5GB inicialmente
-    FREE_STORAGE_BYTES: 5 * 1024 * 1024 * 1024,
-    MAX_FILE_SIZE_MB: 100, // Máximo 100MB por ficheiro
-    MAX_FILE_SIZE_BYTES: 100 * 1024 * 1024,
-    DAILY_UPLOAD_LIMIT_FREE: 20, // Máximo 20 uploads por dia (grátis)
-    DAILY_UPLOAD_BYTES_FREE: 1 * 1024 * 1024 * 1024, // 1GB por dia (grátis)
-    MAX_USERS_BETA: 1000, // Limite de utilizadores em beta
+    FREE_STORAGE_GB: 20, // 20GB grátis
+    FREE_STORAGE_BYTES: 20 * 1024 * 1024 * 1024,
+    MAX_FILE_SIZE_MB: 2048, // 2GB máximo por ficheiro (limite do Telegram)
+    MAX_FILE_SIZE_BYTES: 2 * 1024 * 1024 * 1024,
     BOT_FAILURE_THRESHOLD: 3, // Após 3 falhas consecutivas, alerta
     RATE_LIMIT_COOLDOWN_MS: 60000, // 1 minuto cooldown após rate limit
   } as const;
@@ -193,32 +190,12 @@ class MonitoringService {
   }
 
   public canUpload(userId: string, fileSize: number, userPlan: string = 'gratis'): { allowed: boolean; reason?: string } {
-    // Verificar tamanho máximo do ficheiro
+    // Verificar tamanho máximo do ficheiro (2GB limite do Telegram)
     if (fileSize > this.LIMITS.MAX_FILE_SIZE_BYTES) {
       return {
         allowed: false,
         reason: `Ficheiro excede o tamanho máximo permitido (${this.LIMITS.MAX_FILE_SIZE_MB}MB)`,
       };
-    }
-
-    // Para planos grátis, verificar quota diária
-    if (userPlan === 'gratis') {
-      const quota = this.getUserDailyQuota(userId);
-      
-      if (quota.uploadsCount >= this.LIMITS.DAILY_UPLOAD_LIMIT_FREE) {
-        return {
-          allowed: false,
-          reason: `Limite diário de uploads atingido (${this.LIMITS.DAILY_UPLOAD_LIMIT_FREE} ficheiros). Volta amanhã ou faz upgrade.`,
-        };
-      }
-      
-      if (quota.uploadBytes + fileSize > this.LIMITS.DAILY_UPLOAD_BYTES_FREE) {
-        const remainingMB = Math.floor((this.LIMITS.DAILY_UPLOAD_BYTES_FREE - quota.uploadBytes) / 1024 / 1024);
-        return {
-          allowed: false,
-          reason: `Limite diário de dados atingido. Restam ${remainingMB}MB hoje. Volta amanhã ou faz upgrade.`,
-        };
-      }
     }
 
     return { allowed: true };

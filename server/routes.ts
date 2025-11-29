@@ -2343,8 +2343,7 @@ export async function registerRoutes(
       const { monitoringService } = await import("./monitoring");
       res.json({
         limits: monitoringService.LIMITS,
-        isBeta: true,
-        betaMessage: "OrbitalCloud está em fase beta. Para maior segurança dos seus ficheiros, recomendamos manter cópias locais dos ficheiros importantes.",
+        isBeta: false,
       });
     } catch (error) {
       res.status(500).json({ message: "Erro ao obter limites" });
@@ -2372,9 +2371,9 @@ export async function registerRoutes(
         },
         daily: {
           uploads: dailyQuota.uploadsCount,
-          maxUploads: user.plano === 'gratis' ? limits.DAILY_UPLOAD_LIMIT_FREE : -1,
+          maxUploads: -1,
           bytesUploaded: dailyQuota.uploadBytes,
-          maxBytes: user.plano === 'gratis' ? limits.DAILY_UPLOAD_BYTES_FREE : -1,
+          maxBytes: -1,
         },
         limits: {
           maxFileSize: limits.MAX_FILE_SIZE_BYTES,
