@@ -87,33 +87,35 @@ export default function SharePage() {
   const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement("video");
-      video.preload = isMobile ? "metadata" : "auto";
+      video.preload = "metadata";
       video.muted = true;
       video.playsInline = true;
+      video.crossOrigin = "anonymous";
+      video.setAttribute("webkit-playsinline", "true");
       
-      const timeoutMs = isMobile ? 8000 : 15000;
+      const timeoutMs = isMobile ? 15000 : 20000;
       const timeoutId = setTimeout(() => {
         video.src = "";
         reject(new Error("Video load timeout"));
       }, timeoutMs);
       
-      video.onloadeddata = () => {
-        video.currentTime = Math.min(1, video.duration * 0.1);
+      video.onloadedmetadata = () => {
+        video.currentTime = Math.min(0.5, video.duration * 0.05);
       };
       
       video.onseeked = () => {
         clearTimeout(timeoutId);
         try {
           const canvas = document.createElement("canvas");
-          const maxWidth = isMobile ? 160 : 320;
-          const maxHeight = isMobile ? 90 : 180;
+          const maxWidth = isMobile ? 200 : 320;
+          const maxHeight = isMobile ? 120 : 180;
           const scale = Math.min(maxWidth / (video.videoWidth || 320), maxHeight / (video.videoHeight || 180));
           canvas.width = Math.round((video.videoWidth || 320) * scale);
           canvas.height = Math.round((video.videoHeight || 180) * scale);
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const quality = isMobile ? 0.6 : 0.8;
+            const quality = isMobile ? 0.7 : 0.8;
             const thumbnailDataUrl = canvas.toDataURL("image/jpeg", quality);
             video.src = "";
             resolve(thumbnailDataUrl);
@@ -131,6 +133,7 @@ export default function SharePage() {
       };
       
       video.src = videoUrl;
+      video.load();
     });
   }, [isMobile]);
 

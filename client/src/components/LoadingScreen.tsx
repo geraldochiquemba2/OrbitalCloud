@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import loadingBgImage from "@/assets/loading-background.jpg";
 
 interface LoadingScreenProps {
   isVisible: boolean;
@@ -19,15 +20,23 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
         isVisible ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'
       }`}
       style={{
-        backgroundColor: '#0f172a',
         margin: 0,
         padding: 0
       }}
     >
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url(${loadingBgImage})`,
+        }}
+      />
+      
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/60 to-slate-900/80" />
+      
       <div className="relative flex flex-col items-center gap-6">
         <div className="text-center">
           <h1 className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent`}>
-            OrbitalCloud
+            AngoCloud
           </h1>
           <p className="text-cyan-300/80 text-xs mt-2 font-medium tracking-wider">
             Carregando...

@@ -136,6 +136,7 @@ export default function Dashboard() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [fileThumbnails, setFileThumbnails] = useState<Record<string, string>>({});
+  const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(new Set());
   
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -517,33 +518,35 @@ export default function Dashboard() {
   const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement("video");
-      video.preload = isMobile ? "metadata" : "auto";
+      video.preload = "metadata";
       video.muted = true;
       video.playsInline = true;
+      video.crossOrigin = "anonymous";
+      video.setAttribute("webkit-playsinline", "true");
       
-      const timeoutMs = isMobile ? 8000 : 15000;
+      const timeoutMs = isMobile ? 15000 : 20000;
       const timeoutId = setTimeout(() => {
         video.src = "";
         reject(new Error("Video load timeout"));
       }, timeoutMs);
       
-      video.onloadeddata = () => {
-        video.currentTime = Math.min(1, video.duration * 0.1);
+      video.onloadedmetadata = () => {
+        video.currentTime = Math.min(0.5, video.duration * 0.05);
       };
       
       video.onseeked = () => {
         clearTimeout(timeoutId);
         try {
           const canvas = document.createElement("canvas");
-          const maxWidth = isMobile ? 160 : 320;
-          const maxHeight = isMobile ? 90 : 180;
+          const maxWidth = isMobile ? 200 : 320;
+          const maxHeight = isMobile ? 120 : 180;
           const scale = Math.min(maxWidth / (video.videoWidth || 320), maxHeight / (video.videoHeight || 180));
           canvas.width = Math.round((video.videoWidth || 320) * scale);
           canvas.height = Math.round((video.videoHeight || 180) * scale);
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const quality = isMobile ? 0.6 : 0.8;
+            const quality = isMobile ? 0.7 : 0.8;
             const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
             video.src = "";
             resolve(thumbnailUrl);
@@ -561,11 +564,14 @@ export default function Dashboard() {
       };
       
       video.src = videoUrl;
+      video.load();
     });
   }, [isMobile]);
 
   const loadThumbnail = useCallback(async (fileId: string, mimeType: string) => {
     if (fileThumbnails[fileId]) return;
+    
+    setLoadingThumbnails(prev => new Set(prev).add(fileId));
     
     try {
       const metaResponse = await fetch(`/api/files/${fileId}/download-data`, { credentials: "include" });
@@ -624,6 +630,8 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error("Error loading thumbnail:", err);
+    } finally {
+      setLoadingThumbnails(prev => { const next = new Set(prev); next.delete(fileId); return next; });
     }
   }, [fileThumbnails, generateVideoThumbnail]);
 
@@ -2082,8 +2090,12 @@ export default function Dashboard() {
                                     <Lock className="w-10 h-10 text-amber-400" />
                                   </div>
                                 ) : getEffectiveMimeType(file).startsWith("video/") ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50">
-                                    <Video className="w-10 h-10 text-white/60" />
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50 relative">
+                                    {loadingThumbnails.has(file.id) ? (
+                                      <div className="w-8 h-8 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
+                                    ) : (
+                                      <Video className="w-10 h-10 text-white/60" />
+                                    )}
                                   </div>
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center p-4">
@@ -2161,7 +2173,11 @@ export default function Dashboard() {
                               </div>
                             ) : getEffectiveMimeType(file).startsWith("video/") ? (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50 relative">
-                                <Video className="w-10 h-10 text-white/60" />
+                                {loadingThumbnails.has(file.id) ? (
+                                  <div className="w-8 h-8 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
+                                ) : (
+                                  <Video className="w-10 h-10 text-white/60" />
+                                )}
                                 {file.isEncrypted && (
                                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                                     <div className="flex flex-col items-center">
@@ -2292,8 +2308,12 @@ export default function Dashboard() {
                                     decoding="async"
                                   />
                                 ) : getEffectiveMimeType(file).startsWith("video/") ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-slate-900">
-                                    <Video className="w-10 h-10 text-white/60" />
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50">
+                                    {loadingThumbnails.has(file.id) ? (
+                                      <div className="w-8 h-8 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
+                                    ) : (
+                                      <Video className="w-10 h-10 text-white/60" />
+                                    )}
                                   </div>
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center p-4">
@@ -2878,11 +2898,28 @@ export default function Dashboard() {
                       <audio src={previewUrl} controls autoPlay className="w-full max-w-md" />
                     </div>
                   ) : getEffectiveMimeType(previewFile) === "application/pdf" ? (
-                    <iframe 
-                      src={previewUrl} 
-                      className="w-full h-[70vh]"
-                      title={previewFile.nome}
-                    />
+                    isMobile ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6">
+                        <FileText className="w-16 h-16 text-red-400" />
+                        <p className="text-white text-center font-medium">{previewFile.nome}</p>
+                        <p className="text-white/60 text-sm text-center">
+                          Para melhor visualização de PDFs em telemóvel, faça download do ficheiro.
+                        </p>
+                        <button
+                          onClick={() => downloadFile(previewFile)}
+                          className="mt-2 px-6 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+                        >
+                          <Download className="w-5 h-5" />
+                          Fazer Download
+                        </button>
+                      </div>
+                    ) : (
+                      <iframe 
+                        src={previewUrl} 
+                        className="w-full h-[70vh]"
+                        title={previewFile.nome}
+                      />
+                    )
                   ) : (
                     <div className="flex flex-col items-center gap-4 p-8">
                       {getFileIcon(getEffectiveMimeType(previewFile))}
