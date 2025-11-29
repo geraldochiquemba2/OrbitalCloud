@@ -168,9 +168,9 @@ export default function Home() {
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
             {[
-              { title: "Infraestrutura com Bots", desc: "Múltiplos bots com load balancing automático, retry/fallback e failover inteligente. Suporta até 10 bots simultâneos com health checks em tempo real.", icon: Server },
-              { title: "Criptografia AES-256-GCM", desc: "Encriptação cliente-side (zero-knowledge). Chaves derivadas com PBKDF2 da password do utilizador. Ficheiros encriptados no browser antes do upload, sem acesso do servidor aos dados.", icon: Lock },
-              { title: "Sincronização e Resiliência", desc: "Exponential backoff com jitter, tratamento automático de rate limits, recovery automático de bots bloqueados e logging detalhado para monitoramento.", icon: HardDrive },
+              { title: "Infraestrutura Distribuída", desc: "Servidores com load balancing automático, retry/fallback e failover inteligente. Alta disponibilidade com health checks em tempo real e redundância geográfica.", icon: Server },
+              { title: "Criptografia AES-256-GCM", desc: "Encriptação cliente-side (zero-knowledge). Chaves derivadas com PBKDF2 da sua password. Ficheiros encriptados no browser antes do upload, sem acesso do servidor aos dados.", icon: Lock },
+              { title: "Sincronização Inteligente", desc: "Upload e download otimizados com retry automático, tratamento de erros de rede e recovery inteligente. Monitoramento em tempo real do estado dos seus ficheiros.", icon: HardDrive },
             ].map((feature, i) => (
               <div 
                 key={i}
