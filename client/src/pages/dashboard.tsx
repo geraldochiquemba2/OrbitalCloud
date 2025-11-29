@@ -2294,44 +2294,44 @@ export default function Dashboard() {
                               </div>
                               
                               <div 
-                                className="absolute top-1 right-1 flex items-center gap-1"
+                                className="absolute top-2 right-2 flex items-center gap-1.5 sm:gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm px-2 py-1.5 rounded-lg"
                               >
                                 {viewMode === "trash" ? (
                                   <>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); restoreFile(file.id); }}
-                                      className="p-1.5 rounded bg-green-500/80 text-white hover:bg-green-500 transition-colors"
+                                      className="p-2 sm:p-2.5 rounded bg-green-500/80 text-white hover:bg-green-500 transition-colors flex-shrink-0"
                                       title="Restaurar"
                                       data-testid={`button-restore-${file.id}`}
                                     >
-                                      <RefreshCw className="w-3 h-3" />
+                                      <RefreshCw className="w-4 h-4 sm:w-4 sm:h-4" />
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); permanentlyDeleteFile(file.id); }}
-                                      className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                                      className="p-2 sm:p-2.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors flex-shrink-0"
                                       title="Eliminar permanentemente"
                                       data-testid={`button-permanent-delete-${file.id}`}
                                     >
-                                      <Trash2 className="w-3 h-3" />
+                                      <Trash2 className="w-4 h-4 sm:w-4 sm:h-4" />
                                     </button>
                                   </>
                                 ) : (
                                   <>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); downloadFile(file); }}
-                                      className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
+                                      className="p-2 sm:p-2.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors flex-shrink-0"
                                       title="Download"
                                       data-testid={`button-download-${file.id}`}
                                     >
-                                      <Download className="w-3 h-3" />
+                                      <Download className="w-4 h-4 sm:w-4 sm:h-4" />
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); shareFile(file); }}
-                                      className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
+                                      className="p-2 sm:p-2.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors flex-shrink-0"
                                       title="Partilhar"
                                       data-testid={`button-share-${file.id}`}
                                     >
-                                      <Share2 className="w-3 h-3" />
+                                      <Share2 className="w-4 h-4 sm:w-4 sm:h-4" />
                                     </button>
                                     <button
                                       onClick={(e) => { 
@@ -2341,11 +2341,11 @@ export default function Dashboard() {
                                         setNewFileName(file.nome);
                                         setShowRenameModal(true);
                                       }}
-                                      className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
+                                      className="p-2 sm:p-2.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors flex-shrink-0"
                                       title="Renomear"
                                       data-testid={`button-rename-${file.id}`}
                                     >
-                                      <Edit className="w-3 h-3" />
+                                      <Edit className="w-4 h-4 sm:w-4 sm:h-4" />
                                     </button>
                                     <button
                                       onClick={(e) => { 
@@ -2355,11 +2355,11 @@ export default function Dashboard() {
                                         fetchAllFolders();
                                         setShowMoveModal(true);
                                       }}
-                                      className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
+                                      className="p-2 sm:p-2.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors flex-shrink-0"
                                       title="Mover"
                                       data-testid={`button-move-${file.id}`}
                                     >
-                                      <Move className="w-3 h-3" />
+                                      <Move className="w-4 h-4 sm:w-4 sm:h-4" />
                                     </button>
                                     <button
                                       onClick={(e) => { 
@@ -2367,11 +2367,11 @@ export default function Dashboard() {
                                         e.preventDefault();
                                         confirmDeleteFile(file); 
                                       }}
-                                      className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                                      className="p-2 sm:p-2.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors flex-shrink-0"
                                       title="Eliminar"
                                       data-testid={`button-delete-${file.id}`}
                                     >
-                                      <Trash2 className="w-3 h-3" />
+                                      <Trash2 className="w-4 h-4 sm:w-4 sm:h-4" />
                                     </button>
                                   </>
                                 )}
