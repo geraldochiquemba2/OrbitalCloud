@@ -1,6 +1,5 @@
 import { ThreeDCard, ThreeDCardBody, ThreeDCardItem } from "@/components/ui/3d-card";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 import { Check, Cloud, Server, Lock, HardDrive, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
@@ -10,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Import assets
 import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
 import cubeImage from "@assets/generated_images/3d_abstract_floating_cube.png";
 import heroVideo from "@assets/4354033-hd_1280_720_25fps_1764245575076.mp4";
@@ -21,7 +19,7 @@ export default function Home() {
   const { isLoggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [videosLoaded, setVideosLoaded] = useState(0);
-  const totalVideos = 2; // Hero video + Pricing video
+  const totalVideos = 2;
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -31,8 +29,6 @@ export default function Home() {
   }, [isLoggedIn, navigate]);
 
   useEffect(() => {
-    // On mobile, show content faster (2 seconds) since videos may load slowly
-    // On desktop, wait for videos to load then show after 3 seconds
     const timeout = isMobile ? 2000 : 3000;
     
     if (videosLoaded >= 1 || isMobile) {
@@ -49,7 +45,6 @@ export default function Home() {
 
   const handleNavigateWithLoading = (path: string) => {
     setIsLoading(true);
-    // Reset video loaded state when navigating away
     setVideosLoaded(0);
     setTimeout(() => {
       navigate(path);
@@ -135,47 +130,22 @@ export default function Home() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 md:gap-12 items-center w-full max-w-7xl mx-auto relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="z-20"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/5 backdrop-blur-md text-xs font-medium text-white mb-6"
-            >
+          <div className="z-20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/5 backdrop-blur-md text-xs font-medium text-white mb-6">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
               </span>
               A Nuvem de Angola
-            </motion.div>
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-              className="text-3xl sm:text-4xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg"
-            >
+            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg">
               Armazenamento <br />
               <span className="bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-lg">Sem Fronteiras</span>
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-              className="text-sm sm:text-base md:text-lg text-white/90 mb-8 leading-relaxed drop-shadow-md"
-            >
+            </h1>
+            <p className="text-sm sm:text-base md:text-lg text-white/90 mb-8 leading-relaxed drop-shadow-md">
               Guarde, partilhe e aceda aos seus ficheiros com a velocidade de servidores locais. 15GB grátis para todos os angolanos, sem truques.
-            </motion.p>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
-              className="flex flex-col sm:flex-row gap-4"
-            >
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
               <Button onClick={() => handleNavigateWithLoading("/signup")} size="lg" className="bg-white/10 hover:bg-white/20 text-white h-11 sm:h-12 px-6 sm:px-8 rounded-full backdrop-blur-md border border-white/30 hover:border-white/50 text-sm sm:text-base font-bold transition-all duration-300">
                 Começar Grátis
               </Button>
@@ -188,47 +158,25 @@ export default function Home() {
               >
                 Ver Planos
               </button>
-            </motion.div>
+            </div>
             
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
-              className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:gap-8 gap-4 text-xs sm:text-sm font-medium text-white/80"
-            >
-              <motion.div 
-                whileHover={{ x: 5 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center gap-2"
-              >
+            <div className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:gap-8 gap-4 text-xs sm:text-sm font-medium text-white/80">
+              <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-white" />
                 <span>Encriptado</span>
-              </motion.div>
-              <motion.div 
-                whileHover={{ x: 5 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center gap-2"
-              >
+              </div>
+              <div className="flex items-center gap-2">
                 <Server className="w-4 h-4 text-white" />
                 <span>Alta Velocidade</span>
-              </motion.div>
-              <motion.div 
-                whileHover={{ x: 5 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center gap-2"
-              >
+              </div>
+              <div className="flex items-center gap-2">
                 <Cloud className="w-4 h-4 text-white" />
                 <span>15GB Grátis</span>
-              </motion.div>
-            </motion.div>
-          </motion.div>
+              </div>
+            </div>
+          </div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="relative h-[500px] w-full flex items-center justify-center hidden md:flex"
-          />
+          <div className="relative h-[500px] w-full flex items-center justify-center hidden md:flex" />
         </div>
       </section>
       {/* Features Grid */}
@@ -238,18 +186,12 @@ export default function Home() {
         backgroundPosition: 'center'
       }}>
         <div className="max-w-7xl mx-auto relative z-10">
-          <motion.div 
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, margin: "-100px" }}
-          >
+          <div className="text-center mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Tecnologia de Ponta</h2>
             <p className="text-white/80 max-w-2xl mx-auto">
               Infraestrutura local otimizada para a rede de internet angolana, garantindo a menor latência possível.
             </p>
-          </motion.div>
+          </div>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
             {[
@@ -257,10 +199,8 @@ export default function Home() {
               { title: "Criptografia AES-256-GCM", desc: "Encriptação cliente-side (zero-knowledge). Chaves derivadas com PBKDF2 da password do utilizador. Ficheiros encriptados no browser antes do upload, sem acesso do servidor aos dados.", icon: Lock },
               { title: "Sincronização e Resiliência", desc: "Exponential backoff com jitter, tratamento automático de rate limits, recovery automático de bots bloqueados e logging detalhado para monitoramento.", icon: HardDrive },
             ].map((feature, i) => (
-              <motion.div 
+              <div 
                 key={i}
-                whileHover={isMobile ? {} : { y: -5 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
                 className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-all duration-300 ease-out group"
               >
                 <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-6 group-hover:bg-white/30 transition-colors">
@@ -268,7 +208,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-white">{feature.title}</h3>
                 <p className="text-white/70 leading-relaxed">{feature.desc}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -303,16 +243,10 @@ export default function Home() {
         
         <div className="max-w-7xl mx-auto relative z-10 w-full flex-1 flex items-center">
           <div className="w-full">
-            <motion.div 
-              className="text-center mb-16"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              viewport={{ once: true, margin: "-100px" }}
-            >
+            <div className="text-center mb-16">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Planos Flexíveis</h2>
               <p className="text-white/80">Escolha o espaço que você precisa.</p>
-            </motion.div>
+            </div>
 
             <div className="flex flex-wrap justify-center gap-4 md:gap-8">
               {pricingPlans.map((plan, i) => (
@@ -388,13 +322,7 @@ export default function Home() {
             </div>
             <div className="text-sm text-white/70 flex items-center gap-2">
               <span>&copy; 2024 OrbitalCloud. Feito em Luanda com</span>
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 0.6, repeat: Infinity }}
-                className="inline-block"
-              >
-                <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-              </motion.div>
+              <Heart className="w-4 h-4 text-red-500 fill-red-500" />
             </div>
             <div className="flex gap-6">
                {/* Social icons would go here */}
