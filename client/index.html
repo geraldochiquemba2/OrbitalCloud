@@ -18,14 +18,97 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     
     <!-- Preload Critical Assets -->
+    <link rel="preload" as="image" href="/src/assets/loading-background.jpg" fetchpriority="high">
     <link rel="preload" as="image" href="/src/assets/pexels-shvets-production-7562349_1764345797027.jpg">
     <link rel="preload" as="image" href="/src/assets/generated_images/minimalist_cloud_storage_icon.png">
     <link rel="preload" as="image" href="/src/assets/generated_images/about_page_video_first_frame.png">
     <link rel="preload" as="image" href="/src/assets/pexels-yankrukov-7315485_1764254260497.jpg">
     <link rel="preload" as="video" href="/src/assets/4354033-hd_1280_720_25fps_1764245575076.mp4">
     <link rel="preload" as="video" href="/src/assets/4351798-hd_1280_720_50fps_1764253527054.mp4">
+    
+    <style>
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0f172a;
+        transition: opacity 0.3s ease-out;
+      }
+      #initial-loader.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #initial-loader .bg-image {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-image: url('/src/assets/loading-background.jpg');
+      }
+      #initial-loader .overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom right, rgba(15, 23, 42, 0.8), rgba(88, 28, 135, 0.6), rgba(15, 23, 42, 0.8));
+      }
+      #initial-loader .content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+      }
+      #initial-loader h1 {
+        font-size: 2.25rem;
+        font-weight: 700;
+        background: linear-gradient(to right, #22d3ee, #a855f7, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+        font-family: 'Space Grotesk', sans-serif;
+      }
+      #initial-loader p {
+        color: rgba(34, 211, 238, 0.8);
+        font-size: 0.75rem;
+        margin: 0.5rem 0 0 0;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        font-family: 'Space Grotesk', sans-serif;
+      }
+      #initial-loader .spinner {
+        width: 2rem;
+        height: 2rem;
+        border: 2px solid rgba(34, 211, 238, 0.3);
+        border-top-color: #22d3ee;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @media (max-width: 768px) {
+        #initial-loader h1 {
+          font-size: 1.875rem;
+        }
+      }
+    </style>
   </head>
   <body style="background: #0f172a; margin: 0; padding: 0; overflow-x: hidden;">
+    <div id="initial-loader">
+      <div class="bg-image"></div>
+      <div class="overlay"></div>
+      <div class="content">
+        <div style="text-align: center;">
+          <h1>OrbitalCloud</h1>
+          <p>Carregando...</p>
+        </div>
+        <div class="spinner"></div>
+      </div>
+    </div>
     <div id="root" style="background: #0f172a;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
