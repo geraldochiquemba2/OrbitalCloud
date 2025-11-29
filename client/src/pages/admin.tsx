@@ -68,6 +68,8 @@ interface UpgradeRequest {
   userId: string;
   currentPlan: string;
   requestedPlan: string;
+  requestedExtraGB?: number;
+  totalPrice?: number;
   status: string;
   adminNote?: string;
   proofFileName?: string;
@@ -473,6 +475,11 @@ export default function AdminPage() {
                             <Badge className={PLANS[req.requestedPlan as keyof typeof PLANS]?.color || "bg-gray-500"}>
                               {PLANS[req.requestedPlan as keyof typeof PLANS]?.name || req.requestedPlan}
                             </Badge>
+                            {typeof req.requestedExtraGB === 'number' && req.requestedExtraGB > 0 && (
+                              <Badge className="bg-emerald-500 text-white" data-testid={`badge-extra-gb-${req.id}`}>
+                                +{req.requestedExtraGB} GB = {req.totalPrice || req.requestedExtraGB * 500} Kz
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -691,7 +698,7 @@ export default function AdminPage() {
                               <div>
                                 <p className="text-white font-medium">{req.userName}</p>
                                 <p className="text-white/50 text-sm">{req.userEmail}</p>
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
                                   <Badge variant="outline" className="border-white/20 text-white/60">
                                     {PLANS[req.currentPlan as keyof typeof PLANS]?.name || req.currentPlan}
                                   </Badge>
@@ -699,6 +706,11 @@ export default function AdminPage() {
                                   <Badge className={PLANS[req.requestedPlan as keyof typeof PLANS]?.color || "bg-gray-500"}>
                                     {PLANS[req.requestedPlan as keyof typeof PLANS]?.name || req.requestedPlan}
                                   </Badge>
+                                  {typeof req.requestedExtraGB === 'number' && req.requestedExtraGB > 0 && (
+                                    <Badge className="bg-emerald-500 text-white" data-testid={`badge-tab-extra-gb-${req.id}`}>
+                                      +{req.requestedExtraGB} GB = {req.totalPrice || req.requestedExtraGB * 500} Kz
+                                    </Badge>
+                                  )}
                                 </div>
                                 {req.proofFileName && (
                                   <p className="text-white/40 text-xs mt-1">
@@ -774,6 +786,11 @@ export default function AdminPage() {
                                 <p className="text-white text-sm">{req.userName}</p>
                                 <p className="text-white/40 text-xs">
                                   {PLANS[req.currentPlan as keyof typeof PLANS]?.name} → {PLANS[req.requestedPlan as keyof typeof PLANS]?.name}
+                                  {typeof req.requestedExtraGB === 'number' && req.requestedExtraGB > 0 && (
+                                    <span className="ml-2 text-emerald-400">
+                                      (+{req.requestedExtraGB} GB = {req.totalPrice || req.requestedExtraGB * 500} Kz)
+                                    </span>
+                                  )}
                                 </p>
                               </div>
                             </div>

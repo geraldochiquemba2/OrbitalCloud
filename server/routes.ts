@@ -2015,20 +2015,31 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Solicitação já foi processada" });
       }
       
-      // If approved, update user's plan and cancel other requests
+      // If approved, update user's plan or storage limit
       if (status === "approved") {
-        const planConfig = PLANS[upgradeRequest.requestedPlan as keyof typeof PLANS];
-        if (planConfig) {
-          await storage.updateUserPlanFull(
-            upgradeRequest.userId,
-            upgradeRequest.requestedPlan,
-            planConfig.uploadLimit,
-            planConfig.storageLimit
-          );
-          
-          // Cancel other pending requests from the same user
-          await storage.cancelOtherUpgradeRequests(upgradeRequest.userId, req.params.id);
+        // Check if this is an extra storage request (explicit numeric check)
+        const extraGB = upgradeRequest.requestedExtraGB;
+        const isExtraStorageRequest = typeof extraGB === 'number' && Number.isFinite(extraGB) && extraGB > 0;
+        
+        if (isExtraStorageRequest) {
+          // Increment storage limit by the requested extra GB
+          const additionalBytes = extraGB * 1024 * 1024 * 1024;
+          await storage.incrementUserStorageLimit(upgradeRequest.userId, additionalBytes);
+        } else {
+          // Regular plan upgrade
+          const planConfig = PLANS[upgradeRequest.requestedPlan as keyof typeof PLANS];
+          if (planConfig) {
+            await storage.updateUserPlanFull(
+              upgradeRequest.userId,
+              upgradeRequest.requestedPlan,
+              planConfig.uploadLimit,
+              planConfig.storageLimit
+            );
+          }
         }
+        
+        // Cancel other pending requests from the same user
+        await storage.cancelOtherUpgradeRequests(upgradeRequest.userId, req.params.id);
       }
       
       await storage.processUpgradeRequest(req.params.id, status, adminNote);
@@ -2050,6 +2061,36 @@ export async function registerRoutes(
     try {
       const requestedPlan = req.body.requestedPlan;
       
+      // Parse and validate numeric fields - strictly validate integer strings
+      let requestedExtraGB: number | null = null;
+      let totalPrice: number | null = null;
+      
+      if (req.body.requestedExtraGB !== undefined && req.body.requestedExtraGB !== null && req.body.requestedExtraGB !== '') {
+        const rawValue = String(req.body.requestedExtraGB).trim();
+        // Only accept pure integer strings (no decimals, no scientific notation)
+        if (!/^-?\d+$/.test(rawValue)) {
+          return res.status(400).json({ message: "GB extras deve ser um número inteiro válido" });
+        }
+        const parsedGB = Number(rawValue);
+        if (!Number.isFinite(parsedGB) || !Number.isInteger(parsedGB)) {
+          return res.status(400).json({ message: "GB extras deve ser um número inteiro válido" });
+        }
+        requestedExtraGB = parsedGB;
+      }
+      
+      if (req.body.totalPrice !== undefined && req.body.totalPrice !== null && req.body.totalPrice !== '') {
+        const rawValue = String(req.body.totalPrice).trim();
+        // Only accept pure integer strings (no decimals, no scientific notation)
+        if (!/^-?\d+$/.test(rawValue)) {
+          return res.status(400).json({ message: "Preço total deve ser um número inteiro válido" });
+        }
+        const parsedPrice = Number(rawValue);
+        if (!Number.isFinite(parsedPrice) || !Number.isInteger(parsedPrice)) {
+          return res.status(400).json({ message: "Preço total deve ser um número inteiro válido" });
+        }
+        totalPrice = parsedPrice;
+      }
+      
       if (!requestedPlan) {
         return res.status(400).json({ message: "Plano não especificado" });
       }
@@ -2064,8 +2105,22 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Utilizador não encontrado" });
       }
       
-      if (user.plano === requestedPlan) {
+      // For extra storage requests, allow same plan
+      const hasExtraGB = requestedExtraGB !== null && requestedExtraGB > 0;
+      if (user.plano === requestedPlan && !hasExtraGB) {
         return res.status(400).json({ message: "Já possui este plano" });
+      }
+      
+      // Validate extra GB request
+      if (requestedExtraGB !== null) {
+        if (requestedExtraGB <= 0) {
+          return res.status(400).json({ message: "GB extras deve ser maior que 0" });
+        }
+        // Validate price (500 Kz per GB)
+        const expectedPrice = requestedExtraGB * 500;
+        if (totalPrice !== null && totalPrice !== expectedPrice) {
+          return res.status(400).json({ message: "Preço incorreto para a quantidade de GB solicitada" });
+        }
       }
       
       // Check for existing pending request
@@ -2110,6 +2165,8 @@ export async function registerRoutes(
         userId: user.id,
         currentPlan: user.plano,
         requestedPlan,
+        requestedExtraGB,
+        totalPrice: totalPrice ?? (requestedExtraGB ? requestedExtraGB * 500 : null),
         proofFileName: req.file.originalname,
         proofFileSize: req.file.size,
         proofTelegramFileId,

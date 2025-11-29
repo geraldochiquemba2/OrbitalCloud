@@ -119,6 +119,7 @@ export interface IStorage {
   updateUserAdmin(userId: string, isAdmin: boolean): Promise<void>;
   incrementUserUploadCount(userId: string): Promise<void>;
   updateUserPlanFull(userId: string, plano: string, uploadLimit: number, storageLimit: number): Promise<void>;
+  incrementUserStorageLimit(userId: string, additionalBytes: number): Promise<void>;
 
   // Upgrade Requests
   createUpgradeRequest(request: InsertUpgradeRequest): Promise<UpgradeRequest>;
@@ -674,6 +675,13 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(users)
       .set({ plano, uploadLimit, storageLimit })
+      .where(eq(users.id, userId));
+  }
+
+  async incrementUserStorageLimit(userId: string, additionalBytes: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ storageLimit: sql`${users.storageLimit} + ${additionalBytes}` })
       .where(eq(users.id, userId));
   }
 
