@@ -10,6 +10,7 @@ import crypto from "crypto";
 import multer, { type Multer } from "multer";
 import { telegramService } from "./telegram";
 import bcrypt from "bcrypt";
+import { wsManager } from "./websocket";
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -498,6 +499,18 @@ export async function registerRoutes(
       // Record upload in monitoring system
       monitoringService.recordUpload(user.id, originalSize);
 
+      // Notify via WebSocket
+      wsManager.notifyFileUploaded(fileOwnerId, file);
+      
+      // Notify storage update
+      const updatedUser = await storage.getUser(storageOwnerId);
+      if (updatedUser) {
+        wsManager.notifyStorageUpdated(storageOwnerId, {
+          used: updatedUser.storageUsed,
+          limit: updatedUser.storageLimit
+        });
+      }
+
       res.json(file);
     } catch (error) {
       console.error("Upload error:", error);
@@ -517,6 +530,10 @@ export async function registerRoutes(
       }
 
       await storage.moveToTrash(req.params.id);
+      
+      // Notify via WebSocket
+      wsManager.notifyFileDeleted(req.user!.id, req.params.id);
+      
       res.json({ message: "Arquivo movido para a lixeira" });
     } catch (error) {
       res.status(500).json({ message: "Erro ao deletar arquivo" });
@@ -542,6 +559,10 @@ export async function registerRoutes(
       }
 
       await storage.restoreFromTrash(req.params.id);
+      
+      // Notify via WebSocket
+      wsManager.notifyFileRestored(req.user!.id, req.params.id);
+      
       res.json({ message: "Arquivo restaurado com sucesso" });
     } catch (error) {
       res.status(500).json({ message: "Erro ao restaurar arquivo" });
