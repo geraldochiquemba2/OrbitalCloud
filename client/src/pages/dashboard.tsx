@@ -1377,6 +1377,8 @@ export default function Dashboard() {
       if (response.ok) {
         toast.success("Ficheiro removido da lista de partilhados");
         setSharedFiles(prev => prev.filter(f => f.id !== fileId));
+        // Refetch pending invitations to update the owner's invitation list
+        await fetchPendingInvitations();
       } else {
         const error = await response.json();
         toast.error(error.message || "Erro ao remover ficheiro");
@@ -1422,6 +1424,8 @@ export default function Dashboard() {
       if (response.ok) {
         toast.success("Pasta removida da lista de partilhados");
         setSharedFolders(prev => prev.filter(f => f.id !== folderId));
+        // Refetch pending invitations to update the owner's invitation list  
+        await fetchPendingInvitations();
       } else {
         const error = await response.json();
         toast.error(error.message || "Erro ao remover pasta");
