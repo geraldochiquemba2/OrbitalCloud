@@ -291,7 +291,7 @@ export default function Home() {
 
                 <Button 
                   onClick={handleSelectPlan}
-                  className="w-full rounded-lg font-bold bg-white text-black hover:bg-white/90 transition-all duration-300 h-12"
+                  className="w-full rounded-xl font-bold bg-white/10 text-white border border-white/30 hover:bg-white/20 transition-all duration-300 h-12"
                 >
                   Pedir Mais Espaço
                 </Button>
