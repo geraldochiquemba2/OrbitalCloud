@@ -1,8 +1,8 @@
-# Cloudflare Worker Configuration for AngoCloud
+# Cloudflare Worker Configuration for OrbitalCloud
 # Configuração moderna (2025) - Workers com Assets integrados
 # https://developers.cloudflare.com/workers/
 
-name = "angocloud"
+name = "orbitalcloud"
 main = "worker/index.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
@@ -54,10 +54,10 @@ local_protocol = "http"
 
 # Rotas de produção (configurar após setup do domínio)
 # [[routes]]
-# pattern = "angocloud.ao/*"
-# zone_name = "angocloud.ao"
+# pattern = "orbital.cloud/*"
+# zone_name = "orbital.cloud"
 
 # Custom domain
 # [[routes]]
-# pattern = "www.angocloud.ao/*"
-# zone_name = "angocloud.ao"
+# pattern = "www.orbital.cloud/*"
+# zone_name = "orbital.cloud"
