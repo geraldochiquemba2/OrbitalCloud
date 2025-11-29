@@ -759,6 +759,32 @@ export class DatabaseStorage implements IStorage {
   async deleteFileChunks(fileId: string): Promise<void> {
     await db.delete(fileChunks).where(eq(fileChunks.fileId, fileId));
   }
+
+  // Migration: Update legacy users from 15GB to 20GB storage limit
+  async migrateLegacyStorageLimits(): Promise<number> {
+    const OLD_15GB_LIMIT = 16106127360; // 15GB in bytes
+    const NEW_20GB_LIMIT = 21474836480; // 20GB in bytes
+    
+    const result = await db
+      .update(users)
+      .set({ storageLimit: NEW_20GB_LIMIT })
+      .where(eq(users.storageLimit, OLD_15GB_LIMIT))
+      .returning({ id: users.id });
+    
+    return result.length;
+  }
 }
 
 export const storage = new DatabaseStorage();
+
+// Run startup migrations
+(async () => {
+  try {
+    const updatedCount = await storage.migrateLegacyStorageLimits();
+    if (updatedCount > 0) {
+      console.log(`[Migration] Updated ${updatedCount} user(s) from 15GB to 20GB storage limit`);
+    }
+  } catch (error) {
+    console.error("[Migration] Failed to migrate legacy storage limits:", error);
+  }
+})();
