@@ -49,6 +49,13 @@ The `server/monitoring.ts` module provides:
 - Admin API endpoints for monitoring dashboard
 - Error rate tracking and trend analysis
 
+### Known Limitations (Beta)
+
+The following limitations are accepted for the MVP/beta phase and planned for future improvement:
+- **In-Memory Quotas:** Daily upload quotas are stored in memory, reset on server restart. For production scale, migrate to Redis or PostgreSQL-backed quotas.
+- **Telegram Dependency:** Primary storage relies on Telegram Bot API. Monitor ToS changes and prepare Cloudflare R2 fallback.
+- **Single Instance:** Current architecture assumes single server instance. Multi-instance scaling requires shared session/quota storage.
+
 ## External Dependencies
 
 - **Cloud Storage Backend:** Telegram Bot API (requires `TELEGRAM_BOT_X_TOKEN` and `TELEGRAM_CHAT_ID_X` environment variables for multiple bots).
