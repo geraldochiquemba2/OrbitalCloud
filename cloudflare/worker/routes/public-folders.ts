@@ -1,7 +1,46 @@
 import { Hono } from 'hono';
 import { Env } from '../index';
+import { TelegramService } from '../services/telegram';
 
 export const publicFolderRoutes = new Hono<{ Bindings: Env }>();
+
+// Helper to get file info from database
+async function getPublicFile(fileId: string, dbUrl: string) {
+  const response = await fetch(dbUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: `
+        SELECT f.id, f.nome, f.tamanho, f.tipo_mime as "tipoMime", f.telegram_file_id as "telegramFileId", 
+               f.telegram_bot_id as "telegramBotId", f.is_encrypted as "isEncrypted", f.folder_id as "folderId"
+        FROM files f
+        WHERE f.id = $1 AND f.is_deleted = false
+        LIMIT 1
+      `,
+      params: [fileId]
+    })
+  });
+  
+  if (!response.ok) return null;
+  const data = await response.json() as { rows?: any[] };
+  return data.rows?.[0] || null;
+}
+
+// Helper to check if folder is public
+async function isFolderPublic(folderId: string, dbUrl: string) {
+  const response = await fetch(dbUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: `SELECT id FROM folders WHERE id = $1 AND is_public = true LIMIT 1`,
+      params: [folderId]
+    })
+  });
+  
+  if (!response.ok) return false;
+  const data = await response.json() as { rows?: any[] };
+  return (data.rows?.length || 0) > 0;
+}
 
 // Get public folder by slug
 publicFolderRoutes.get('/folder/:slug', async (c) => {
@@ -29,7 +68,7 @@ publicFolderRoutes.get('/folder/:slug', async (c) => {
       return c.json({ message: 'Pasta não encontrada' }, 404);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { rows?: any[] };
     if (!data.rows || data.rows.length === 0) {
       return c.json({ message: 'Pasta não encontrada' }, 404);
     }
@@ -67,7 +106,7 @@ publicFolderRoutes.get('/folder/:slug/contents', async (c) => {
       return c.json({ message: 'Pasta não encontrada' }, 404);
     }
 
-    const folderData = await folderResponse.json();
+    const folderData = await folderResponse.json() as { rows?: any[] };
     if (!folderData.rows || folderData.rows.length === 0) {
       return c.json({ message: 'Pasta não encontrada' }, 404);
     }
@@ -104,8 +143,8 @@ publicFolderRoutes.get('/folder/:slug/contents', async (c) => {
       })
     ]);
 
-    const files = await filesResponse.json();
-    const folders = await foldersResponse.json();
+    const files = await filesResponse.json() as { rows?: any[] };
+    const folders = await foldersResponse.json() as { rows?: any[] };
 
     return c.json({
       files: files.rows || [],
@@ -121,15 +160,70 @@ publicFolderRoutes.get('/folder/:slug/contents', async (c) => {
 publicFolderRoutes.get('/file/:fileId/preview', async (c) => {
   try {
     const fileId = c.req.param('fileId');
-    // This would need the Telegram service implementation
-    // For now, returning a placeholder
+    const dbUrl = c.env.DATABASE_URL;
+    
+    const file = await getPublicFile(fileId, dbUrl);
+    if (!file || file.isEncrypted) {
+      return c.json({ message: 'Ficheiro não encontrado' }, 404);
+    }
+    
+    if (!file.folderId || !(await isFolderPublic(file.folderId, dbUrl))) {
+      return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Ficheiro não disponível' }, 404);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    const downloadUrl = await telegram.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+    
     return c.json({ 
-      message: 'Preview functionality requires Telegram service integration',
-      url: null
-    }, 501);
+      url: downloadUrl,
+      tipoMime: file.tipoMime,
+      nome: file.nome
+    });
   } catch (error) {
     console.error('Error previewing file:', error);
     return c.json({ message: 'Erro ao obter preview' }, 500);
+  }
+});
+
+// Stream file from public folder (for video thumbnails with CORS support)
+publicFolderRoutes.get('/file/:fileId/stream', async (c) => {
+  try {
+    const fileId = c.req.param('fileId');
+    const dbUrl = c.env.DATABASE_URL;
+    
+    const file = await getPublicFile(fileId, dbUrl);
+    if (!file || file.isEncrypted) {
+      return c.json({ message: 'Ficheiro não encontrado' }, 404);
+    }
+    
+    if (!file.folderId || !(await isFolderPublic(file.folderId, dbUrl))) {
+      return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Ficheiro não disponível' }, 404);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    const fileBuffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    
+    return new Response(fileBuffer, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Content-Type': file.tipoMime,
+        'Content-Length': file.tamanho.toString(),
+        'Cache-Control': 'public, max-age=3600',
+      }
+    });
+  } catch (error) {
+    console.error('Error streaming file:', error);
+    return c.json({ message: 'Erro ao transmitir ficheiro' }, 500);
   }
 });
 
@@ -137,11 +231,31 @@ publicFolderRoutes.get('/file/:fileId/preview', async (c) => {
 publicFolderRoutes.get('/file/:fileId/download', async (c) => {
   try {
     const fileId = c.req.param('fileId');
-    // This would need the Telegram service implementation
-    // For now, returning a placeholder
-    return c.json({ 
-      message: 'Download functionality requires Telegram service integration'
-    }, 501);
+    const dbUrl = c.env.DATABASE_URL;
+    
+    const file = await getPublicFile(fileId, dbUrl);
+    if (!file || file.isEncrypted) {
+      return c.json({ message: 'Ficheiro não encontrado' }, 404);
+    }
+    
+    if (!file.folderId || !(await isFolderPublic(file.folderId, dbUrl))) {
+      return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Ficheiro não disponível' }, 404);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    const fileBuffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    
+    return new Response(fileBuffer, {
+      headers: {
+        'Content-Type': file.tipoMime,
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(file.nome)}"`,
+        'Content-Length': file.tamanho.toString(),
+      }
+    });
   } catch (error) {
     console.error('Error downloading file:', error);
     return c.json({ message: 'Erro ao baixar ficheiro' }, 500);
