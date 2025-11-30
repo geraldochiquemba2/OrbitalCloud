@@ -16,7 +16,7 @@ export default function About() {
   const [stats, setStats] = useState([
     { number: "0", label: "Utilizadores" },
     { number: "99.9%", label: "Disponibilidade" },
-    { number: "15GB", label: "Grátis" },
+    { number: "20GB", label: "Grátis" },
     { number: "0", label: "Ficheiros Guardados" }
   ]);
 
