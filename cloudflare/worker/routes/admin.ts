@@ -6,12 +6,19 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, adminMiddleware, JWTPayload } from '../middleware/auth';
-import { users, files, PLANS } from '../../../shared/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { TelegramService } from '../services/telegram';
+import { users, files, upgradeRequests, PLANS } from '../../../shared/schema';
+import { eq, desc, sql, ne } from 'drizzle-orm';
 
 interface Env {
   DATABASE_URL: string;
   JWT_SECRET: string;
+  TELEGRAM_BOT_1_TOKEN?: string;
+  TELEGRAM_BOT_2_TOKEN?: string;
+  TELEGRAM_BOT_3_TOKEN?: string;
+  TELEGRAM_BOT_4_TOKEN?: string;
+  TELEGRAM_BOT_5_TOKEN?: string;
+  TELEGRAM_STORAGE_CHAT_ID?: string;
 }
 
 export const adminRoutes = new Hono<{ Bindings: Env }>();
@@ -129,5 +136,135 @@ adminRoutes.delete('/users/:id', async (c) => {
   } catch (error) {
     console.error('Delete user error:', error);
     return c.json({ message: 'Erro ao eliminar utilizador' }, 500);
+  }
+});
+
+adminRoutes.get('/upgrade-requests', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL);
+
+    const requests = await db.select().from(upgradeRequests)
+      .orderBy(desc(upgradeRequests.createdAt));
+
+    const enrichedRequests = await Promise.all(
+      requests.map(async (req: any) => {
+        const [user] = await db.select().from(users).where(eq(users.id, req.userId));
+        return {
+          ...req,
+          userName: user?.nome || 'Desconhecido',
+          userEmail: user?.email || '',
+        };
+      })
+    );
+
+    return c.json(enrichedRequests);
+  } catch (error) {
+    console.error('Get upgrade requests error:', error);
+    return c.json({ message: 'Erro ao buscar solicitações' }, 500);
+  }
+});
+
+adminRoutes.patch('/upgrade-requests/:id', async (c) => {
+  try {
+    const requestId = c.req.param('id');
+    const { status, adminNote } = await c.req.json();
+
+    if (!status || !['approved', 'rejected'].includes(status)) {
+      return c.json({ message: 'Status inválido' }, 400);
+    }
+
+    const db = createDb(c.env.DATABASE_URL);
+
+    const [request] = await db.select().from(upgradeRequests)
+      .where(eq(upgradeRequests.id, requestId));
+
+    if (!request) {
+      return c.json({ message: 'Solicitação não encontrada' }, 404);
+    }
+
+    if (request.status !== 'pending') {
+      return c.json({ message: 'Esta solicitação já foi processada' }, 400);
+    }
+
+    if (status === 'approved') {
+      const extraGB = (request as any).requestedExtraGB;
+      const isExtraStorageRequest = typeof extraGB === 'number' && Number.isFinite(extraGB) && extraGB > 0;
+
+      if (isExtraStorageRequest) {
+        const additionalBytes = BigInt(extraGB) * BigInt(1024 * 1024 * 1024);
+        const [currentUser] = await db.select().from(users).where(eq(users.id, request.userId));
+        if (currentUser) {
+          const newLimit = BigInt(currentUser.storageLimit) + additionalBytes;
+          await db.update(users)
+            .set({ storageLimit: newLimit.toString() })
+            .where(eq(users.id, request.userId));
+        }
+      } else {
+        const planInfo = PLANS[request.requestedPlan as keyof typeof PLANS];
+        if (planInfo) {
+          await db.update(users)
+            .set({
+              plano: request.requestedPlan,
+              uploadLimit: planInfo.uploadLimit,
+              storageLimit: planInfo.storageLimit,
+            })
+            .where(eq(users.id, request.userId));
+        }
+      }
+
+      await db.execute(
+        sql`UPDATE upgrade_requests SET status = 'cancelled' WHERE user_id = ${request.userId} AND id != ${requestId} AND status = 'pending'`
+      );
+    }
+
+    await db.update(upgradeRequests)
+      .set({
+        status,
+        adminNote: adminNote || null,
+        processedAt: new Date(),
+      })
+      .where(eq(upgradeRequests.id, requestId));
+
+    return c.json({ message: status === 'approved' ? 'Solicitação aprovada' : 'Solicitação rejeitada' });
+  } catch (error) {
+    console.error('Process upgrade request error:', error);
+    return c.json({ message: 'Erro ao processar solicitação' }, 500);
+  }
+});
+
+adminRoutes.get('/upgrade-requests/:id/proof', async (c) => {
+  try {
+    const requestId = c.req.param('id');
+    const db = createDb(c.env.DATABASE_URL);
+
+    const [request] = await db.select().from(upgradeRequests)
+      .where(eq(upgradeRequests.id, requestId));
+
+    if (!request) {
+      return c.json({ message: 'Solicitação não encontrada' }, 404);
+    }
+
+    const proofFileId = (request as any).proofTelegramFileId;
+    const proofBotId = (request as any).proofTelegramBotId;
+
+    if (!proofFileId || !proofBotId) {
+      return c.json({ message: 'Comprovativo não disponível' }, 404);
+    }
+
+    const telegram = new TelegramService(c.env);
+    if (!telegram.isAvailable()) {
+      return c.json({ message: 'Sistema de armazenamento não configurado' }, 503);
+    }
+    
+    try {
+      const downloadUrl = await telegram.getDownloadUrl(proofFileId, proofBotId);
+      return c.redirect(downloadUrl);
+    } catch (telegramError) {
+      console.error('Telegram download error:', telegramError);
+      return c.json({ message: 'Erro ao obter URL de download' }, 500);
+    }
+  } catch (error) {
+    console.error('Get proof error:', error);
+    return c.json({ message: 'Erro ao buscar comprovativo' }, 500);
   }
 });

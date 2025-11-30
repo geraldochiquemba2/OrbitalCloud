@@ -22,8 +22,127 @@ interface Env {
 }
 
 export const upgradeRoutes = new Hono<{ Bindings: Env }>();
+export const userUpgradeRequestsRoutes = new Hono<{ Bindings: Env }>();
+export const myUpgradeRequestsRoutes = new Hono<{ Bindings: Env }>();
 
 upgradeRoutes.use('*', authMiddleware);
+userUpgradeRequestsRoutes.use('*', authMiddleware);
+myUpgradeRequestsRoutes.use('*', authMiddleware);
+
+userUpgradeRequestsRoutes.post('/', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const formData = await c.req.formData();
+    
+    const rawExtraGB = formData.get('requestedExtraGB');
+    const rawTotalPrice = formData.get('totalPrice');
+    const proofFile = formData.get('proof') as File | null;
+    
+    let requestedExtraGB: number | null = null;
+    let totalPrice: number | null = null;
+    
+    if (rawExtraGB) {
+      const rawValue = String(rawExtraGB).trim();
+      if (!/^-?\d+$/.test(rawValue)) {
+        return c.json({ message: 'GB extras deve ser um número inteiro válido' }, 400);
+      }
+      requestedExtraGB = Number(rawValue);
+    }
+    
+    if (rawTotalPrice) {
+      const rawValue = String(rawTotalPrice).trim();
+      if (!/^-?\d+$/.test(rawValue)) {
+        return c.json({ message: 'Preço total deve ser um número inteiro válido' }, 400);
+      }
+      totalPrice = Number(rawValue);
+    }
+    
+    if (requestedExtraGB === null || requestedExtraGB <= 0) {
+      return c.json({ message: 'GB extras deve ser maior que 0' }, 400);
+    }
+    
+    const expectedPrice = requestedExtraGB * 500;
+    if (totalPrice !== null && totalPrice !== expectedPrice) {
+      return c.json({ message: 'Preço incorreto para a quantidade de GB solicitada' }, 400);
+    }
+    
+    if (!proofFile) {
+      return c.json({ message: 'Comprovativo de pagamento é obrigatório' }, 400);
+    }
+    
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(proofFile.type)) {
+      return c.json({ message: 'Apenas ficheiros PDF ou imagens são aceites' }, 400);
+    }
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const existingRequests = await db.select().from(upgradeRequests)
+      .where(and(
+        eq(upgradeRequests.userId, user.id),
+        eq(upgradeRequests.status, 'pending')
+      ));
+    
+    if (existingRequests.length > 0) {
+      return c.json({ message: 'Já existe uma solicitação pendente' }, 400);
+    }
+    
+    let proofFileName: string | undefined;
+    let proofFileSize: number | undefined;
+    let proofTelegramFileId: string | undefined;
+    let proofTelegramBotId: string | undefined;
+    
+    const telegram = new TelegramService(c.env);
+    if (telegram.isAvailable()) {
+      try {
+        const fileBuffer = await proofFile.arrayBuffer();
+        const uploadResult = await telegram.uploadFile(fileBuffer, proofFile.name);
+        proofFileName = proofFile.name;
+        proofFileSize = proofFile.size;
+        proofTelegramFileId = uploadResult.fileId;
+        proofTelegramBotId = uploadResult.botId;
+      } catch (uploadError) {
+        console.error('Erro ao fazer upload do comprovativo:', uploadError);
+        return c.json({ message: 'Erro ao fazer upload do comprovativo' }, 500);
+      }
+    } else {
+      return c.json({ message: 'Sistema de armazenamento indisponível' }, 500);
+    }
+    
+    const [request] = await db.insert(upgradeRequests).values({
+      userId: user.id,
+      currentPlan: user.plano,
+      requestedPlan: 'gratis',
+      requestedExtraGB,
+      totalPrice: totalPrice ?? requestedExtraGB * 500,
+      proofFileName,
+      proofFileSize,
+      proofTelegramFileId,
+      proofTelegramBotId,
+    }).returning();
+    
+    return c.json({ message: 'Solicitação enviada com sucesso! Aguarde aprovação.', request });
+  } catch (error) {
+    console.error('Create extra storage request error:', error);
+    return c.json({ message: 'Erro ao solicitar armazenamento extra' }, 500);
+  }
+});
+
+myUpgradeRequestsRoutes.get('/', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const requests = await db.select().from(upgradeRequests)
+      .where(eq(upgradeRequests.userId, user.id))
+      .orderBy(desc(upgradeRequests.createdAt));
+    
+    return c.json(requests);
+  } catch (error) {
+    console.error('Get my upgrade requests error:', error);
+    return c.json({ message: 'Erro ao buscar solicitações' }, 500);
+  }
+});
 
 upgradeRoutes.post('/request', async (c) => {
   try {

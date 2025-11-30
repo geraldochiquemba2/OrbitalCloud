@@ -20,7 +20,7 @@ import { shareRoutes } from './routes/shares';
 import { invitationRoutes } from './routes/invitations';
 import { sharedContentRoutes } from './routes/shared-content';
 import { adminRoutes } from './routes/admin';
-import { upgradeRoutes } from './routes/upgrades';
+import { upgradeRoutes, userUpgradeRequestsRoutes, myUpgradeRequestsRoutes } from './routes/upgrades';
 import { publicFolderRoutes } from './routes/public-folders';
 
 export interface Env {
@@ -112,6 +112,9 @@ api.route('/shared', sharedContentRoutes);
 api.route('/admin', adminRoutes);
 api.route('/upgrades', upgradeRoutes);
 api.route('/public', publicFolderRoutes);
+
+api.route('/upgrade-requests', userUpgradeRequestsRoutes);
+api.route('/my-upgrade-requests', myUpgradeRequestsRoutes);
 
 api.notFound((c) => {
   return c.json({ 
