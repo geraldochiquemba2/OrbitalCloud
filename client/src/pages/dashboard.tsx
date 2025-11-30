@@ -27,7 +27,7 @@ import {
   importKey,
   exportKey
 } from "@/lib/encryption";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getAuthToken } from "@/lib/api";
 
 interface FileItem {
   id: string;
@@ -1307,15 +1307,20 @@ export default function Dashboard() {
           return;
         }
         
+        console.log(`[Chunk Upload] Chunk ${chunkIndex + 1}/${totalChunks} - status: ${xhr.status}`);
+        
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const response = JSON.parse(xhr.responseText);
+            console.log(`[Chunk Upload] Chunk ${chunkIndex + 1}/${totalChunks} OK - total enviados: ${response.uploadedChunks}`);
             resolve({ success: true, uploadedChunks: response.uploadedChunks });
-          } catch {
+          } catch (parseError) {
+            console.warn(`[Chunk Upload] Não conseguiu parsear resposta, assumindo sucesso`);
             resolve({ success: true, uploadedChunks: chunkIndex + 1 });
           }
         } else {
-          console.error(`Chunk ${chunkIndex + 1}/${totalChunks} failed for ${fileName}`);
+          console.error(`[Chunk Upload] Chunk ${chunkIndex + 1}/${totalChunks} falhou - ${fileName}`);
+          console.error(`[Chunk Upload] Status: ${xhr.status}, Response: ${xhr.responseText}`);
           resolve({ success: false, uploadedChunks: chunkIndex });
         }
       };
@@ -1340,6 +1345,12 @@ export default function Dashboard() {
       xhr.open("POST", "/api/files/upload-chunk");
       xhr.withCredentials = true;
       xhr.timeout = 25000; // 25 second timeout per chunk (under Cloudflare's 30s limit)
+      
+      const token = getAuthToken();
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+      
       xhr.send(formData);
     });
   };
@@ -1493,25 +1504,45 @@ export default function Dashboard() {
       
       // Complete the upload
       setCurrentUploadFile(`A finalizar ${file.name}...`);
-      const completeResponse = await apiFetch("/api/files/complete-upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
-      });
+      console.log(`[Complete Upload] Chamando complete-upload para sessão ${sessionId}`);
       
-      if (!completeResponse.ok) {
-        const error = await completeResponse.json();
-        toast.error(error.message || `Erro ao finalizar upload de ${file.name}`);
+      try {
+        const completeResponse = await apiFetch("/api/files/complete-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        });
+        
+        console.log(`[Complete Upload] Resposta recebida: status=${completeResponse.status}`);
+        
+        if (!completeResponse.ok) {
+          let errorMessage = `Erro ao finalizar upload de ${file.name}`;
+          try {
+            const error = await completeResponse.json();
+            errorMessage = error.message || errorMessage;
+            console.error(`[Complete Upload] Erro do servidor:`, error);
+          } catch (parseErr) {
+            console.error(`[Complete Upload] Erro ao parsear resposta de erro:`, parseErr);
+          }
+          toast.error(errorMessage);
+          return "failed";
+        }
+        
+        const fileData = await completeResponse.json();
+        console.log(`[Complete Upload] Ficheiro criado com sucesso:`, fileData.id);
+        
+        if (wasEncrypted) {
+          toast.success(`${file.name} enviado com sucesso (encriptado)`);
+        } else {
+          toast.success(`${file.name} enviado com sucesso`);
+        }
+        
+        return "success";
+      } catch (completeErr) {
+        console.error(`[Complete Upload] Exceção ao completar upload:`, completeErr);
+        toast.error(`Erro ao finalizar upload de ${file.name}. Tente novamente.`);
         return "failed";
       }
-      
-      if (wasEncrypted) {
-        toast.success(`${file.name} enviado com sucesso (encriptado)`);
-      } else {
-        toast.success(`${file.name} enviado com sucesso`);
-      }
-      
-      return "success";
     } catch (err) {
       console.error("Error uploading file:", err);
       toast.error(`Erro ao enviar ${file.name}`);
