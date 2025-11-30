@@ -183,18 +183,19 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Configure session
+  // Configure session with 10 minutes inactivity timeout
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "angocloud-secret-key-change-in-production",
-      resave: false,
+      resave: true,
+      rolling: true,
       saveUninitialized: false,
       proxy: process.env.NODE_ENV === "production",
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
         sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 10 * 60 * 1000, // 10 minutes inactivity timeout
       },
     })
   );
@@ -316,6 +317,27 @@ export async function registerRoutes(
       }
       res.json({ message: "Logout realizado com sucesso" });
     });
+  });
+
+  // Keepalive - extends session without requiring full auth check
+  // This endpoint checks if session exists and explicitly extends it
+  app.post("/api/auth/keepalive", (req: Request, res: Response) => {
+    if (req.isAuthenticated() && req.user && req.session) {
+      // Explicitly touch the session to reset the expiry time
+      req.session.touch();
+      
+      // Force save the session to ensure persistence
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session during keepalive:", err);
+          return res.status(500).json({ status: "error", message: "Erro ao estender sessão" });
+        }
+        res.json({ status: "active", userId: req.user!.id });
+      });
+    } else {
+      // Session expired or invalid
+      res.status(401).json({ status: "expired", message: "Sessão expirada" });
+    }
   });
 
   // Get current user

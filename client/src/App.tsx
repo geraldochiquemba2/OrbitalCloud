@@ -16,6 +16,23 @@ import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
+import { InactivityWarningModal } from "@/components/InactivityWarningModal";
+
+function InactivityHandler({ children }: { children: React.ReactNode }) {
+  const { showWarning, secondsLeft, handleStayActive } = useInactivityTimeout();
+  
+  return (
+    <>
+      {children}
+      <InactivityWarningModal 
+        isOpen={showWarning}
+        secondsLeft={secondsLeft}
+        onStayActive={handleStayActive}
+      />
+    </>
+  );
+}
 
 function Router() {
   const [location] = useLocation();
@@ -105,10 +122,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <InactivityHandler>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </InactivityHandler>
       </AuthProvider>
     </QueryClientProvider>
   );

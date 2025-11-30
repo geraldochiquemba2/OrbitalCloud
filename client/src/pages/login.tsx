@@ -8,15 +8,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
 
 export default function Login() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const { login } = useAuth();
 
   useEffect(() => {
-    // Show loading for 3 seconds when page loads
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("expired") === "true") {
+      setSessionExpired(true);
+      window.history.replaceState({}, "", "/login");
+    }
+  }, [location]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 3000);
@@ -134,6 +142,22 @@ export default function Login() {
                 data-testid="input-password"
               />
             </motion.div>
+
+            {/* Session Expired Message */}
+            {sessionExpired && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 rounded-lg bg-amber-500/20 border border-amber-500/50 text-amber-100 text-sm flex items-center gap-2"
+                data-testid="session-expired-message"
+              >
+                <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>A sua sessão expirou por inatividade. Por favor, faça login novamente.</span>
+              </motion.div>
+            )}
 
             {/* Error Message */}
             {error && (
