@@ -2,15 +2,18 @@
  * Authentication Routes for Cloudflare Workers
  * 
  * Uses PBKDF2 for secure password hashing (Web Crypto compatible).
- * Maintains backward compatibility with existing bcrypt hashes.
+ * Maintains backward compatibility with existing bcrypt hashes using bcryptjs.
  */
 
 import { Hono } from 'hono';
 import { z } from 'zod';
+import bcryptModule from 'bcryptjs';
 import { createDb } from '../db';
 import { createToken, authMiddleware, JWTPayload } from '../middleware/auth';
 import { users } from '../../../shared/schema';
 import { eq } from 'drizzle-orm';
+
+const bcrypt = (bcryptModule as any).default || bcryptModule;
 
 interface Env {
   DATABASE_URL: string;
@@ -75,7 +78,12 @@ function isBcryptHash(hash: string): boolean {
 }
 
 async function verifyBcryptHash(password: string, hash: string): Promise<boolean> {
-  return false;
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch (error) {
+    console.error('Bcrypt verification error:', error);
+    return false;
+  }
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -88,8 +96,7 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
   }
   
   if (isBcryptHash(storedHash)) {
-    console.warn('⚠️ Bcrypt hash detected. User needs to reset password or migrate hash.');
-    return false;
+    return verifyBcryptHash(password, storedHash);
   }
   
   return false;
