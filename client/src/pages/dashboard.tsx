@@ -119,6 +119,7 @@ export default function Dashboard() {
   const lastProgressRef = useRef<{ time: number; loaded: number }>({ time: 0, loaded: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadCancelledRef = useRef(false);
+  const [skipEncryption, setSkipEncryption] = useState(false);
   
   // Folder modal
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -1259,10 +1260,10 @@ export default function Dashboard() {
       let originalSize = file.size;
       let wasEncrypted = false;
       
-      if (!encryptionKey || !isEncryptionSupported()) {
+      if (!skipEncryption && (!encryptionKey || !isEncryptionSupported())) {
         console.warn("Encryption key not available - file will be uploaded without encryption");
         toast.warning(`${file.name} será enviado SEM encriptação. Faça logout e login novamente para ativar a encriptação.`);
-      } else {
+      } else if (!skipEncryption && encryptionKey) {
         setCurrentUploadFile(`A encriptar ${file.name}...`);
         
         if (uploadCancelledRef.current) {
@@ -1444,6 +1445,7 @@ export default function Dashboard() {
     uploadCancelledRef.current = false;
     setShowUploadModal(false);
     setDragOver(false);
+    setSkipEncryption(false);
     
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -2869,7 +2871,7 @@ export default function Dashboard() {
 
                   {pendingUploadFiles.length > 0 && (
                     <div className="mt-4 flex-1 min-h-0">
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex justify-between items-center mb-3">
                         <p className="text-white/70 text-sm font-medium">
                           {pendingUploadFiles.length} ficheiro{pendingUploadFiles.length > 1 ? 's' : ''} selecionado{pendingUploadFiles.length > 1 ? 's' : ''}
                         </p>
@@ -2880,6 +2882,19 @@ export default function Dashboard() {
                         >
                           Limpar todos
                         </button>
+                      </div>
+                      <div className="flex items-center gap-2 mb-3 p-2 rounded bg-white/5 border border-white/10">
+                        <input
+                          type="checkbox"
+                          id="skip-encryption"
+                          checked={skipEncryption}
+                          onChange={(e) => setSkipEncryption(e.target.checked)}
+                          className="rounded"
+                          data-testid="checkbox-skip-encryption"
+                        />
+                        <label htmlFor="skip-encryption" className="text-white/70 text-xs cursor-pointer flex-1">
+                          Enviar SEM encriptação (para pastas públicas)
+                        </label>
                       </div>
                       
                       <div className="max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
