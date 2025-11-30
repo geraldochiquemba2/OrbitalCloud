@@ -1793,6 +1793,11 @@ export async function registerRoutes(
         );
         
         res.json({
+          id: file.id,
+          nome: file.nome,
+          tamanho: file.tamanho,
+          tipoMime: file.tipoMime,
+          createdAt: file.createdAt,
           isChunked: true,
           totalChunks: file.totalChunks,
           chunks: chunkUrls,
@@ -1801,7 +1806,9 @@ export async function registerRoutes(
           sharedEncryptionKey,
           originalMimeType: file.originalMimeType || file.tipoMime,
           originalSize: file.originalSize || file.tamanho,
-          nome: file.nome,
+          downloadUrl: `/api/files/${req.params.id}/download`,
+          previewUrl: `/api/files/${req.params.id}/preview`,
+          contentUrl: `/api/files/${req.params.id}/content`,
         });
       } else {
         const downloadUrl = await telegramService.getDownloadUrl(
@@ -1810,6 +1817,11 @@ export async function registerRoutes(
         );
 
         res.json({
+          id: file.id,
+          nome: file.nome,
+          tamanho: file.tamanho,
+          tipoMime: file.tipoMime,
+          createdAt: file.createdAt,
           isChunked: false,
           downloadUrl,
           isEncrypted: file.isEncrypted || false,
@@ -1817,7 +1829,8 @@ export async function registerRoutes(
           sharedEncryptionKey,
           originalMimeType: file.originalMimeType || file.tipoMime,
           originalSize: file.originalSize || file.tamanho,
-          nome: file.nome,
+          previewUrl: `/api/files/${req.params.id}/preview`,
+          contentUrl: `/api/files/${req.params.id}/content`,
         });
       }
     } catch (error) {
