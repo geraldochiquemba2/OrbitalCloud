@@ -1,0 +1,135 @@
+Skip to content
+Cloudflare
+Geraldochiquemba@gmail.com's Account
+
+Go to...
+
+Ctrl+K
+
+Add
+
+Support
+
+Profile
+Account home
+
+Recents
+Workers & Pages
+Compute & AI
+
+an
+gocloud
+Workers
+
+orbit
+alcloud
+Workers
+
+Register domains
+Domain registration
+
+
+Analytics & logs
+Build
+
+Compute & AI
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Rendering
+AI Search (AutoRAG)
+Workers AI
+AI Gateway
+VPC
+Workers plans
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Domain registration
+
+Manage account
+
+
+Workers & Pages
+/
+orbitalcloud
+Overview
+Metrics
+Deployments
+Bindings
+Observability
+Settings
+ Back to builds
+Build details
+Repository
+
+geraldochiquemba2/OrbitalCloud
+Status
+
+3 minutes ago
+Branch
+main
+abecfd5
+Fix configuration for serving website files Update wrangler.toml to correctly configure static asset serving by setting the asset directory binding and handling. Replit-Commit-Author: Agent Replit-Commit-Session-Id: d8e68b13-49f5-4de8-a554-e2d168da542b Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 7f564fcd-0ff9-4bea-86fd-e3904deedd6c Replit-Commit-Screens
+Duration
+1m 52s
+Build settings
+Build log
+Initializing build environment
+3s
+Cloning git repository
+4s
+Installing tools and dependencies
+11s
+Building application
+1m 12s
+Deploying to Cloudflare's global network
+22s
+
+Download log
+
+Copy log
+02:26:27.203	[custom build] 
+02:26:27.205	[custom build]   dist/index.cjs  1.3mb ⚠️
+02:26:27.205	[custom build] 
+02:26:27.205	[custom build] ⚡ Done in 155ms
+02:26:27.205	[custom build] 
+02:26:28.527	🌀 Building list of assets...
+02:26:28.695	🌀 Starting asset upload...
+02:26:30.030	No files to upload. Proceeding with deployment...
+02:26:30.051	Total Upload: 875.09 KiB / gzip: 177.06 KiB
+02:26:32.667	Worker Startup Time: 41 ms
+02:26:32.668	Your worker has access to the following bindings:
+02:26:32.668	- Vars:
+02:26:32.668	  - ENVIRONMENT: "production"
+02:26:32.670	Uploaded orbitalcloud (4.53 sec)
+02:26:33.355	Deployed orbitalcloud triggers (0.28 sec)
+02:26:33.355	  https://orbitalcloud.orbt.workers.dev
+02:26:33.355	Current Version ID: 0c674bcc-0732-4541-89b8-afcd41ab55c2
+02:26:33.465	Success: Deploy command completed
+02:26:33.467	Skipping build output cache as it's not supported for your project
+02:26:40.213	✨ Success! Build completed.
+
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2025 Cloudflare, Inc.
+6
