@@ -2855,6 +2855,22 @@ export default function Dashboard() {
                       </p>
                     )}
                   </div>
+                  
+                  <button
+                    onClick={cancelUpload}
+                    disabled={uploadCancelled}
+                    className="w-full mt-4 py-2.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium transition-colors flex items-center justify-center gap-2 border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-testid="button-cancel-upload"
+                  >
+                    <X className="w-4 h-4" />
+                    {uploadCancelled ? 'A cancelar...' : 'Cancelar Upload'}
+                  </button>
+                  
+                  {uploadedFilesCount > 0 && (
+                    <p className="text-white/50 text-xs mt-2 text-center">
+                      {uploadedFilesCount} ficheiro(s) já enviado(s) serão mantidos
+                    </p>
+                  )}
                 </div>
               )}
             </motion.div>
