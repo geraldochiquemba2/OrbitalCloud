@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, optionalAuthMiddleware, JWTPayload } from '../middleware/auth';
 import { TelegramService } from '../services/telegram';
-import { files, shares, fileChunks } from '../../../shared/schema';
+import { files, shares, fileChunks, users, filePermissions } from '../../../shared/schema';
 import { eq, and } from 'drizzle-orm';
 
 interface Env {
@@ -107,6 +107,66 @@ shareRoutes.post('/', authMiddleware, async (c) => {
   }
 });
 
+shareRoutes.post('/send-email', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const { email, shareLink, fileName, fileId, sharedEncryptionKey } = z.object({
+      email: z.string().email(),
+      shareLink: z.string(),
+      fileName: z.string(),
+      fileId: z.string(),
+      sharedEncryptionKey: z.string().optional()
+    }).parse(await c.req.json());
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file || file.userId !== user.id) {
+      return c.json({ message: 'Ficheiro não encontrado ou acesso negado' }, 404);
+    }
+    
+    const [targetUser] = await db.select().from(users).where(eq(users.email, email));
+    if (!targetUser) {
+      return c.json({ message: 'Email inválido' }, 404);
+    }
+    
+    if (targetUser.id === user.id) {
+      return c.json({ message: 'Não pode partilhar ficheiros consigo mesmo' }, 400);
+    }
+    
+    const [existingPermission] = await db.select().from(filePermissions)
+      .where(and(
+        eq(filePermissions.fileId, fileId),
+        eq(filePermissions.userId, targetUser.id)
+      ));
+    
+    if (existingPermission) {
+      return c.json({ message: 'Ficheiro já partilhado com este utilizador' }, 400);
+    }
+    
+    await db.insert(filePermissions).values({
+      fileId,
+      userId: targetUser.id,
+      role: 'viewer',
+      grantedBy: user.id,
+      sharedEncryptionKey: sharedEncryptionKey || null,
+    });
+    
+    console.log(`[Share] File ${fileName} shared with ${email} by user ${user.id}${sharedEncryptionKey ? ' (with encryption key)' : ''}`);
+    
+    return c.json({ 
+      success: true, 
+      message: `Ficheiro partilhado com ${targetUser.nome || targetUser.username}`
+    });
+  } catch (error) {
+    console.error('Send share email error:', error);
+    if (error instanceof z.ZodError) {
+      return c.json({ message: 'Dados inválidos' }, 400);
+    }
+    return c.json({ message: 'Erro ao partilhar ficheiro' }, 500);
+  }
+});
+
 shareRoutes.get('/:linkCode', async (c) => {
   try {
     const linkCode = c.req.param('linkCode');
@@ -144,6 +204,76 @@ shareRoutes.get('/:linkCode', async (c) => {
   } catch (error) {
     console.error('Get share error:', error);
     return c.json({ message: 'Erro ao buscar link' }, 500);
+  }
+});
+
+shareRoutes.get('/:linkCode/download', async (c) => {
+  try {
+    const linkCode = c.req.param('linkCode');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [share] = await db.select().from(shares).where(eq(shares.linkCode, linkCode));
+    if (!share) {
+      return c.json({ message: 'Link não encontrado' }, 404);
+    }
+    
+    if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+      return c.json({ message: 'Link expirado' }, 410);
+    }
+    
+    if (share.passwordHash) {
+      return c.json({ message: 'Este link requer senha' }, 401);
+    }
+    
+    const [file] = await db.select().from(files).where(eq(files.id, share.fileId));
+    if (!file || !file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Arquivo não disponível' }, 404);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    if (!telegram.isAvailable()) {
+      return c.json({ message: 'Sistema de armazenamento não configurado' }, 503);
+    }
+    
+    let buffer: ArrayBuffer;
+    
+    if (file.isChunked && file.totalChunks > 1) {
+      const chunks = await db.select().from(fileChunks)
+        .where(eq(fileChunks.fileId, file.id))
+        .orderBy(fileChunks.chunkIndex);
+      
+      const buffers: ArrayBuffer[] = [];
+      for (const chunk of chunks) {
+        const chunkBuffer = await telegram.downloadFile(chunk.telegramFileId, chunk.telegramBotId);
+        buffers.push(chunkBuffer);
+      }
+      
+      const totalLength = buffers.reduce((acc, buf) => acc + buf.byteLength, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const b of buffers) {
+        combined.set(new Uint8Array(b), offset);
+        offset += b.byteLength;
+      }
+      buffer = combined.buffer;
+    } else {
+      buffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    }
+    
+    await db.update(shares)
+      .set({ downloadCount: share.downloadCount + 1 })
+      .where(eq(shares.id, share.id));
+    
+    return new Response(buffer, {
+      headers: {
+        'Content-Type': file.originalMimeType || file.tipoMime,
+        'Content-Disposition': `attachment; filename="${file.nome}"`,
+      },
+    });
+  } catch (error) {
+    console.error('Download share error (GET):', error);
+    return c.json({ message: 'Erro ao fazer download' }, 500);
   }
 });
 

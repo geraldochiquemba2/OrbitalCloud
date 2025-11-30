@@ -1015,3 +1015,77 @@ fileRoutes.delete('/upload-session/:sessionId', async (c) => {
     return c.json({ message: 'Erro ao cancelar upload' }, 500);
   }
 });
+
+fileRoutes.get('/:id/shares', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file || file.userId !== user.id) {
+      return c.json({ message: 'Ficheiro não encontrado' }, 404);
+    }
+    
+    const permissions = await db.select().from(filePermissions)
+      .where(eq(filePermissions.fileId, fileId));
+    
+    const sharesWithUsers = await Promise.all(
+      permissions.map(async (perm) => {
+        const [permUser] = await db.select().from(users).where(eq(users.id, perm.userId));
+        return {
+          id: perm.id,
+          fileId: perm.fileId,
+          userId: perm.userId,
+          role: perm.role,
+          grantedBy: perm.grantedBy,
+          sharedEncryptionKey: perm.sharedEncryptionKey,
+          createdAt: perm.createdAt,
+          user: permUser ? {
+            id: permUser.id,
+            username: permUser.username,
+            email: permUser.email,
+          } : null,
+        };
+      })
+    );
+    
+    return c.json(sharesWithUsers);
+  } catch (error) {
+    console.error('Get file shares error:', error);
+    return c.json({ message: 'Erro ao buscar partilhas' }, 500);
+  }
+});
+
+fileRoutes.delete('/:id/shares/:shareId', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    const shareId = c.req.param('shareId');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file || file.userId !== user.id) {
+      return c.json({ message: 'Ficheiro não encontrado ou acesso negado' }, 404);
+    }
+    
+    const [permission] = await db.select().from(filePermissions)
+      .where(and(
+        eq(filePermissions.id, shareId),
+        eq(filePermissions.fileId, fileId)
+      ));
+    
+    if (!permission) {
+      return c.json({ message: 'Partilha não encontrada' }, 404);
+    }
+    
+    await db.delete(filePermissions).where(eq(filePermissions.id, shareId));
+    
+    return c.json({ message: 'Partilha removida com sucesso' });
+  } catch (error) {
+    console.error('Delete file share error:', error);
+    return c.json({ message: 'Erro ao remover partilha' }, 500);
+  }
+});

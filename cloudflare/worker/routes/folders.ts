@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
-import { folders } from '../../../shared/schema';
+import { folders, folderPermissions } from '../../../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
 interface Env {
@@ -249,5 +249,26 @@ folderRoutes.post('/:id/regenerate-slug', async (c) => {
   } catch (error) {
     console.error('Regenerate slug error:', error);
     return c.json({ message: 'Erro ao regenerar link' }, 500);
+  }
+});
+
+folderRoutes.delete('/:id/shares', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const folderId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [folder] = await db.select().from(folders).where(eq(folders.id, folderId));
+    if (!folder || folder.userId !== user.id) {
+      return c.json({ message: 'Pasta não encontrada ou acesso negado' }, 404);
+    }
+    
+    await db.delete(folderPermissions).where(eq(folderPermissions.folderId, folderId));
+    
+    return c.json({ message: 'Todas as partilhas da pasta foram removidas' });
+  } catch (error) {
+    console.error('Delete folder shares error:', error);
+    return c.json({ message: 'Erro ao remover partilhas da pasta' }, 500);
   }
 });
