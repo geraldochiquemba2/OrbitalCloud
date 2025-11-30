@@ -222,7 +222,7 @@ shareRoutes.post('/:linkCode/download', async (c) => {
   }
 });
 
-shareRoutes.get('/:linkCode/download-data', async (c) => {
+shareRoutes.post('/:linkCode/download-data', async (c) => {
   try {
     const linkCode = c.req.param('linkCode');
     const body = await c.req.json().catch(() => ({}));
@@ -267,7 +267,7 @@ shareRoutes.get('/:linkCode/download-data', async (c) => {
   }
 });
 
-shareRoutes.get('/:linkCode/content', async (c) => {
+shareRoutes.post('/:linkCode/content', async (c) => {
   try {
     const linkCode = c.req.param('linkCode');
     const body = await c.req.json().catch(() => ({}));
