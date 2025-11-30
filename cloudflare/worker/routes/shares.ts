@@ -222,6 +222,120 @@ shareRoutes.post('/:linkCode/download', async (c) => {
   }
 });
 
+shareRoutes.get('/:linkCode/download-data', async (c) => {
+  try {
+    const linkCode = c.req.param('linkCode');
+    const body = await c.req.json().catch(() => ({}));
+    const { password } = body;
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [share] = await db.select().from(shares).where(eq(shares.linkCode, linkCode));
+    if (!share) {
+      return c.json({ message: 'Link não encontrado' }, 404);
+    }
+    
+    if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+      return c.json({ message: 'Link expirado' }, 410);
+    }
+    
+    if (share.passwordHash) {
+      if (!password) {
+        return c.json({ message: 'Senha necessária' }, 401);
+      }
+      const isValid = await verifyPassword(password, share.passwordHash);
+      if (!isValid) {
+        return c.json({ message: 'Senha incorreta' }, 401);
+      }
+    }
+    
+    const [file] = await db.select().from(files).where(eq(files.id, share.fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    return c.json({
+      isEncrypted: file.isEncrypted || false,
+      isOwner: false,
+      originalMimeType: file.originalMimeType || file.tipoMime,
+      downloadUrl: `/api/shares/${linkCode}/download`,
+      sharedEncryptionKey: undefined,
+    });
+  } catch (error) {
+    console.error('Share download-data error:', error);
+    return c.json({ message: 'Erro ao buscar dados do arquivo' }, 500);
+  }
+});
+
+shareRoutes.get('/:linkCode/content', async (c) => {
+  try {
+    const linkCode = c.req.param('linkCode');
+    const body = await c.req.json().catch(() => ({}));
+    const { password } = body;
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [share] = await db.select().from(shares).where(eq(shares.linkCode, linkCode));
+    if (!share) {
+      return c.json({ message: 'Link não encontrado' }, 404);
+    }
+    
+    if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+      return c.json({ message: 'Link expirado' }, 410);
+    }
+    
+    if (share.passwordHash) {
+      if (!password) {
+        return c.json({ message: 'Senha necessária' }, 401);
+      }
+      const isValid = await verifyPassword(password, share.passwordHash);
+      if (!isValid) {
+        return c.json({ message: 'Senha incorreta' }, 401);
+      }
+    }
+    
+    const [file] = await db.select().from(files).where(eq(files.id, share.fileId));
+    if (!file || !file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Arquivo não disponível' }, 404);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    
+    if (file.isChunked && file.totalChunks > 1) {
+      const chunks = await db.select().from(fileChunks)
+        .where(eq(fileChunks.fileId, file.id))
+        .orderBy(fileChunks.chunkIndex);
+      
+      const buffers: ArrayBuffer[] = [];
+      for (const chunk of chunks) {
+        const buffer = await telegram.downloadFile(chunk.telegramFileId, chunk.telegramBotId);
+        buffers.push(buffer);
+      }
+      
+      const totalLength = buffers.reduce((acc, buf) => acc + buf.byteLength, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const buffer of buffers) {
+        combined.set(new Uint8Array(buffer), offset);
+        offset += buffer.byteLength;
+      }
+      
+      return new Response(combined, {
+        headers: { 'Content-Type': 'application/octet-stream' }
+      });
+    }
+    
+    const buffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    
+    return new Response(buffer, {
+      headers: { 'Content-Type': 'application/octet-stream' }
+    });
+  } catch (error) {
+    console.error('Share content error:', error);
+    return c.json({ message: 'Erro ao buscar conteúdo do arquivo' }, 500);
+  }
+});
+
 shareRoutes.delete('/:id', authMiddleware, async (c) => {
   try {
     const user = c.get('user') as JWTPayload;
