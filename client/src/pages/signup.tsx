@@ -44,7 +44,7 @@ export default function Signup() {
     }
     
     if (!acceptedTerms) {
-      setError("Deve aceitar os Termos de Uso e Politica de Privacidade");
+      setError("Deve aceitar os Termos de Uso e Política de Privacidade");
       return;
     }
     
@@ -222,7 +222,7 @@ export default function Signup() {
                     className="text-primary hover:text-primary/80 underline font-medium bg-transparent border-none cursor-pointer"
                     data-testid="link-terms"
                   >
-                    Termos de Uso e Politica de Privacidade
+                    Termos de Uso e Política de Privacidade
                   </button>
                 </span>
               </label>
@@ -318,7 +318,7 @@ export default function Signup() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center p-6 border-b border-white/10">
-                <h2 className="text-xl font-bold text-white">Termos de Uso e Politica de Privacidade</h2>
+                <h2 className="text-xl font-bold text-white">Termos de Uso e Política de Privacidade</h2>
                 <button 
                   onClick={() => setShowTermsModal(false)} 
                   className="text-white/50 hover:text-white transition-colors"
@@ -330,77 +330,77 @@ export default function Signup() {
               
               <div className="flex-1 overflow-y-auto p-6 space-y-6 text-white/80 text-sm leading-relaxed">
                 <section>
-                  <h3 className="text-lg font-semibold text-white mb-3">1. Aceitacao dos Termos</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">1. Aceitação dos Termos</h3>
                   <p>
-                    Ao criar uma conta e utilizar os servicos da OrbitalCloud, voce concorda com estes Termos de Uso e 
-                    Politica de Privacidade. Se nao concordar com algum termo, nao deve utilizar a plataforma.
+                    Ao criar uma conta e utilizar os serviços da OrbitalCloud, você concorda com estes Termos de Uso e 
+                    Política de Privacidade. Se não concordar com algum termo, não deve utilizar a plataforma.
                   </p>
                 </section>
 
                 <section>
-                  <h3 className="text-lg font-semibold text-white mb-3">2. Descricao do Servico</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">2. Descrição do Serviço</h3>
                   <p>
-                    A OrbitalCloud e uma plataforma de armazenamento em nuvem que permite aos utilizadores guardar, 
+                    A OrbitalCloud é uma plataforma de armazenamento em nuvem que permite aos utilizadores guardar, 
                     organizar e partilhar ficheiros de forma segura. Oferecemos 15GB de armazenamento gratuito para 
-                    todos os utilizadores registados, com opcao de adquirir espaco adicional.
+                    todos os utilizadores registados, com opção de adquirir espaço adicional.
                   </p>
                 </section>
 
                 <section>
                   <h3 className="text-lg font-semibold text-white mb-3">3. Conta de Utilizador</h3>
                   <p className="mb-2">
-                    Para utilizar os nossos servicos, deve criar uma conta fornecendo informacoes verdadeiras e completas. 
-                    Voce e responsavel por:
+                    Para utilizar os nossos serviços, deve criar uma conta fornecendo informações verdadeiras e completas. 
+                    Você é responsável por:
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
                     <li>Manter a confidencialidade da sua palavra-passe</li>
                     <li>Todas as atividades realizadas na sua conta</li>
-                    <li>Notificar-nos imediatamente sobre qualquer uso nao autorizado</li>
+                    <li>Notificar-nos imediatamente sobre qualquer uso não autorizado</li>
                   </ul>
                 </section>
 
                 <section>
-                  <h3 className="text-lg font-semibold text-white mb-3">4. Privacidade e Seguranca dos Dados</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">4. Privacidade e Segurança dos Dados</h3>
                   <p className="mb-2">
-                    Levamos a seguranca dos seus dados a serio. Os seus ficheiros sao:
+                    Levamos a segurança dos seus dados a sério. Os seus ficheiros são:
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
                     <li>Encriptados com tecnologia AES-256-GCM antes de serem armazenados</li>
                     <li>Protegidos com chaves derivadas da sua palavra-passe</li>
-                    <li>Acessiveis apenas por si ou por quem voce autorizar</li>
+                    <li>Acessíveis apenas por si ou por quem você autorizar</li>
                   </ul>
                   <p className="mt-2">
-                    Nao temos acesso ao conteudo dos seus ficheiros encriptados. A sua privacidade e a nossa prioridade.
+                    Não temos acesso ao conteúdo dos seus ficheiros encriptados. A sua privacidade é a nossa prioridade.
                   </p>
                 </section>
 
                 <section>
-                  <h3 className="text-lg font-semibold text-white mb-3">5. Uso Aceitavel</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">5. Uso Aceitável</h3>
                   <p className="mb-2">
-                    Ao utilizar a OrbitalCloud, voce concorda em nao:
+                    Ao utilizar a OrbitalCloud, você concorda em não:
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Armazenar conteudo ilegal ou que viole direitos de terceiros</li>
-                    <li>Utilizar o servico para spam ou atividades maliciosas</li>
+                    <li>Armazenar conteúdo ilegal ou que viole direitos de terceiros</li>
+                    <li>Utilizar o serviço para spam ou atividades maliciosas</li>
                     <li>Tentar aceder a contas ou dados de outros utilizadores</li>
-                    <li>Sobrecarregar ou interferir com a infraestrutura do servico</li>
+                    <li>Sobrecarregar ou interferir com a infraestrutura do serviço</li>
                   </ul>
                 </section>
 
                 <section>
                   <h3 className="text-lg font-semibold text-white mb-3">6. Armazenamento e Limites</h3>
                   <p>
-                    Cada conta gratuita inclui 15GB de armazenamento. Espaco adicional pode ser adquirido mediante 
-                    pagamento unico. Reservamo-nos o direito de remover ficheiros de contas inativas por mais de 
-                    12 meses apos notificacao previa.
+                    Cada conta gratuita inclui 15GB de armazenamento. Espaço adicional pode ser adquirido mediante 
+                    pagamento único. Reservamo-nos o direito de remover ficheiros de contas inativas por mais de 
+                    12 meses após notificação prévia.
                   </p>
                 </section>
 
                 <section>
                   <h3 className="text-lg font-semibold text-white mb-3">7. Propriedade Intelectual</h3>
                   <p>
-                    Voce mantem todos os direitos sobre os ficheiros que carrega. Ao utilizar o servico de partilha, 
-                    garante que tem autorizacao para partilhar o conteudo. A OrbitalCloud e suas marcas sao propriedade 
+                    Você mantém todos os direitos sobre os ficheiros que carrega. Ao utilizar o serviço de partilha, 
+                    garante que tem autorização para partilhar o conteúdo. A OrbitalCloud e suas marcas são propriedade 
                     exclusiva da empresa.
                   </p>
                 </section>
@@ -408,7 +408,7 @@ export default function Signup() {
                 <section>
                   <h3 className="text-lg font-semibold text-white mb-3">8. Suporte e Contacto</h3>
                   <p className="mb-2">
-                    Para suporte tecnico ou reclamacoes, pode contactar-nos atraves de:
+                    Para suporte técnico ou reclamações, pode contactar-nos através de:
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
                     <li>Email: gerladochiquemba@gmail.com</li>
@@ -417,18 +417,18 @@ export default function Signup() {
                 </section>
 
                 <section>
-                  <h3 className="text-lg font-semibold text-white mb-3">9. Alteracoes aos Termos</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">9. Alterações aos Termos</h3>
                   <p>
-                    Reservamo-nos o direito de modificar estes termos a qualquer momento. Alteracoes significativas 
-                    serao comunicadas por email ou atraves da plataforma. O uso continuado apos alteracoes constitui 
-                    aceitacao dos novos termos.
+                    Reservamo-nos o direito de modificar estes termos a qualquer momento. Alterações significativas 
+                    serão comunicadas por email ou através da plataforma. O uso continuado após alterações constitui 
+                    aceitação dos novos termos.
                   </p>
                 </section>
 
                 <section>
-                  <h3 className="text-lg font-semibold text-white mb-3">10. Legislacao Aplicavel</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">10. Legislação Aplicável</h3>
                   <p>
-                    Estes termos sao regidos pelas leis da Republica de Angola. Quaisquer disputas serao resolvidas 
+                    Estes termos são regidos pelas leis da República de Angola. Quaisquer disputas serão resolvidas 
                     nos tribunais competentes de Luanda.
                   </p>
                 </section>
