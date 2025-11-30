@@ -1,0 +1,49 @@
+ack to builds
+Build details
+Repository
+
+geraldochiquemba2/OrbitalCloud
+Status
+
+a few seconds ago
+Branch
+main
+36ecdaa
+Update build process to include frontend files for deployment Modify the cloudflare/package.json build script to copy frontend assets to the correct directory for Cloudflare Worker deployment. Replit-Commit-Author: Agent Replit-Commit-Session-Id: 82d6dd06-4479-40a4-8769-9ae3a32b89af Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 33b38b28-9bbd-47f2-83c2-a96
+Duration
+38s
+Build settings
+Build log
+Initializing build environment
+5s
+Cloning git repository
+3s
+Installing tools and dependencies
+13s
+Building application
+9s
+Deploying to Cloudflare's global network
+9s
+
+Download log
+
+Copy log
+01:31:32.316	Initializing build environment...
+01:31:36.648	Success: Finished initializing build environment
+01:31:37.013	Cloning repository...
+01:31:40.121	Detected the following tools from environment: npm@10.9.2, nodejs@22.16.0
+01:31:40.123	Restoring from dependencies cache
+01:31:40.125	Restoring from build output cache
+01:31:43.384	Success: Dependencies restored from build cache.
+01:31:43.551	Installing project dependencies: npm clean-install --progress=false
+01:31:48.140	npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+01:31:48.279	npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+01:31:32.316	Initializing build environment...
+01:31:36.648	Success: Finished initializing build environment
+01:31:37.013	Cloning repository...
+01:31:40.121	Detected the following tools from environment: npm@10.9.2, nodejs@22.16.0
+01:31:40.123	Restoring from dependencies cache
+01:31:40.125	Restoring from build output cache
+01:31:43.384	Success: Dependencies restored from build cache.
+01:31:43.551	Installing project dependencies: npm clean-install --progress=false
+01:31:48.140	npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
