@@ -341,7 +341,7 @@ export default function Signup() {
                   <h3 className="text-lg font-semibold text-white mb-3">2. Descrição do Serviço</h3>
                   <p>
                     A OrbitalCloud é uma plataforma de armazenamento em nuvem que permite aos utilizadores guardar, 
-                    organizar e partilhar ficheiros de forma segura. Oferecemos 15GB de armazenamento gratuito para 
+                    organizar e partilhar ficheiros de forma segura. Oferecemos 20GB de armazenamento gratuito para 
                     todos os utilizadores registados, com opção de adquirir espaço adicional.
                   </p>
                 </section>
@@ -390,7 +390,7 @@ export default function Signup() {
                 <section>
                   <h3 className="text-lg font-semibold text-white mb-3">6. Armazenamento e Limites</h3>
                   <p>
-                    Cada conta gratuita inclui 15GB de armazenamento. Espaço adicional pode ser adquirido mediante 
+                    Cada conta gratuita inclui 20GB de armazenamento. Espaço adicional pode ser adquirido a 500 Kz por GB mediante 
                     pagamento único. Reservamo-nos o direito de remover ficheiros de contas inativas por mais de 
                     12 meses após notificação prévia.
                   </p>

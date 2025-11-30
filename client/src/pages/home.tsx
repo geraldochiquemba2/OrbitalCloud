@@ -138,7 +138,7 @@ export default function Home() {
               <span className="bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-lg">Sem Fronteiras</span>
             </h1>
             <p className="text-sm sm:text-base md:text-lg text-white/90 mb-8 leading-relaxed drop-shadow-md">
-              Guarde, partilhe e aceda aos seus ficheiros com a velocidade de servidores locais. 15GB grátis para todos os angolanos, sem truques.
+              Guarde, partilhe e aceda aos seus ficheiros com a velocidade de servidores locais. 20GB grátis para todos os angolanos, sem truques.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button onClick={() => handleNavigateWithLoading("/signup")} size="lg" className="bg-white/10 hover:bg-white/20 text-white h-11 sm:h-12 px-6 sm:px-8 rounded-full backdrop-blur-md border border-white/30 hover:border-white/50 text-sm sm:text-base font-bold transition-all duration-300">
@@ -385,7 +385,7 @@ export default function Home() {
                   <h3 className="text-lg font-semibold text-white mb-3">2. Descrição do Serviço</h3>
                   <p>
                     A OrbitalCloud é uma plataforma de armazenamento em nuvem que permite aos utilizadores guardar, 
-                    organizar e partilhar ficheiros de forma segura. Oferecemos 15GB de armazenamento gratuito para 
+                    organizar e partilhar ficheiros de forma segura. Oferecemos 20GB de armazenamento gratuito para 
                     todos os utilizadores registados, com opção de adquirir espaço adicional.
                   </p>
                 </section>
@@ -434,7 +434,7 @@ export default function Home() {
                 <section>
                   <h3 className="text-lg font-semibold text-white mb-3">6. Armazenamento e Limites</h3>
                   <p>
-                    Cada conta gratuita inclui 15GB de armazenamento. Espaço adicional pode ser adquirido mediante 
+                    Cada conta gratuita inclui 20GB de armazenamento. Espaço adicional pode ser adquirido a 500 Kz por GB mediante 
                     pagamento único. Reservamo-nos o direito de remover ficheiros de contas inativas por mais de 
                     12 meses após notificação prévia.
                   </p>
