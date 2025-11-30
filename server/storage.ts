@@ -9,6 +9,8 @@ import {
   folderPermissions,
   upgradeRequests,
   fileChunks,
+  uploadSessions,
+  uploadChunks,
   PLANS,
   type User, 
   type InsertUser,
@@ -30,6 +32,10 @@ import {
   type InsertUpgradeRequest,
   type FileChunk,
   type InsertFileChunk,
+  type UploadSession,
+  type InsertUploadSession,
+  type UploadChunk,
+  type InsertUploadChunk,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, or } from "drizzle-orm";
@@ -145,6 +151,19 @@ export interface IStorage {
   getUserPublicFolders(userId: string): Promise<Folder[]>;
   regeneratePublicSlug(folderId: string, userId: string): Promise<{ slug: string }>;
   isFolderOrAncestorPublic(folderId: string): Promise<boolean>;
+
+  // Upload Sessions (for chunked uploads)
+  createUploadSession(session: InsertUploadSession): Promise<UploadSession>;
+  getUploadSession(id: string): Promise<UploadSession | undefined>;
+  updateUploadSessionChunkCount(id: string): Promise<void>;
+  updateUploadSessionStatus(id: string, status: string): Promise<void>;
+  deleteUploadSession(id: string): Promise<void>;
+  cleanupExpiredSessions(): Promise<void>;
+
+  // Upload Chunks (temporary chunks for upload sessions)
+  createUploadChunk(chunk: InsertUploadChunk): Promise<UploadChunk>;
+  getUploadChunks(sessionId: string): Promise<UploadChunk[]>;
+  deleteUploadChunks(sessionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -910,6 +929,57 @@ export class DatabaseStorage implements IStorage {
     }
     
     return false;
+  }
+
+  // Upload Sessions (for chunked uploads)
+  async createUploadSession(session: InsertUploadSession): Promise<UploadSession> {
+    const [result] = await db.insert(uploadSessions).values(session).returning();
+    return result;
+  }
+
+  async getUploadSession(id: string): Promise<UploadSession | undefined> {
+    const [session] = await db.select().from(uploadSessions).where(eq(uploadSessions.id, id));
+    return session || undefined;
+  }
+
+  async updateUploadSessionChunkCount(id: string): Promise<void> {
+    await db
+      .update(uploadSessions)
+      .set({ uploadedChunks: sql`${uploadSessions.uploadedChunks} + 1` })
+      .where(eq(uploadSessions.id, id));
+  }
+
+  async updateUploadSessionStatus(id: string, status: string): Promise<void> {
+    await db.update(uploadSessions).set({ status }).where(eq(uploadSessions.id, id));
+  }
+
+  async deleteUploadSession(id: string): Promise<void> {
+    await db.delete(uploadSessions).where(eq(uploadSessions.id, id));
+  }
+
+  async cleanupExpiredSessions(): Promise<void> {
+    const now = new Date();
+    await db.delete(uploadSessions).where(
+      sql`${uploadSessions.expiresAt} < ${now}`
+    );
+  }
+
+  // Upload Chunks (temporary chunks for upload sessions)
+  async createUploadChunk(chunk: InsertUploadChunk): Promise<UploadChunk> {
+    const [result] = await db.insert(uploadChunks).values(chunk).returning();
+    return result;
+  }
+
+  async getUploadChunks(sessionId: string): Promise<UploadChunk[]> {
+    return db
+      .select()
+      .from(uploadChunks)
+      .where(eq(uploadChunks.sessionId, sessionId))
+      .orderBy(uploadChunks.chunkIndex);
+  }
+
+  async deleteUploadChunks(sessionId: string): Promise<void> {
+    await db.delete(uploadChunks).where(eq(uploadChunks.sessionId, sessionId));
   }
 
   // Migration: Update legacy users from 15GB to 20GB storage limit
