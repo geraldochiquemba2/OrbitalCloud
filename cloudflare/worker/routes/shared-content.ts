@@ -5,12 +5,19 @@
 import { Hono } from 'hono';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
-import { files, folders, users, filePermissions, folderPermissions } from '../../../shared/schema';
+import { files, folders, users, filePermissions, folderPermissions, fileChunks } from '../../../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { TelegramService } from '../services/telegram';
 
 interface Env {
   DATABASE_URL: string;
   JWT_SECRET: string;
+  TELEGRAM_BOT_1_TOKEN?: string;
+  TELEGRAM_BOT_2_TOKEN?: string;
+  TELEGRAM_BOT_3_TOKEN?: string;
+  TELEGRAM_BOT_4_TOKEN?: string;
+  TELEGRAM_BOT_5_TOKEN?: string;
+  TELEGRAM_STORAGE_CHAT_ID?: string;
 }
 
 export const sharedContentRoutes = new Hono<{ Bindings: Env }>();
@@ -95,6 +102,141 @@ sharedContentRoutes.get('/folders', async (c) => {
   } catch (error) {
     console.error('Get shared folders error:', error);
     return c.json({ message: 'Erro ao buscar pastas partilhadas' }, 500);
+  }
+});
+
+sharedContentRoutes.get('/files/:id/download-data', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    const isOwner = file.userId === user.id;
+    
+    // Verificar acesso: permissão direta no arquivo ou na pasta
+    let hasAccess = isOwner;
+    let sharedEncryptionKey: string | undefined;
+    
+    if (!hasAccess && file.folderId) {
+      const [folderPerm] = await db.select().from(folderPermissions)
+        .where(and(
+          eq(folderPermissions.folderId, file.folderId),
+          eq(folderPermissions.userId, user.id)
+        ));
+      hasAccess = !!folderPerm;
+      if (folderPerm) sharedEncryptionKey = folderPerm.sharedEncryptionKey || undefined;
+    }
+    
+    if (!hasAccess) {
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+      if (filePerm) sharedEncryptionKey = filePerm.sharedEncryptionKey || undefined;
+    }
+    
+    if (!hasAccess) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    return c.json({
+      isEncrypted: file.isEncrypted || false,
+      isOwner: isOwner,
+      originalMimeType: file.originalMimeType || file.tipoMime,
+      downloadUrl: `/api/files/${fileId}/download`,
+      sharedEncryptionKey: sharedEncryptionKey,
+    });
+  } catch (error) {
+    console.error('Shared file download-data error:', error);
+    return c.json({ message: 'Erro ao buscar dados do arquivo' }, 500);
+  }
+});
+
+sharedContentRoutes.get('/files/:id/content', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    const isOwner = file.userId === user.id;
+    
+    // Verificar acesso
+    let hasAccess = isOwner;
+    
+    if (!hasAccess && file.folderId) {
+      const [folderPerm] = await db.select().from(folderPermissions)
+        .where(and(
+          eq(folderPermissions.folderId, file.folderId),
+          eq(folderPermissions.userId, user.id)
+        ));
+      hasAccess = !!folderPerm;
+    }
+    
+    if (!hasAccess) {
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+    }
+    
+    if (!hasAccess) {
+      return c.json({ message: 'Não autorizado' }, 403);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Arquivo sem referência de download' }, 400);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    
+    if (file.isChunked && file.totalChunks > 1) {
+      const chunks = await db.select().from(fileChunks)
+        .where(eq(fileChunks.fileId, file.id))
+        .orderBy(fileChunks.chunkIndex);
+      
+      const buffers: ArrayBuffer[] = [];
+      for (const chunk of chunks) {
+        const buffer = await telegram.downloadFile(chunk.telegramFileId, chunk.telegramBotId);
+        buffers.push(buffer);
+      }
+      
+      const totalLength = buffers.reduce((acc, buf) => acc + buf.byteLength, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const buffer of buffers) {
+        combined.set(new Uint8Array(buffer), offset);
+        offset += buffer.byteLength;
+      }
+      
+      return new Response(combined, {
+        headers: { 'Content-Type': 'application/octet-stream' }
+      });
+    }
+    
+    const buffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    
+    return new Response(buffer, {
+      headers: { 'Content-Type': 'application/octet-stream' }
+    });
+  } catch (error) {
+    console.error('Shared file content error:', error);
+    return c.json({ message: 'Erro ao buscar conteúdo do arquivo' }, 500);
   }
 });
 
