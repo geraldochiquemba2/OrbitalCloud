@@ -18,6 +18,11 @@ interface Env {
   TELEGRAM_BOT_3_TOKEN?: string;
   TELEGRAM_BOT_4_TOKEN?: string;
   TELEGRAM_BOT_5_TOKEN?: string;
+  TELEGRAM_BOT_6_TOKEN?: string;
+  TELEGRAM_BOT_7_TOKEN?: string;
+  TELEGRAM_BOT_8_TOKEN?: string;
+  TELEGRAM_BOT_9_TOKEN?: string;
+  TELEGRAM_BOT_10_TOKEN?: string;
   TELEGRAM_STORAGE_CHAT_ID?: string;
 }
 

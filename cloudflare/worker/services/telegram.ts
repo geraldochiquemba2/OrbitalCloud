@@ -57,6 +57,11 @@ export class TelegramService {
     TELEGRAM_BOT_3_TOKEN?: string;
     TELEGRAM_BOT_4_TOKEN?: string;
     TELEGRAM_BOT_5_TOKEN?: string;
+    TELEGRAM_BOT_6_TOKEN?: string;
+    TELEGRAM_BOT_7_TOKEN?: string;
+    TELEGRAM_BOT_8_TOKEN?: string;
+    TELEGRAM_BOT_9_TOKEN?: string;
+    TELEGRAM_BOT_10_TOKEN?: string;
     TELEGRAM_STORAGE_CHAT_ID?: string;
   }) {
     this.loadBotsFromEnv(env);
@@ -70,6 +75,11 @@ export class TelegramService {
       env.TELEGRAM_BOT_3_TOKEN,
       env.TELEGRAM_BOT_4_TOKEN,
       env.TELEGRAM_BOT_5_TOKEN,
+      env.TELEGRAM_BOT_6_TOKEN,
+      env.TELEGRAM_BOT_7_TOKEN,
+      env.TELEGRAM_BOT_8_TOKEN,
+      env.TELEGRAM_BOT_9_TOKEN,
+      env.TELEGRAM_BOT_10_TOKEN,
     ];
 
     tokens.forEach((token, index) => {
