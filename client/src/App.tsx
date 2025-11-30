@@ -11,6 +11,7 @@ import Signup from "@/pages/signup";
 import Dashboard from "@/pages/dashboard";
 import SharePage from "@/pages/share";
 import AdminPage from "@/pages/admin";
+import PublicFolderPage from "@/pages/public-folder";
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -48,6 +49,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/share/:linkCode" component={SharePage} />
+          <Route path="/p/:slug" component={PublicFolderPage} />
           <Route component={NotFound} />
         </Switch>
       </motion.div>
