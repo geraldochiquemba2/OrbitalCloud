@@ -541,3 +541,95 @@ fileRoutes.patch('/:id/move', async (c) => {
     return c.json({ message: 'Erro ao mover arquivo' }, 500);
   }
 });
+
+fileRoutes.get('/:id/preview', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    const hasAccess = file.userId === user.id || 
+      (await db.select().from(filePermissions)
+        .where(and(eq(filePermissions.fileId, fileId), eq(filePermissions.userId, user.id)))
+        .then(r => r.length > 0)) ||
+      (file.folderId && await db.select().from(folderPermissions)
+        .where(and(eq(folderPermissions.folderId, file.folderId), eq(folderPermissions.userId, user.id)))
+        .then(r => r.length > 0));
+    
+    if (!hasAccess) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Arquivo não disponível' }, 404);
+    }
+    
+    const telegramService = new TelegramService(c.env);
+    const previewUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+    
+    return c.json({ url: previewUrl });
+  } catch (error) {
+    console.error('Preview error:', error);
+    return c.json({ message: 'Erro ao obter preview' }, 500);
+  }
+});
+
+fileRoutes.get('/:id/stream', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    const hasAccess = file.userId === user.id || 
+      (await db.select().from(filePermissions)
+        .where(and(eq(filePermissions.fileId, fileId), eq(filePermissions.userId, user.id)))
+        .then(r => r.length > 0)) ||
+      (file.folderId && await db.select().from(folderPermissions)
+        .where(and(eq(folderPermissions.folderId, file.folderId), eq(folderPermissions.userId, user.id)))
+        .then(r => r.length > 0));
+    
+    if (!hasAccess) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Arquivo não disponível' }, 404);
+    }
+    
+    if (!file.tipoMime.startsWith('video/')) {
+      return c.json({ message: 'Este endpoint é apenas para vídeos' }, 400);
+    }
+    
+    const telegramService = new TelegramService(c.env);
+    const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+    
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      return c.json({ message: 'Erro ao buscar vídeo' }, 500);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    return new Response(arrayBuffer, {
+      headers: {
+        'Content-Type': file.tipoMime,
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=3600'
+      }
+    });
+  } catch (error) {
+    console.error('Stream error:', error);
+    return c.json({ message: 'Erro ao fazer stream' }, 500);
+  }
+});

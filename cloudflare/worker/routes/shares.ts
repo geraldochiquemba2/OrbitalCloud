@@ -8,7 +8,7 @@ import { createDb } from '../db';
 import { authMiddleware, optionalAuthMiddleware, JWTPayload } from '../middleware/auth';
 import { TelegramService } from '../services/telegram';
 import { files, shares, fileChunks } from '../../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 interface Env {
   DATABASE_URL: string;
@@ -359,5 +359,85 @@ shareRoutes.delete('/:id', authMiddleware, async (c) => {
   } catch (error) {
     console.error('Delete share error:', error);
     return c.json({ message: 'Erro ao remover link' }, 500);
+  }
+});
+
+shareRoutes.get('/:linkCode/stream', async (c) => {
+  try {
+    const linkCode = c.req.param('linkCode');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [share] = await db.select().from(shares).where(eq(shares.linkCode, linkCode));
+    if (!share) {
+      return c.json({ message: 'Link não encontrado' }, 404);
+    }
+    
+    if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+      return c.json({ message: 'Link expirado' }, 410);
+    }
+    
+    const [file] = await db.select().from(files).where(eq(files.id, share.fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Arquivo não disponível' }, 404);
+    }
+    
+    const telegramService = new TelegramService(c.env);
+    const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+    
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      return c.json({ message: 'Erro ao buscar ficheiro' }, 500);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    return new Response(arrayBuffer, {
+      headers: {
+        'Content-Type': file.originalMimeType || file.tipoMime,
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=3600'
+      }
+    });
+  } catch (error) {
+    console.error('Stream error:', error);
+    return c.json({ message: 'Erro ao fazer stream' }, 500);
+  }
+});
+
+shareRoutes.get('/:linkCode/preview', async (c) => {
+  try {
+    const linkCode = c.req.param('linkCode');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [share] = await db.select().from(shares).where(eq(shares.linkCode, linkCode));
+    if (!share) {
+      return c.json({ message: 'Link não encontrado' }, 404);
+    }
+    
+    if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+      return c.json({ message: 'Link expirado' }, 410);
+    }
+    
+    const [file] = await db.select().from(files).where(eq(files.id, share.fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Arquivo não disponível' }, 404);
+    }
+    
+    const telegramService = new TelegramService(c.env);
+    const previewUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+    
+    return c.json({ url: previewUrl, mimeType: file.tipoMime });
+  } catch (error) {
+    console.error('Preview error:', error);
+    return c.json({ message: 'Erro ao obter preview' }, 500);
   }
 });
