@@ -938,6 +938,45 @@ export async function registerRoutes(
     }
   });
 
+  // Stream file from public folder (for video thumbnails with CORS support)
+  app.get("/api/public/file/:fileId/stream", async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.fileId);
+      if (!file || file.isDeleted || file.isEncrypted) {
+        return res.status(404).json({ message: "Ficheiro não encontrado" });
+      }
+
+      // Verify the file is in a public folder
+      if (!file.folderId) {
+        return res.status(403).json({ message: "Ficheiro não está numa pasta pública" });
+      }
+
+      const folder = await storage.getFolder(file.folderId);
+      if (!folder || !folder.isPublic) {
+        return res.status(403).json({ message: "Ficheiro não está numa pasta pública" });
+      }
+
+      // Download file from Telegram
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Ficheiro não disponível" });
+      }
+
+      const fileBuffer = await telegramService.downloadFile(file.telegramFileId, file.telegramBotId);
+      
+      // Add CORS headers for canvas access
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Content-Type", file.tipoMime);
+      res.setHeader("Content-Length", file.tamanho.toString());
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Public file stream error:", error);
+      res.status(500).json({ message: "Erro ao transmitir ficheiro" });
+    }
+  });
+
   // Download file from public folder (no auth required)
   app.get("/api/public/file/:fileId/download", async (req: Request, res: Response) => {
     try {

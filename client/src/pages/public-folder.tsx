@@ -162,14 +162,10 @@ export default function PublicFolderPage() {
     if (file && !thumbnails[file.id]) {
       setLoadingThumbnails(prev => new Set(prev).add(file.id));
       try {
-        const previewRes = await fetch(`/api/public/file/${file.id}/preview`);
-        if (previewRes.ok) {
-          const previewData = await previewRes.json();
-          const streamUrl = previewData.url;
-          
-          const thumbnailDataUrl = await generateVideoThumbnail(streamUrl);
-          setThumbnails(prev => ({ ...prev, [file.id]: thumbnailDataUrl }));
-        }
+        // Use the stream endpoint which has CORS headers for canvas access
+        const streamUrl = `/api/public/file/${file.id}/stream`;
+        const thumbnailDataUrl = await generateVideoThumbnail(streamUrl);
+        setThumbnails(prev => ({ ...prev, [file.id]: thumbnailDataUrl }));
       } catch (err) {
         console.error("Error generating video thumbnail:", err);
         setThumbnails(prev => ({ ...prev, [file.id]: "video_error" }));
