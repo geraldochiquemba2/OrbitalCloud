@@ -9,7 +9,9 @@ compatibility_flags = ["nodejs_compat"]
 
 # Assets estáticos - frontend React servido pelo Worker
 [assets]
-directory = "dist/public"
+directory = "./dist/public"
+binding = "ASSETS"
+html_handling = "auto-trailing-slash"
 not_found_handling = "single-page-application"
 
 # Variáveis de ambiente (não sensíveis)
