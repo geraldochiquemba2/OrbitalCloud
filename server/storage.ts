@@ -845,7 +845,8 @@ export class DatabaseStorage implements IStorage {
       .from(files)
       .where(and(
         eq(files.folderId, folderId),
-        eq(files.isDeleted, false)
+        eq(files.isDeleted, false),
+        eq(files.isEncrypted, false)
       ))
       .orderBy(desc(files.createdAt));
   }
