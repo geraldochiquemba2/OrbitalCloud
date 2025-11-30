@@ -135,6 +135,15 @@ export interface IStorage {
   createFileChunks(chunks: InsertFileChunk[]): Promise<FileChunk[]>;
   getFileChunks(fileId: string): Promise<FileChunk[]>;
   deleteFileChunks(fileId: string): Promise<void>;
+
+  // Public Folders
+  makeFolderPublic(folderId: string, userId: string): Promise<{ slug: string }>;
+  makeFolderPrivate(folderId: string, userId: string): Promise<void>;
+  getPublicFolderBySlug(slug: string): Promise<Folder | undefined>;
+  getPublicFolderFiles(folderId: string): Promise<File[]>;
+  getPublicFolderSubfolders(folderId: string): Promise<Folder[]>;
+  getUserPublicFolders(userId: string): Promise<Folder[]>;
+  regeneratePublicSlug(folderId: string, userId: string): Promise<{ slug: string }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -766,6 +775,114 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFileChunks(fileId: string): Promise<void> {
     await db.delete(fileChunks).where(eq(fileChunks.fileId, fileId));
+  }
+
+  // Public Folders
+  private generatePublicSlug(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let slug = '';
+    for (let i = 0; i < 12; i++) {
+      slug += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return slug;
+  }
+
+  async makeFolderPublic(folderId: string, userId: string): Promise<{ slug: string }> {
+    const [folder] = await db.select().from(folders).where(
+      and(eq(folders.id, folderId), eq(folders.userId, userId))
+    );
+    
+    if (!folder) {
+      throw new Error("Pasta não encontrada ou não autorizada");
+    }
+
+    if (folder.isPublic && folder.publicSlug) {
+      return { slug: folder.publicSlug };
+    }
+
+    const slug = this.generatePublicSlug();
+    await db
+      .update(folders)
+      .set({ 
+        isPublic: true, 
+        publicSlug: slug,
+        publishedAt: new Date()
+      })
+      .where(eq(folders.id, folderId));
+
+    return { slug };
+  }
+
+  async makeFolderPrivate(folderId: string, userId: string): Promise<void> {
+    const [folder] = await db.select().from(folders).where(
+      and(eq(folders.id, folderId), eq(folders.userId, userId))
+    );
+    
+    if (!folder) {
+      throw new Error("Pasta não encontrada ou não autorizada");
+    }
+
+    await db
+      .update(folders)
+      .set({ 
+        isPublic: false, 
+        publicSlug: null,
+        publishedAt: null
+      })
+      .where(eq(folders.id, folderId));
+  }
+
+  async getPublicFolderBySlug(slug: string): Promise<Folder | undefined> {
+    const [folder] = await db.select().from(folders).where(
+      and(eq(folders.publicSlug, slug), eq(folders.isPublic, true))
+    );
+    return folder || undefined;
+  }
+
+  async getPublicFolderFiles(folderId: string): Promise<File[]> {
+    return db
+      .select()
+      .from(files)
+      .where(and(
+        eq(files.folderId, folderId),
+        eq(files.isDeleted, false),
+        eq(files.isEncrypted, false)
+      ))
+      .orderBy(desc(files.createdAt));
+  }
+
+  async getPublicFolderSubfolders(folderId: string): Promise<Folder[]> {
+    return db
+      .select()
+      .from(folders)
+      .where(eq(folders.parentId, folderId))
+      .orderBy(folders.nome);
+  }
+
+  async getUserPublicFolders(userId: string): Promise<Folder[]> {
+    return db
+      .select()
+      .from(folders)
+      .where(and(eq(folders.userId, userId), eq(folders.isPublic, true)))
+      .orderBy(desc(folders.createdAt));
+  }
+
+  async regeneratePublicSlug(folderId: string, userId: string): Promise<{ slug: string }> {
+    const [folder] = await db.select().from(folders).where(
+      and(eq(folders.id, folderId), eq(folders.userId, userId), eq(folders.isPublic, true))
+    );
+    
+    if (!folder) {
+      throw new Error("Pasta pública não encontrada ou não autorizada");
+    }
+
+    const newSlug = this.generatePublicSlug();
+    await db
+      .update(folders)
+      .set({ publicSlug: newSlug })
+      .where(eq(folders.id, folderId));
+
+    return { slug: newSlug };
   }
 
   // Migration: Update legacy users from 15GB to 20GB storage limit

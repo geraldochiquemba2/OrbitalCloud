@@ -36,6 +36,9 @@ export const folders = pgTable("folders", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   parentId: varchar("parent_id"),
   nome: text("nome").notNull(),
+  isPublic: boolean("is_public").notNull().default(false),
+  publicSlug: text("public_slug").unique(),
+  publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
