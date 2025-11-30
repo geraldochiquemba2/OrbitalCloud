@@ -2413,14 +2413,6 @@ export default function Dashboard() {
                           )}
                           <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity">
                             <button
-                              onClick={(e) => { e.stopPropagation(); openPublicFolderModal(folder); }}
-                              className={`p-1 rounded-lg ${folder.isPublic ? 'bg-green-500/20 text-green-400 hover:bg-green-500/40' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/40'}`}
-                              title={folder.isPublic ? "Gerir pasta pública" : "Tornar pública"}
-                              data-testid={`button-public-folder-${folder.id}`}
-                            >
-                              <Globe className="w-3 h-3" />
-                            </button>
-                            <button
                               onClick={(e) => { e.stopPropagation(); openInviteModal("folder", folder.id, folder.nome); }}
                               className="p-1 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/40"
                               title="Convidar"
