@@ -1,0 +1,290 @@
+2025-11-30T01:03:07.581Z	Initializing build environment...
+2025-11-30T01:03:09.181Z	Success: Finished initializing build environment
+2025-11-30T01:03:09.565Z	Cloning repository...
+2025-11-30T01:03:13.093Z	Detected the following tools from environment: npm@10.9.2, nodejs@22.16.0
+2025-11-30T01:03:13.095Z	Restoring from dependencies cache
+2025-11-30T01:03:13.096Z	Restoring from build output cache
+2025-11-30T01:03:14.485Z	Success: Dependencies restored from build cache.
+2025-11-30T01:03:14.585Z	Installing project dependencies: npm clean-install --progress=false
+2025-11-30T01:03:19.468Z	npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+2025-11-30T01:03:19.643Z	npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+2025-11-30T01:03:07.581Z	Initializing build environment...
+2025-11-30T01:03:09.181Z	Success: Finished initializing build environment
+2025-11-30T01:03:09.565Z	Cloning repository...
+2025-11-30T01:03:13.093Z	Detected the following tools from environment: npm@10.9.2, nodejs@22.16.0
+2025-11-30T01:03:13.095Z	Restoring from dependencies cache
+2025-11-30T01:03:13.096Z	Restoring from build output cache
+2025-11-30T01:03:14.485Z	Success: Dependencies restored from build cache.
+2025-11-30T01:03:14.585Z	Installing project dependencies: npm clean-install --progress=false
+2025-11-30T01:03:19.468Z	npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+2025-11-30T01:03:19.643Z	npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+2025-11-30T01:03:26.777Z	
+2025-11-30T01:03:26.777Z	added 528 packages, and audited 529 packages in 12s
+2025-11-30T01:03:26.777Z	
+2025-11-30T01:03:26.777Z	46 packages are looking for funding
+2025-11-30T01:03:26.777Z	  run `npm fund` for details
+2025-11-30T01:03:26.798Z	
+2025-11-30T01:03:26.798Z	6 vulnerabilities (2 low, 4 moderate)
+2025-11-30T01:03:26.798Z	
+2025-11-30T01:03:26.798Z	To address issues that do not require attention, run:
+2025-11-30T01:03:26.798Z	  npm audit fix
+2025-11-30T01:03:26.798Z	
+2025-11-30T01:03:26.798Z	To address all issues (including breaking changes), run:
+2025-11-30T01:03:26.798Z	  npm audit fix --force
+2025-11-30T01:03:26.798Z	
+2025-11-30T01:03:26.798Z	Run `npm audit` for details.
+2025-11-30T01:03:27.016Z	Executing user build command: cd cloudflare && npm run build
+2025-11-30T01:03:27.236Z	
+2025-11-30T01:03:27.236Z	> app-cloudflare@2.0.0 build
+2025-11-30T01:03:27.236Z	> cd .. && npm run build && mkdir -p cloudflare/dist/public && cp -r dist/public/* cloudflare/dist/public/
+2025-11-30T01:03:27.236Z	
+2025-11-30T01:03:27.400Z	
+2025-11-30T01:03:27.401Z	> rest-express@1.0.0 build
+2025-11-30T01:03:27.401Z	> tsx script/build.ts
+2025-11-30T01:03:27.401Z	
+2025-11-30T01:03:28.128Z	building client...
+2025-11-30T01:03:28.321Z	vite v7.1.12 building for production...
+2025-11-30T01:03:28.568Z	transforming...
+2025-11-30T01:03:32.577Z	✓ 2247 modules transformed.
+2025-11-30T01:03:33.046Z	rendering chunks...
+2025-11-30T01:03:33.058Z	[meta-images] no Replit deployment domain found, skipping meta tag updates
+2025-11-30T01:03:33.090Z	computing gzip size...
+2025-11-30T01:03:36.447Z	../dist/public/index.html                                                           4.44 kB │ gzip:   1.54 kB
+2025-11-30T01:03:36.452Z	../dist/public/assets/minimalist_cloud_storage_icon-LZRPUkIw.png                  305.45 kB
+2025-11-30T01:03:36.453Z	../dist/public/assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg            717.30 kB
+2025-11-30T01:03:36.453Z	../dist/public/assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg    898.00 kB
+2025-11-30T01:03:36.453Z	../dist/public/assets/pricing_video_first_frame-is5UPM7j.png                    1,144.89 kB
+2025-11-30T01:03:36.454Z	../dist/public/assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg       1,274.42 kB
+2025-11-30T01:03:36.454Z	../dist/public/assets/about_page_video_first_frame-CrpgHI0Q.png                 1,474.57 kB
+2025-11-30T01:03:36.454Z	../dist/public/assets/loading-background-KpomVLYn.jpg                           2,083.68 kB
+2025-11-30T01:03:36.454Z	../dist/public/assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4      2,334.77 kB
+2025-11-30T01:03:36.455Z	../dist/public/assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4      4,171.48 kB
+2025-11-30T01:03:36.455Z	../dist/public/assets/index-GxDBOtxy.css                                          135.79 kB │ gzip:  20.53 kB
+2025-11-30T01:03:36.455Z	../dist/public/assets/index-C2Y_CPdM.js                                           684.07 kB │ gzip: 198.22 kB
+2025-11-30T01:03:36.455Z	✓ built in 7.92s
+2025-11-30T01:03:36.455Z	building server...
+2025-11-30T01:03:36.455Z	
+2025-11-30T01:03:36.455Z	(!) Some chunks are larger than 500 kB after minification. Consider:
+2025-11-30T01:03:36.456Z	- Using dynamic import() to code-split the application
+2025-11-30T01:03:36.458Z	- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-11-30T01:03:36.459Z	- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-11-30T01:03:36.672Z	
+2025-11-30T01:03:36.673Z	  dist/index.cjs  1.3mb ⚠️
+2025-11-30T01:03:36.673Z	
+2025-11-30T01:03:36.674Z	⚡ Done in 211ms
+2025-11-30T01:03:36.809Z	Success: Build command completed
+2025-11-30T01:03:36.912Z	Executing user deploy command: cd cloudflare && npx wrangler deploy
+2025-11-30T01:03:37.831Z	npm warn exec The following package was not found and will be installed: wrangler@4.51.0
+2025-11-30T01:03:46.966Z	
+2025-11-30T01:03:46.966Z	 ⛅️ wrangler 4.51.0
+2025-11-30T01:03:46.967Z	───────────────────
+2025-11-30T01:03:46.977Z	[custom build] Running: npm run build
+2025-11-30T01:03:47.113Z	[custom build] 
+2025-11-30T01:03:47.114Z	[custom build] > app-cloudflare@2.0.0 build
+2025-11-30T01:03:47.115Z	[custom build] > cd .. && npm run build && mkdir -p cloudflare/dist/public && cp -r dist/public/* cloudflare/dist/public/
+2025-11-30T01:03:47.115Z	[custom build] 
+2025-11-30T01:03:47.115Z	[custom build] 
+2025-11-30T01:03:47.253Z	[custom build] 
+2025-11-30T01:03:47.254Z	[custom build] > rest-express@1.0.0 build
+2025-11-30T01:03:47.254Z	[custom build] > tsx script/build.ts
+2025-11-30T01:03:47.254Z	[custom build] 
+2025-11-30T01:03:47.254Z	[custom build] 
+2025-11-30T01:03:48.253Z	[custom build] building client...
+2025-11-30T01:03:48.253Z	[custom build] 
+2025-11-30T01:03:48.420Z	[custom build] vite v7.1.12 building for production...
+2025-11-30T01:03:48.421Z	[custom build] 
+2025-11-30T01:03:48.767Z	[custom build] transforming...
+2025-11-30T01:03:48.771Z	[custom build] 
+2025-11-30T01:03:52.821Z	[custom build] ✓ 2247 modules transformed.
+2025-11-30T01:03:52.822Z	[custom build] 
+2025-11-30T01:03:53.364Z	[custom build] rendering chunks...
+2025-11-30T01:03:53.364Z	[custom build] 
+2025-11-30T01:03:53.374Z	[custom build] [meta-images] no Replit deployment domain found, skipping meta tag updates
+2025-11-30T01:03:53.374Z	[custom build] 
+2025-11-30T01:03:53.400Z	[custom build] computing gzip size...
+2025-11-30T01:03:53.400Z	[custom build] 
+2025-11-30T01:03:53.418Z	[custom build] ../dist/public/index.html                                                           4.44 kB │ gzip:   1.54 kB
+2025-11-30T01:03:53.418Z	[custom build] 
+2025-11-30T01:03:53.419Z	[custom build] ../dist/public/assets/minimalist_cloud_storage_icon-LZRPUkIw.png                  305.45 kB
+2025-11-30T01:03:53.419Z	[custom build] ../dist/public/assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg            717.30 kB
+2025-11-30T01:03:53.419Z	[custom build] ../dist/public/assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg    898.00 kB
+2025-11-30T01:03:53.419Z	[custom build] 
+2025-11-30T01:03:53.421Z	[custom build] ../dist/public/assets/pricing_video_first_frame-is5UPM7j.png                    1,144.89 kB
+2025-11-30T01:03:53.421Z	[custom build] ../dist/public/assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg       1,274.42 kB
+2025-11-30T01:03:53.422Z	[custom build] ../dist/public/assets/about_page_video_first_frame-CrpgHI0Q.png                 1,474.57 kB
+2025-11-30T01:03:53.422Z	[custom build] ../dist/public/assets/loading-background-KpomVLYn.jpg                           2,083.68 kB
+2025-11-30T01:03:53.422Z	[custom build] ../dist/public/assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4      2,334.77 kB
+2025-11-30T01:03:53.422Z	[custom build] ../dist/public/assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4      4,171.48 kB
+2025-11-30T01:03:53.422Z	[custom build] ../dist/public/assets/index-GxDBOtxy.css                                          135.79 kB │ gzip:  20.53 kB
+2025-11-30T01:03:53.422Z	[custom build] ../dist/public/assets/index-C2Y_CPdM.js                                           684.07 kB │ gzip: 198.22 kB
+2025-11-30T01:03:53.423Z	[custom build] ✓ built in 4.70s
+2025-11-30T01:03:53.423Z	[custom build] building server...
+2025-11-30T01:03:53.423Z	[custom build] 
+2025-11-30T01:03:53.426Z	[custom build] 
+2025-11-30T01:03:53.426Z	[custom build] (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-11-30T01:03:53.426Z	[custom build] - Using dynamic import() to code-split the application
+2025-11-30T01:03:53.427Z	[custom build] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-11-30T01:03:53.427Z	[custom build] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-11-30T01:03:53.427Z	[custom build] 
+2025-11-30T01:03:53.620Z	[custom build] 
+2025-11-30T01:03:53.620Z	[custom build]   dist/index.cjs  1.3mb ⚠️
+2025-11-30T01:03:53.620Z	[custom build] 
+2025-11-30T01:03:53.620Z	[custom build] ⚡ Done in 195ms
+2025-11-30T01:03:53.620Z	[custom build] 
+2025-11-30T01:03:54.595Z	▲ [WARNING] The local configuration being used (generated from your local configuration file) differs from the remote configuration of your Worker set via the Cloudflare Dashboard:
+2025-11-30T01:03:54.595Z	
+2025-11-30T01:03:54.595Z	   {
+2025-11-30T01:03:54.595Z	  +  assets: {
+2025-11-30T01:03:54.595Z	  +  }
+2025-11-30T01:03:54.595Z	  -  compatibility_date: "2025-11-30"
+2025-11-30T01:03:54.595Z	  +  compatibility_date: "2025-01-01"
+2025-11-30T01:03:54.595Z	     vars: {
+2025-11-30T01:03:54.595Z	  -    DATABASE_URL: "postgresql://neondb_owner:npg_K1sFWTNOZ7zL@ep-dry-fire-aezxqx5t.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require"
+2025-11-30T01:03:54.595Z	  -    JWT_SECRET: "my-secure-jwt-key-2025-orbital-cloud-32chars"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_10_TOKEN: "8230014962:AAFnTR2xjp1S_xCfkreCBfkyPlZkmD3BSoA"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_1_TOKEN: "8223016324:AAE8xZTuOf3-15oa_7xv32vKcNvU2xE-pAs"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_2_TOKEN: "8576824412:AAGeYbEXZJHUgtq_0PvmvrF9iPTjYJoG0-c"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_3_TOKEN: "8555207296:AAGx8CuDZg23GvHvjsvlRXfw9lJzMv3MZGM"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_4_TOKEN: "8594705763:AAFK3lypHEe0J6grp2qJ49viUCbZgCwqa3g"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_5_TOKEN: "8519422868:AAGeH02obXLonBLnEBcPXrY7c5MH80M3i9s"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_6_TOKEN: "8563562007:AAGL0hLE-DujYdRV5Xcw0ZPPpS59Cg8WWSA"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_7_TOKEN: "8193939525:AAEq2sDmCTJpg8vBcdzU8JfwvH0S-ry3Sw8"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_8_TOKEN: "8100426334:AAG1iWaB-3f4TXqU1SMcnhbtIYRdY1U18JQ"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_BOT_9_TOKEN: "8491149974:AAGMpsPl2-faA8gvx-ZlCZaZ4d70S97eRnc"
+2025-11-30T01:03:54.595Z	  -    TELEGRAM_STORAGE_CHAT_ID: "-1003232695027"
+2025-11-30T01:03:54.595Z	  +    ENVIRONMENT: "production"
+2025-11-30T01:03:54.595Z	     }
+2025-11-30T01:03:54.595Z	   }
+2025-11-30T01:03:54.595Z	  
+2025-11-30T01:03:54.595Z	  
+2025-11-30T01:03:54.595Z	  Deploying the Worker will override the remote configuration with your local one.
+2025-11-30T01:03:54.595Z	
+2025-11-30T01:03:54.595Z	
+2025-11-30T01:03:54.598Z	? Would you like to continue?
+2025-11-30T01:03:54.600Z	🤖 Using fallback value in non-interactive context: yes
+2025-11-30T01:03:54.832Z	
+2025-11-30T01:03:54.837Z	✘ [ERROR] Build failed with 13 errors:
+2025-11-30T01:03:54.838Z	
+2025-11-30T01:03:54.842Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.842Z	  
+2025-11-30T01:03:54.842Z	      worker/index.ts:12:21:
+2025-11-30T01:03:54.842Z	        12 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.842Z	           ╵                      ~~~~~~
+2025-11-30T01:03:54.843Z	  
+2025-11-30T01:03:54.843Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.843Z	  
+2025-11-30T01:03:54.843Z	  
+2025-11-30T01:03:54.843Z	  ✘ [ERROR] Could not resolve "hono/cors"
+2025-11-30T01:03:54.843Z	  
+2025-11-30T01:03:54.843Z	      worker/index.ts:13:21:
+2025-11-30T01:03:54.843Z	        13 │ import { cors } from 'hono/cors';
+2025-11-30T01:03:54.843Z	           ╵                      ~~~~~~~~~~~
+2025-11-30T01:03:54.843Z	  
+2025-11-30T01:03:54.843Z	    You can mark the path "hono/cors" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.843Z	  
+2025-11-30T01:03:54.843Z	  
+2025-11-30T01:03:54.843Z	  ✘ [ERROR] Could not resolve "hono/logger"
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	      worker/index.ts:14:23:
+2025-11-30T01:03:54.844Z	        14 │ import { logger } from 'hono/logger';
+2025-11-30T01:03:54.844Z	           ╵                        ~~~~~~~~~~~~~
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	    You can mark the path "hono/logger" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	  ✘ [ERROR] Could not resolve "hono/secure-headers"
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	      worker/index.ts:15:30:
+2025-11-30T01:03:54.844Z	        15 │ import { secureHeaders } from 'hono/secure-headers';
+2025-11-30T01:03:54.844Z	           ╵                               ~~~~~~~~~~~~~~~~~~~~~
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	    You can mark the path "hono/secure-headers" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	  ✘ [ERROR] Could not resolve "hono/jwt"
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	      worker/middleware/auth.ts:9:37:
+2025-11-30T01:03:54.844Z	        9 │ import { verify, sign, decode } from 'hono/jwt';
+2025-11-30T01:03:54.844Z	          ╵                                      ~~~~~~~~~~
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	    You can mark the path "hono/jwt" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	  
+2025-11-30T01:03:54.844Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.845Z	  
+2025-11-30T01:03:54.845Z	      worker/routes/admin.ts:5:21:
+2025-11-30T01:03:54.845Z	        5 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.845Z	          ╵                      ~~~~~~
+2025-11-30T01:03:54.845Z	  
+2025-11-30T01:03:54.845Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.845Z	  
+2025-11-30T01:03:54.845Z	  
+2025-11-30T01:03:54.845Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.845Z	  
+2025-11-30T01:03:54.845Z	      worker/routes/auth.ts:8:21:
+2025-11-30T01:03:54.845Z	        8 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.845Z	          ╵                      ~~~~~~
+2025-11-30T01:03:54.845Z	  
+2025-11-30T01:03:54.845Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.846Z	  
+2025-11-30T01:03:54.846Z	  
+2025-11-30T01:03:54.846Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.847Z	  
+2025-11-30T01:03:54.847Z	      worker/routes/files.ts:5:21:
+2025-11-30T01:03:54.847Z	        5 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.847Z	          ╵                      ~~~~~~
+2025-11-30T01:03:54.847Z	  
+2025-11-30T01:03:54.847Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.847Z	  
+2025-11-30T01:03:54.847Z	  
+2025-11-30T01:03:54.848Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.848Z	  
+2025-11-30T01:03:54.848Z	      worker/routes/folders.ts:5:21:
+2025-11-30T01:03:54.848Z	        5 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.848Z	          ╵                      ~~~~~~
+2025-11-30T01:03:54.848Z	  
+2025-11-30T01:03:54.848Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.848Z	  
+2025-11-30T01:03:54.848Z	  
+2025-11-30T01:03:54.849Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.850Z	  
+2025-11-30T01:03:54.850Z	      worker/routes/invitations.ts:5:21:
+2025-11-30T01:03:54.850Z	        5 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.850Z	          ╵                      ~~~~~~
+2025-11-30T01:03:54.850Z	  
+2025-11-30T01:03:54.850Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.850Z	  
+2025-11-30T01:03:54.850Z	  
+2025-11-30T01:03:54.850Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.850Z	  
+2025-11-30T01:03:54.850Z	      worker/routes/shared-content.ts:5:21:
+2025-11-30T01:03:54.850Z	        5 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.850Z	          ╵                      ~~~~~~
+2025-11-30T01:03:54.850Z	  
+2025-11-30T01:03:54.850Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.850Z	  
+2025-11-30T01:03:54.850Z	  
+2025-11-30T01:03:54.851Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.851Z	  
+2025-11-30T01:03:54.851Z	      worker/routes/shares.ts:5:21:
+2025-11-30T01:03:54.851Z	        5 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.851Z	          ╵                      ~~~~~~
+2025-11-30T01:03:54.851Z	  
+2025-11-30T01:03:54.851Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.851Z	  
+2025-11-30T01:03:54.851Z	  
+2025-11-30T01:03:54.851Z	  ✘ [ERROR] Could not resolve "hono"
+2025-11-30T01:03:54.851Z	  
+2025-11-30T01:03:54.851Z	      worker/routes/upgrades.ts:5:21:
+2025-11-30T01:03:54.851Z	        5 │ import { Hono } from 'hono';
+2025-11-30T01:03:54.851Z	          ╵                      ~~~~~~
+2025-11-30T01:03:54.851Z	  
+2025-11-30T01:03:54.851Z	    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+2025-11-30T01:03:54.851Z	  
+2025-11-30T01:03:54.851Z	  
+2025-11-30T01:03:54.851Z	
+2025-11-30T01:03:54.851Z	
+2025-11-30T01:03:54.852Z	
+2025-11-30T01:03:54.852Z	Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+2025-11-30T01:03:54.868Z	🪵  Logs were written to "/opt/buildhome/.config/.wrangler/logs/wrangler-2025-11-30_01-03-46_543.log"
+2025-11-30T01:03:54.943Z	Failed: error occurred while running deploy command
