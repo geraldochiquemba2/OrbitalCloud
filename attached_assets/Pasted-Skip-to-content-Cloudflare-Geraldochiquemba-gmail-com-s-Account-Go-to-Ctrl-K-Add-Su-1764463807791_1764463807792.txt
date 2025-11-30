@@ -1,0 +1,131 @@
+Skip to content
+Cloudflare
+Geraldochiquemba@gmail.com's Account
+
+Go to...
+
+Ctrl+K
+
+Add
+
+Support
+
+Profile
+Account home
+
+Recents
+Workers & Pages
+Compute & AI
+
+an
+gocloud
+Workers
+
+orbit
+alcloud
+Workers
+
+Register domains
+Domain registration
+
+
+Analytics & logs
+Build
+
+Compute & AI
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Rendering
+AI Search (AutoRAG)
+Workers AI
+AI Gateway
+VPC
+Workers plans
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Domain registration
+
+Manage account
+
+
+Workers & Pages
+/
+orbitalcloud
+Overview
+Metrics
+Deployments
+Bindings
+Observability
+Settings
+ Back to builds
+Build details
+Repository
+
+geraldochiquemba2/OrbitalCloud
+Status
+
+11 minutes ago
+Branch
+main
+ea05f79
+Update file copying method to ensure frontend assets are properly deployed Adjust the build script in `cloudflare/package.json` to correctly copy frontend assets from the root `dist/public` directory to the `cloudflare/dist/public` directory, ensuring that the Cloudflare Worker can serve the static files. Replit-Commit-Author: Agent Replit-Commit-Session-Id: 82d6dd06-4479-40a4-87
+Duration
+53s
+Build settings
+Build log
+Initializing build environment
+3s
+Cloning git repository
+3s
+Installing tools and dependencies
+12s
+Building application
+28s
+Deploying to Cloudflare's global network
+7s
+
+Download log
+
+Copy log
+01:38:54.929	../dist/public/assets/index-GxDBOtxy.css                                          135.79 kB │ gzip:  20.53 kB
+01:38:54.929	../dist/public/assets/index-C2Y_CPdM.js                                           684.07 kB │ gzip: 198.22 kB
+01:38:54.929	✓ built in 4.00s
+01:38:54.929	building server...
+01:38:54.930	
+01:38:54.930	(!) Some chunks are larger than 500 kB after minification. Consider:
+01:38:54.930	- Using dynamic import() to code-split the application
+01:38:54.930	- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+01:38:54.930	- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+01:38:55.091	
+01:38:55.091	  dist/index.cjs  1.3mb ⚠️
+01:38:55.092	
+01:38:55.092	⚡ Done in 159ms
+01:38:55.192	Success: Deploy command completed
+01:38:55.195	Skipping build output cache as it's not supported for your project
+01:38:55.450	✨ Success! Build completed.
+
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2025 Cloudflare, Inc.
+2025-11-29T00:30:00.000Z
