@@ -838,7 +838,8 @@ export default function Dashboard() {
             setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
           }
         } else {
-          setFileThumbnails(prev => ({ ...prev, [fileId]: meta.downloadUrl }));
+          // Use internal stream endpoint instead of direct Telegram URL to avoid CORS issues with Cloudflare
+          setFileThumbnails(prev => ({ ...prev, [fileId]: `/api/files/${fileId}/stream` }));
         }
       }
     } catch (err) {
