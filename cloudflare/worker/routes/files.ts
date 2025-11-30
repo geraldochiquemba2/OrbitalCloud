@@ -304,10 +304,18 @@ fileRoutes.get('/:id/download-data', async (c) => {
     }
     
     return c.json({
+      id: file.id,
+      nome: file.nome,
+      tamanho: file.tamanho,
+      tipoMime: file.tipoMime,
+      createdAt: file.createdAt,
       isEncrypted: file.isEncrypted || false,
       isOwner: isOwner,
       originalMimeType: file.originalMimeType || file.tipoMime,
+      originalSize: file.originalSize || file.tamanho,
       downloadUrl: `/api/files/${fileId}/download`,
+      previewUrl: `/api/files/${fileId}/preview`,
+      contentUrl: `/api/files/${fileId}/content`,
       sharedEncryptionKey: sharedEncryptionKey,
     });
   } catch (error) {

@@ -255,10 +255,18 @@ shareRoutes.post('/:linkCode/download-data', async (c) => {
     }
     
     return c.json({
+      id: file.id,
+      nome: file.nome,
+      tamanho: file.tamanho,
+      tipoMime: file.tipoMime,
+      createdAt: file.createdAt,
       isEncrypted: file.isEncrypted || false,
       isOwner: false,
       originalMimeType: file.originalMimeType || file.tipoMime,
+      originalSize: file.originalSize || file.tamanho,
       downloadUrl: `/api/shares/${linkCode}/download`,
+      previewUrl: `/api/shares/${linkCode}/preview`,
+      contentUrl: `/api/shares/${linkCode}/content`,
       sharedEncryptionKey: undefined,
     });
   } catch (error) {
