@@ -120,3 +120,20 @@ Configure via `wrangler secret put`:
 - **Payment Integration:** Multicaixa Express (planned for Angolan payment processing).
 - **Deployment Platform:** Cloudflare Workers com Assets integrados (configuração em `cloudflare/`).
 - **Development Tools:** Replit-specific plugins, custom Vite plugin for OpenGraph.
+
+## Recent Changes
+
+### November 30, 2025 - Invitation Routes Sync
+
+Fixed missing routes in Cloudflare Worker for invitation management. The following routes were added to ensure feature parity between Express server (Replit) and Cloudflare Worker (production):
+
+1. **GET /api/invitations/resource/:type/:id** - Lists invitations for a specific folder or file
+   - Validates resource ownership before returning invitations
+   - Orders results by creation date (newest first)
+
+2. **PATCH /api/invitations/:id/role** - Updates invitation role/permission
+   - Only the inviter can update the role
+   - Syncs folder/file permissions when invitation is already accepted
+   - Handles the collaborator→editor role mapping for files
+
+**Note:** LSP errors in `cloudflare/worker/routes/invitations.ts` are due to drizzle-orm version differences between packages. These are type-checking warnings only and don't affect runtime functionality.
