@@ -106,6 +106,7 @@ export default function Dashboard() {
   const [uploadSpeed, setUploadSpeed] = useState<string>("");
   const [uploadTimeRemaining, setUploadTimeRemaining] = useState<string>("");
   const [currentFileSize, setCurrentFileSize] = useState<number>(0);
+  const [pendingUploadFiles, setPendingUploadFiles] = useState<globalThis.File[]>([]);
   const uploadStartTimeRef = useRef<number>(0);
   const lastProgressRef = useRef<{ time: number; loaded: number }>({ time: 0, loaded: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1014,7 +1015,11 @@ export default function Dashboard() {
   // Upload handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      uploadFiles(Array.from(e.target.files));
+      const newFiles = Array.from(e.target.files);
+      setPendingUploadFiles(prev => [...prev, ...newFiles]);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -1022,9 +1027,43 @@ export default function Dashboard() {
     e.preventDefault();
     setDragOver(false);
     if (e.dataTransfer.files.length > 0) {
-      uploadFiles(Array.from(e.dataTransfer.files));
+      const newFiles = Array.from(e.dataTransfer.files);
+      setPendingUploadFiles(prev => [...prev, ...newFiles]);
     }
-  }, [currentFolderId]);
+  }, []);
+
+  const removePendingFile = (index: number) => {
+    setPendingUploadFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearPendingFiles = () => {
+    setPendingUploadFiles([]);
+  };
+
+  const startUpload = () => {
+    if (pendingUploadFiles.length > 0) {
+      uploadFiles(pendingUploadFiles);
+      setPendingUploadFiles([]);
+    }
+  };
+
+  const getTotalPendingSize = (): number => {
+    return pendingUploadFiles.reduce((total, file) => total + file.size, 0);
+  };
+
+  const getPendingFileEmoji = (fileName: string): string => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) return '🖼️';
+    if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return '🎬';
+    if (['mp3', 'wav', 'flac', 'aac', 'ogg'].includes(ext)) return '🎵';
+    if (['pdf'].includes(ext)) return '📄';
+    if (['doc', 'docx'].includes(ext)) return '📝';
+    if (['xls', 'xlsx'].includes(ext)) return '📊';
+    if (['ppt', 'pptx'].includes(ext)) return '📽️';
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '📦';
+    if (['txt', 'md', 'json', 'xml', 'csv'].includes(ext)) return '📃';
+    return '📎';
+  };
 
   const uploadSingleFile = async (file: globalThis.File, folderId: string | null): Promise<boolean> => {
     try {
@@ -2513,49 +2552,108 @@ export default function Dashboard() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={() => !isUploading && setShowUploadModal(false)}
+            onClick={() => !isUploading && (setShowUploadModal(false), clearPendingFiles())}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/20"
+              className="bg-slate-800 rounded-2xl p-6 w-full max-w-lg border border-white/20 max-h-[90vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Upload de Ficheiros</h2>
                 {!isUploading && (
-                  <button onClick={() => setShowUploadModal(false)} className="text-white/50 hover:text-white">
+                  <button onClick={() => { setShowUploadModal(false); clearPendingFiles(); }} className="text-white/50 hover:text-white">
                     <X className="w-5 h-5" />
                   </button>
                 )}
               </div>
               
-              <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${dragOver ? "border-primary bg-primary/10" : "border-white/20 hover:border-white/40"}`}
-              >
-                <Upload className="w-12 h-12 mx-auto mb-4 text-white/50" />
-                <p className="text-white mb-2">Arraste ficheiros aqui ou</p>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/80 text-white font-medium transition-colors"
-                  disabled={isUploading}
-                  data-testid="button-select-files"
-                >
-                  Selecionar Ficheiros
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  data-testid="input-file"
-                />
-              </div>
+              {!isUploading && (
+                <>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${dragOver ? "border-primary bg-primary/10" : "border-white/20 hover:border-white/40"}`}
+                  >
+                    <Upload className="w-10 h-10 mx-auto mb-3 text-white/50" />
+                    <p className="text-white mb-2 text-sm">Arraste ficheiros aqui ou</p>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/80 text-white font-medium transition-colors text-sm"
+                      data-testid="button-select-files"
+                    >
+                      Selecionar Ficheiros
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      data-testid="input-file"
+                    />
+                  </div>
+
+                  {pendingUploadFiles.length > 0 && (
+                    <div className="mt-4 flex-1 min-h-0">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-white/70 text-sm font-medium">
+                          {pendingUploadFiles.length} ficheiro{pendingUploadFiles.length > 1 ? 's' : ''} selecionado{pendingUploadFiles.length > 1 ? 's' : ''}
+                        </p>
+                        <button
+                          onClick={clearPendingFiles}
+                          className="text-red-400 hover:text-red-300 text-xs"
+                          data-testid="button-clear-files"
+                        >
+                          Limpar todos
+                        </button>
+                      </div>
+                      
+                      <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                        {pendingUploadFiles.map((file, index) => (
+                          <div
+                            key={`${file.name}-${index}`}
+                            className="flex items-center gap-3 p-2 bg-white/5 rounded-lg border border-white/10 group"
+                            data-testid={`pending-file-${index}`}
+                          >
+                            <span className="text-lg">{getPendingFileEmoji(file.name)}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-sm truncate" title={file.name}>{file.name}</p>
+                              <p className="text-white/50 text-xs">{formatBytes(file.size)}</p>
+                            </div>
+                            <button
+                              onClick={() => removePendingFile(index)}
+                              className="text-white/30 hover:text-red-400 transition-colors p-1"
+                              title="Remover ficheiro"
+                              data-testid={`remove-file-${index}`}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-white/50 text-sm">Tamanho total:</span>
+                          <span className="text-white font-medium">{formatBytes(getTotalPendingSize())}</span>
+                        </div>
+                        <button
+                          onClick={startUpload}
+                          className="w-full py-3 rounded-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-semibold transition-opacity flex items-center justify-center gap-2"
+                          data-testid="button-start-upload"
+                        >
+                          <Upload className="w-5 h-5" />
+                          Enviar {pendingUploadFiles.length} ficheiro{pendingUploadFiles.length > 1 ? 's' : ''}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
               
               {isUploading && (
                 <div className="mt-4 space-y-3">
