@@ -239,6 +239,86 @@ fileRoutes.get('/:id/download', async (c) => {
   }
 });
 
+fileRoutes.get('/:id/download-data', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    const isOwner = file.userId === user.id;
+    
+    return c.json({
+      isEncrypted: file.isEncrypted || false,
+      isOwner: isOwner,
+      originalMimeType: file.originalMimeType || file.tipoMime,
+      downloadUrl: `/api/files/${fileId}/download`,
+      sharedEncryptionKey: !isOwner ? file.sharedEncryptionKey : undefined,
+    });
+  } catch (error) {
+    console.error('Download data error:', error);
+    return c.json({ message: 'Erro ao buscar dados do arquivo' }, 500);
+  }
+});
+
+fileRoutes.get('/:id/content', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file || file.userId !== user.id) {
+      return c.json({ message: 'Não autorizado' }, 403);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Arquivo sem referência de download' }, 400);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    
+    if (file.isChunked && file.totalChunks > 1) {
+      const chunks = await db.select().from(fileChunks)
+        .where(eq(fileChunks.fileId, file.id))
+        .orderBy(fileChunks.chunkIndex);
+      
+      const buffers: ArrayBuffer[] = [];
+      for (const chunk of chunks) {
+        const buffer = await telegram.downloadFile(chunk.telegramFileId, chunk.telegramBotId);
+        buffers.push(buffer);
+      }
+      
+      const totalLength = buffers.reduce((acc, buf) => acc + buf.byteLength, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const buffer of buffers) {
+        combined.set(new Uint8Array(buffer), offset);
+        offset += buffer.byteLength;
+      }
+      
+      return new Response(combined, {
+        headers: { 'Content-Type': 'application/octet-stream' }
+      });
+    }
+    
+    const buffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    
+    return new Response(buffer, {
+      headers: { 'Content-Type': 'application/octet-stream' }
+    });
+  } catch (error) {
+    console.error('Content error:', error);
+    return c.json({ message: 'Erro ao buscar conteúdo do arquivo' }, 500);
+  }
+});
+
 fileRoutes.delete('/:id', async (c) => {
   try {
     const user = c.get('user') as JWTPayload;
