@@ -914,6 +914,18 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Ficheiro não disponível" });
       }
 
+      // For videos, return the video URL directly - client will use it with <video> tag
+      // The <video> element will extract the first frame as thumbnail
+      if (file.tipoMime.startsWith("video/")) {
+        const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+        return res.json({ 
+          url: downloadUrl,
+          tipoMime: file.tipoMime,
+          nome: file.nome
+        });
+      }
+
+      // For images, return the image URL
       const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
       res.json({ 
         url: downloadUrl,
