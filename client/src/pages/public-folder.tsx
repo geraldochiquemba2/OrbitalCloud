@@ -60,6 +60,39 @@ export default function PublicFolderPage() {
     }
   }, [files]);
 
+  // Extract first frame from video
+  const extractVideoFrame = useCallback((videoUrl: string, fileId: string) => {
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.crossOrigin = 'anonymous';
+    video.preload = 'metadata';
+    
+    const handleLoadedMetadata = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0);
+          const frameUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setThumbnails(prev => ({ ...prev, [fileId]: frameUrl }));
+        }
+      } catch (err) {
+        console.error("Error extracting video frame:", err);
+      } finally {
+        video.pause();
+      }
+    };
+    
+    video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
+    video.addEventListener('error', () => {
+      console.debug("Video load error for frame extraction");
+      video.pause();
+    }, { once: true });
+  }, []);
+
   const processNextThumbnail = useCallback(async () => {
     if (isProcessingRef.current || thumbnailQueueRef.current.length === 0) return;
     
@@ -71,7 +104,12 @@ export default function PublicFolderPage() {
         const res = await fetch(`/api/public/file/${file.id}/preview`);
         if (res.ok) {
           const data = await res.json();
-          setThumbnails(prev => ({ ...prev, [file.id]: data.url }));
+          // For videos, extract the first frame
+          if (file.tipoMime.startsWith("video/")) {
+            extractVideoFrame(data.url, file.id);
+          } else {
+            setThumbnails(prev => ({ ...prev, [file.id]: data.url }));
+          }
         }
       } catch (err) {
         console.error("Error loading thumbnail:", err);
@@ -84,7 +122,7 @@ export default function PublicFolderPage() {
     if (thumbnailQueueRef.current.length > 0) {
       setTimeout(processNextThumbnail, 100);
     }
-  }, [thumbnails]);
+  }, [thumbnails, extractVideoFrame]);
 
   const fetchFolderData = async () => {
     setLoading(true);
@@ -333,43 +371,26 @@ export default function PublicFolderPage() {
                               src={thumbnail}
                               muted
                               playsInline
-                              preload="metadata"
+                              preload="auto"
                               crossOrigin="anonymous"
                               className="w-full h-full object-cover bg-slate-900"
+                              style={{
+                                pointerEvents: 'none',
+                              }}
                               onLoadedMetadata={(e) => {
                                 const video = e.currentTarget;
-                                setTimeout(() => {
-                                  try {
-                                    video.currentTime = Math.min(0.5, video.duration * 0.01);
-                                  } catch (e) {
-                                    // Ignore errors on mobile
-                                  }
-                                }, 100);
+                                // Coloca na primeira frame
+                                video.currentTime = 0;
+                                video.pause();
                               }}
-                              onLoadedData={(e) => {
+                              onSeeked={(e) => {
                                 const video = e.currentTarget;
-                                try {
-                                  video.pause();
-                                } catch (e) {
-                                  // Ignore errors
-                                }
-                              }}
-                              onCanPlay={(e) => {
-                                const video = e.currentTarget;
-                                try {
-                                  video.pause();
-                                } catch (e) {
-                                  // Ignore errors
-                                }
-                              }}
-                              onError={() => {
-                                // Video failed to load - will show fallback
-                                console.debug("Video load error for", file.nome);
+                                video.pause();
                               }}
                             />
                             {/* Play icon overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-black/20 to-black/40 pointer-events-none">
-                              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                              <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/20">
                                 <Play className="w-8 h-8 text-white fill-white ml-1" />
                               </div>
                             </div>
