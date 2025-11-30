@@ -1132,7 +1132,11 @@ export default function Dashboard() {
     return '📎';
   };
 
-  const uploadSingleFile = async (file: globalThis.File, folderId: string | null): Promise<boolean> => {
+  const uploadSingleFile = async (file: globalThis.File, folderId: string | null): Promise<"success" | "failed" | "cancelled"> => {
+    if (uploadCancelledRef.current) {
+      return "cancelled";
+    }
+    
     try {
       const encryptionKey = await getActiveEncryptionKey();
       
@@ -1146,6 +1150,10 @@ export default function Dashboard() {
       } else {
         setCurrentUploadFile(`A encriptar ${file.name}...`);
         
+        if (uploadCancelledRef.current) {
+          return "cancelled";
+        }
+        
         const encrypted = await encryptFile(file, encryptionKey);
         fileToUpload = new Blob([encrypted.encryptedBuffer], { type: 'application/octet-stream' });
         originalSize = encrypted.originalSize;
@@ -1154,7 +1162,10 @@ export default function Dashboard() {
         setCurrentUploadFile(`A enviar ${file.name}...`);
       }
       
-      // Initialize speed tracking
+      if (uploadCancelledRef.current) {
+        return "cancelled";
+      }
+      
       uploadStartTimeRef.current = Date.now();
       lastProgressRef.current = { time: Date.now(), loaded: 0 };
       setCurrentFileSize(fileToUpload.size);
@@ -1163,6 +1174,8 @@ export default function Dashboard() {
       
       return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
+        setCurrentXhr(xhr);
+        
         const formData = new FormData();
         formData.append("file", fileToUpload, file.name);
         formData.append("originalSize", originalSize.toString());
@@ -1173,24 +1186,27 @@ export default function Dashboard() {
         }
         
         xhr.upload.onprogress = (event) => {
+          if (uploadCancelledRef.current) {
+            xhr.abort();
+            return;
+          }
+          
           if (event.lengthComputable) {
             const now = Date.now();
             const percentComplete = (event.loaded / event.total) * 100;
             setUploadProgress(percentComplete);
             
-            // Calculate speed (using moving average for smoother display)
-            const timeDiff = (now - lastProgressRef.current.time) / 1000; // in seconds
-            if (timeDiff >= 0.5) { // Update speed every 500ms for smoother display
+            const timeDiff = (now - lastProgressRef.current.time) / 1000;
+            if (timeDiff >= 0.5) {
               const bytesDiff = event.loaded - lastProgressRef.current.loaded;
-              const speedBps = bytesDiff / timeDiff; // bytes per second
+              const speedBps = bytesDiff / timeDiff;
               
               if (speedBps > 0) {
                 setUploadSpeed(formatBytes(speedBps) + '/s');
                 
-                // Calculate time remaining
                 const bytesRemaining = event.total - event.loaded;
                 const secondsRemaining = bytesRemaining / speedBps;
-                if (secondsRemaining > 0 && secondsRemaining < 86400) { // Less than 24 hours
+                if (secondsRemaining > 0 && secondsRemaining < 86400) {
                   setUploadTimeRemaining(formatTime(secondsRemaining));
                 }
               }
@@ -1201,13 +1217,19 @@ export default function Dashboard() {
         };
         
         xhr.onload = () => {
+          setCurrentXhr(null);
+          if (uploadCancelledRef.current) {
+            resolve("cancelled");
+            return;
+          }
+          
           if (xhr.status >= 200 && xhr.status < 300) {
             if (wasEncrypted) {
               toast.success(`${file.name} enviado com sucesso (encriptado)`);
             } else {
               toast.success(`${file.name} enviado com sucesso`);
             }
-            resolve(true);
+            resolve("success");
           } else {
             try {
               const error = JSON.parse(xhr.responseText);
@@ -1215,49 +1237,82 @@ export default function Dashboard() {
             } catch {
               toast.error(`Erro ao enviar ${file.name}`);
             }
-            resolve(false);
+            resolve("failed");
           }
         };
         
+        xhr.onabort = () => {
+          setCurrentXhr(null);
+          resolve("cancelled");
+        };
+        
         xhr.onerror = () => {
+          setCurrentXhr(null);
           console.error(`XHR error uploading ${file.name}`);
           toast.error(`Erro de rede ao enviar ${file.name}. Verifique a sua conexão.`);
-          resolve(false);
+          resolve("failed");
         };
         
         xhr.ontimeout = () => {
+          setCurrentXhr(null);
           console.error(`XHR timeout uploading ${file.name} (file size: ${fileToUpload.size} bytes)`);
           toast.error(`Timeout ao enviar ${file.name} (30 min). O ficheiro é muito grande ou a conexão é muito lenta.`);
-          resolve(false);
+          resolve("failed");
         };
         
         xhr.open("POST", "/api/files/upload");
         xhr.withCredentials = true;
-        xhr.timeout = 1800000; // 30 minutes timeout for large files
+        xhr.timeout = 1800000;
         xhr.send(formData);
       });
     } catch (err) {
       console.error("Error encrypting/uploading file:", err);
       toast.error(`Erro ao encriptar ${file.name}`);
-      return false;
+      return "failed";
     }
   };
 
+  const cancelUpload = () => {
+    uploadCancelledRef.current = true;
+    setUploadCancelled(true);
+    
+    if (currentXhr) {
+      currentXhr.abort();
+    }
+    
+    toast.info(`Upload cancelado. ${uploadedFilesCount} ficheiro(s) já enviados foram guardados.`);
+  };
+
   const uploadFiles = async (filesToUpload: globalThis.File[]) => {
+    uploadCancelledRef.current = false;
+    setUploadCancelled(false);
+    setUploadedFilesCount(0);
     setIsUploading(true);
     setUploadProgress(0);
     setTotalUploadFiles(filesToUpload.length);
     
-    let hasSuccess = false;
+    let successCount = 0;
+    let wasCancelled = false;
     
     for (let i = 0; i < filesToUpload.length; i++) {
+      if (uploadCancelledRef.current) {
+        wasCancelled = true;
+        break;
+      }
+      
       const file = filesToUpload[i];
       setUploadFileIndex(i + 1);
       setCurrentUploadFile(file.name);
       setUploadProgress(0);
-      const success = await uploadSingleFile(file, currentFolderId);
-      if (success) {
-        hasSuccess = true;
+      
+      const result = await uploadSingleFile(file, currentFolderId);
+      
+      if (result === "success") {
+        successCount++;
+        setUploadedFilesCount(successCount);
+      } else if (result === "cancelled") {
+        wasCancelled = true;
+        break;
       }
     }
     
@@ -1269,6 +1324,9 @@ export default function Dashboard() {
     setUploadSpeed("");
     setUploadTimeRemaining("");
     setCurrentFileSize(0);
+    setCurrentXhr(null);
+    setUploadCancelled(false);
+    uploadCancelledRef.current = false;
     setShowUploadModal(false);
     setDragOver(false);
     
@@ -1276,9 +1334,13 @@ export default function Dashboard() {
       fileInputRef.current.value = "";
     }
     
-    if (hasSuccess) {
+    if (successCount > 0) {
       await fetchContent();
       await refreshUser();
+      
+      if (wasCancelled) {
+        toast.success(`${successCount} ficheiro(s) enviado(s) com sucesso antes do cancelamento.`);
+      }
     }
   };
 
