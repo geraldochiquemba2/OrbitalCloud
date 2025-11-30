@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { apiFetch } from "@/lib/api";
 import { motion } from "framer-motion";
 import adminBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -163,8 +164,8 @@ export default function AdminPage() {
     setLoadingData(true);
     try {
       const [usersRes, requestsRes] = await Promise.all([
-        fetch("/api/admin/users", { credentials: "include" }),
-        fetch("/api/admin/upgrade-requests", { credentials: "include" }),
+        apiFetch("/api/admin/users"),
+        apiFetch("/api/admin/upgrade-requests"),
       ]);
       
       if (usersRes.ok) {
@@ -187,10 +188,9 @@ export default function AdminPage() {
 
   const handleAdminToggle = async (userId: string, isAdmin: boolean) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}/admin`, {
+      const response = await apiFetch(`/api/admin/users/${userId}/admin`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ isAdmin }),
       });
 
@@ -212,10 +212,9 @@ export default function AdminPage() {
   const handleApproveRequest = async (requestId: string) => {
     setProcessingRequest(requestId);
     try {
-      const response = await fetch(`/api/admin/upgrade-requests/${requestId}`, {
+      const response = await apiFetch(`/api/admin/upgrade-requests/${requestId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ status: "approved" }),
       });
 
@@ -238,10 +237,9 @@ export default function AdminPage() {
     
     setProcessingRequest(rejectingRequest.id);
     try {
-      const response = await fetch(`/api/admin/upgrade-requests/${rejectingRequest.id}`, {
+      const response = await apiFetch(`/api/admin/upgrade-requests/${rejectingRequest.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ status: "rejected", adminNote: rejectNote }),
       });
 

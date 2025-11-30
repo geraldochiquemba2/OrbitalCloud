@@ -26,6 +26,7 @@ import {
   importKey,
   exportKey
 } from "@/lib/encryption";
+import { apiFetch } from "@/lib/api";
 
 interface FileItem {
   id: string;
@@ -310,7 +311,7 @@ export default function Dashboard() {
 
   const fetchUpgradeRequests = async () => {
     try {
-      const response = await fetch("/api/my-upgrade-requests", { credentials: "include" });
+      const response = await apiFetch("/api/my-upgrade-requests");
       if (response.ok) {
         const data = await response.json();
         setUpgradeRequests(data);
@@ -322,7 +323,7 @@ export default function Dashboard() {
 
   const fetchPendingInvitations = async () => {
     try {
-      const response = await fetch("/api/invitations/pending", { credentials: "include" });
+      const response = await apiFetch("/api/invitations/pending");
       if (response.ok) {
         const data = await response.json();
         setPendingInvitations(data);
@@ -335,7 +336,7 @@ export default function Dashboard() {
   const fetchSharedContent = async () => {
     try {
       if (currentSharedFolderId) {
-        const response = await fetch(`/api/shared/folders/${currentSharedFolderId}/content`, { credentials: "include" });
+        const response = await apiFetch(`/api/shared/folders/${currentSharedFolderId}/content`);
         if (response.ok) {
           const data = await response.json();
           setSharedFolderFiles(data.files);
@@ -343,8 +344,8 @@ export default function Dashboard() {
         }
       } else {
         const [filesRes, foldersRes] = await Promise.all([
-          fetch("/api/shared/files", { credentials: "include" }),
-          fetch("/api/shared/folders", { credentials: "include" })
+          apiFetch("/api/shared/files"),
+          apiFetch("/api/shared/folders")
         ]);
         
         if (filesRes.ok) {
@@ -363,9 +364,8 @@ export default function Dashboard() {
 
   const acceptInvitation = async (invitationId: string) => {
     try {
-      const response = await fetch(`/api/invitations/${invitationId}/accept`, {
+      const response = await apiFetch(`/api/invitations/${invitationId}/accept`, {
         method: "POST",
-        credentials: "include",
       });
       
       if (response.ok) {
@@ -386,9 +386,8 @@ export default function Dashboard() {
 
   const declineInvitation = async (invitationId: string) => {
     try {
-      const response = await fetch(`/api/invitations/${invitationId}/decline`, {
+      const response = await apiFetch(`/api/invitations/${invitationId}/decline`, {
         method: "POST",
-        credentials: "include",
       });
       
       if (response.ok) {
@@ -425,9 +424,8 @@ export default function Dashboard() {
         }
       }
 
-      const response = await fetch("/api/invitations", {
+      const response = await apiFetch("/api/invitations", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           resourceType: inviteResourceType,
@@ -458,7 +456,7 @@ export default function Dashboard() {
   const fetchResourceInvitations = async (type: "file" | "folder", id: string) => {
     setResourceInvitationsLoading(true);
     try {
-      const response = await fetch(`/api/invitations/resource/${type}/${id}`, { credentials: "include" });
+      const response = await apiFetch(`/api/invitations/resource/${type}/${id}`);
       if (response.ok) {
         const invitations = await response.json();
         setResourceInvitations(invitations);
@@ -473,9 +471,8 @@ export default function Dashboard() {
 
   const cancelInvitation = async (invitationId: string) => {
     try {
-      const response = await fetch(`/api/invitations/${invitationId}`, {
+      const response = await apiFetch(`/api/invitations/${invitationId}`, {
         method: "DELETE",
-        credentials: "include",
       });
       
       if (response.ok) {
@@ -498,9 +495,8 @@ export default function Dashboard() {
 
   const updateInvitationRole = async (invitationId: string, newRole: string) => {
     try {
-      const response = await fetch(`/api/invitations/${invitationId}/role`, {
+      const response = await apiFetch(`/api/invitations/${invitationId}/role`, {
         method: "PATCH",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
       });
@@ -537,7 +533,7 @@ export default function Dashboard() {
     try {
       setLoading(true);
       if (viewMode === "trash") {
-        const response = await fetch("/api/files/trash", { credentials: "include" });
+        const response = await apiFetch("/api/files/trash");
         if (response.ok) {
           const data = await response.json();
           setFiles(data);
@@ -547,8 +543,8 @@ export default function Dashboard() {
         await fetchSharedContent();
       } else {
         const [filesRes, foldersRes] = await Promise.all([
-          fetch(`/api/files${currentFolderId ? `?folderId=${currentFolderId}` : ""}`, { credentials: "include" }),
-          fetch(`/api/folders${currentFolderId ? `?parentId=${currentFolderId}` : ""}`, { credentials: "include" })
+          apiFetch(`/api/files${currentFolderId ? `?folderId=${currentFolderId}` : ""}`),
+          apiFetch(`/api/folders${currentFolderId ? `?parentId=${currentFolderId}` : ""}`)
         ]);
         
         if (filesRes.ok && foldersRes.ok) {
@@ -568,7 +564,7 @@ export default function Dashboard() {
 
   const fetchAllFolders = async () => {
     try {
-      const response = await fetch("/api/folders", { credentials: "include" });
+      const response = await apiFetch("/api/folders");
       if (response.ok) {
         const data = await response.json();
         setAllFolders(data);
@@ -669,7 +665,7 @@ export default function Dashboard() {
     setLoadingThumbnails(prev => new Set(prev).add(fileId));
     
     try {
-      const metaResponse = await fetch(`/api/files/${fileId}/download-data`, { credentials: "include" });
+      const metaResponse = await apiFetch(`/api/files/${fileId}/download-data`);
       if (!metaResponse.ok) return;
       
       const meta = await metaResponse.json();
@@ -687,7 +683,7 @@ export default function Dashboard() {
       }
       
       if (meta.isEncrypted && encryptionKey) {
-        const fileResponse = await fetch(`/api/files/${fileId}/content`, { credentials: "include" });
+        const fileResponse = await apiFetch(`/api/files/${fileId}/content`);
         if (!fileResponse.ok) return;
         
         const encryptedBuffer = await fileResponse.arrayBuffer();
@@ -799,7 +795,7 @@ export default function Dashboard() {
     setPreviewUrl(null);
     
     try {
-      const metaResponse = await fetch(`/api/files/${file.id}/download-data`, { credentials: "include" });
+      const metaResponse = await apiFetch(`/api/files/${file.id}/download-data`);
       if (!metaResponse.ok) {
         throw new Error("Could not fetch file data");
       }
@@ -822,7 +818,7 @@ export default function Dashboard() {
       }
       
       if (meta.isEncrypted && encryptionKey) {
-        const fileResponse = await fetch(`/api/files/${file.id}/content`, { credentials: "include" });
+        const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
         if (!fileResponse.ok) {
           throw new Error("Could not fetch encrypted file");
         }
@@ -874,7 +870,7 @@ export default function Dashboard() {
     
     // Folder not found in current context - try to fetch it
     try {
-      const response = await fetch(`/api/folders`, { credentials: "include" });
+      const response = await apiFetch(`/api/folders`);
       if (response.ok) {
         const allFoldersData: FolderItem[] = await response.json();
         const targetFolder = allFoldersData.find(f => f.id === folderId);
@@ -907,7 +903,7 @@ export default function Dashboard() {
       return;
     }
     try {
-      const response = await fetch(`/api/files/search?q=${encodeURIComponent(searchQuery)}`, { credentials: "include" });
+      const response = await apiFetch(`/api/files/search?q=${encodeURIComponent(searchQuery)}`);
       if (response.ok) {
         const data = await response.json();
         setSearchResults(data);
@@ -965,14 +961,11 @@ export default function Dashboard() {
     
     setChangePasswordLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("/api/auth/change-password", {
+      const response = await apiFetch("/api/auth/change-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
-        credentials: "include",
         body: JSON.stringify({
           currentPassword,
           newPassword,
@@ -1188,9 +1181,8 @@ export default function Dashboard() {
     if (!newFolderName.trim()) return;
     
     try {
-      const response = await fetch("/api/folders", {
+      const response = await apiFetch("/api/folders", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nome: newFolderName,
@@ -1215,9 +1207,8 @@ export default function Dashboard() {
 
   const deleteFolder = async (folderId: string) => {
     try {
-      const response = await fetch(`/api/folders/${folderId}`, {
+      const response = await apiFetch(`/api/folders/${folderId}`, {
         method: "DELETE",
-        credentials: "include"
       });
       
       if (response.ok) {
@@ -1245,9 +1236,8 @@ export default function Dashboard() {
     
     try {
       console.log("Moving file to trash:", fileToDelete.id);
-      const response = await fetch(`/api/files/${fileToDelete.id}`, {
+      const response = await apiFetch(`/api/files/${fileToDelete.id}`, {
         method: "DELETE",
-        credentials: "include"
       });
       
       console.log("Delete response status:", response.status);
@@ -1277,9 +1267,8 @@ export default function Dashboard() {
     
     try {
       console.log("Renaming file:", selectedFile.id, "to:", newFileName);
-      const response = await fetch(`/api/files/${selectedFile.id}/rename`, {
+      const response = await apiFetch(`/api/files/${selectedFile.id}/rename`, {
         method: "PATCH",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nome: newFileName })
       });
@@ -1311,9 +1300,8 @@ export default function Dashboard() {
     
     try {
       console.log("Moving file:", selectedFile.id, "to folder:", targetFolderId);
-      const response = await fetch(`/api/files/${selectedFile.id}/move`, {
+      const response = await apiFetch(`/api/files/${selectedFile.id}/move`, {
         method: "PATCH",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folderId: targetFolderId })
       });
@@ -1340,9 +1328,7 @@ export default function Dashboard() {
     try {
       toast.info("A preparar download...");
       
-      const response = await fetch(`/api/files/${file.id}/download-data`, {
-        credentials: "include"
-      });
+      const response = await apiFetch(`/api/files/${file.id}/download-data`);
       
       if (!response.ok) {
         throw new Error("Erro ao buscar ficheiro");
@@ -1372,7 +1358,7 @@ export default function Dashboard() {
           throw new Error("No encryption key available");
         }
         
-        const fileResponse = await fetch(`/api/files/${file.id}/content`, { credentials: "include" });
+        const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
         if (!fileResponse.ok) {
           throw new Error("Erro ao descarregar ficheiro");
         }
@@ -1382,7 +1368,7 @@ export default function Dashboard() {
         const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
         fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
       } else {
-        const fileResponse = await fetch(data.downloadUrl);
+        const fileResponse = await apiFetch(data.downloadUrl);
         if (!fileResponse.ok) {
           throw new Error("Erro ao descarregar ficheiro");
         }
@@ -1417,7 +1403,7 @@ export default function Dashboard() {
   const fetchFileShares = async (fileId: string) => {
     setSharesLoading(true);
     try {
-      const response = await fetch(`/api/files/${fileId}/shares`, { credentials: "include" });
+      const response = await apiFetch(`/api/files/${fileId}/shares`);
       if (response.ok) {
         const shares = await response.json();
         setFileShares(shares);
@@ -1434,9 +1420,8 @@ export default function Dashboard() {
 
   const shareFile = async (file: FileItem) => {
     try {
-      const response = await fetch("/api/shares", {
+      const response = await apiFetch("/api/shares", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fileId: file.id })
       });
@@ -1481,9 +1466,8 @@ export default function Dashboard() {
         }
       }
       
-      const response = await fetch("/api/shares/send-email", {
+      const response = await apiFetch("/api/shares/send-email", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           email: shareEmail.trim(),
@@ -1514,9 +1498,8 @@ export default function Dashboard() {
   const removeFileShare = async (shareId: string) => {
     if (!selectedFile) return;
     try {
-      const response = await fetch(`/api/files/${selectedFile.id}/shares/${shareId}`, {
+      const response = await apiFetch(`/api/files/${selectedFile.id}/shares/${shareId}`, {
         method: "DELETE",
-        credentials: "include"
       });
       
       if (response.ok) {
@@ -1533,9 +1516,8 @@ export default function Dashboard() {
 
   const removeFolderPermission = async (folderId: string) => {
     try {
-      const response = await fetch(`/api/folders/${folderId}/shares`, {
+      const response = await apiFetch(`/api/folders/${folderId}/shares`, {
         method: "DELETE",
-        credentials: "include"
       });
       
       if (response.ok) {
@@ -1553,9 +1535,8 @@ export default function Dashboard() {
 
   const removeFromSharedFiles = async (fileId: string) => {
     try {
-      const response = await fetch(`/api/shared/files/${fileId}`, {
+      const response = await apiFetch(`/api/shared/files/${fileId}`, {
         method: "DELETE",
-        credentials: "include"
       });
       
       if (response.ok) {
@@ -1576,9 +1557,8 @@ export default function Dashboard() {
   const cloneFile = async (file: FileItem) => {
     try {
       toast.info("A clonar ficheiro...");
-      const response = await fetch(`/api/shared/files/${file.id}/clone`, {
+      const response = await apiFetch(`/api/shared/files/${file.id}/clone`, {
         method: "POST",
-        credentials: "include"
       });
       
       if (response.ok) {
@@ -1600,9 +1580,8 @@ export default function Dashboard() {
 
   const removeFromSharedFolders = async (folderId: string) => {
     try {
-      const response = await fetch(`/api/shared/folders/${folderId}`, {
+      const response = await apiFetch(`/api/shared/folders/${folderId}`, {
         method: "DELETE",
-        credentials: "include"
       });
       
       if (response.ok) {
@@ -1623,9 +1602,8 @@ export default function Dashboard() {
   // Trash handlers
   const restoreFile = async (fileId: string) => {
     try {
-      const response = await fetch(`/api/files/${fileId}/restore`, {
+      const response = await apiFetch(`/api/files/${fileId}/restore`, {
         method: "POST",
-        credentials: "include"
       });
       
       if (response.ok) {
@@ -1644,9 +1622,8 @@ export default function Dashboard() {
 
   const permanentlyDeleteFile = async (fileId: string) => {
     try {
-      const response = await fetch(`/api/files/${fileId}/permanent`, {
+      const response = await apiFetch(`/api/files/${fileId}/permanent`, {
         method: "DELETE",
-        credentials: "include"
       });
       
       if (response.ok) {
@@ -3956,9 +3933,8 @@ export default function Dashboard() {
                       formData.append("requestedExtraGB", requestedExtraGB.toString());
                       formData.append("totalPrice", (requestedExtraGB * PRICE_PER_GB).toString());
                       
-                      const response = await fetch("/api/upgrade-requests", {
+                      const response = await apiFetch("/api/upgrade-requests", {
                         method: "POST",
-                        credentials: "include",
                         body: formData
                       });
                       

@@ -8,6 +8,8 @@ import {
   isEncryptionSupported
 } from "@/lib/encryption";
 
+const AUTH_TOKEN_KEY = 'angocloud_auth_token';
+
 interface User {
   id: string;
   email: string;
@@ -33,9 +35,23 @@ interface AuthContextType {
   error: string | null;
   hasEncryptionKey: boolean;
   needsEncryptionSetup: boolean;
+  getAuthHeaders: () => HeadersInit;
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function getStoredToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+function storeToken(token: string): void {
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+function clearToken(): void {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -43,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasEncryptionKey, setHasEncryptionKey] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -52,19 +69,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setHasEncryptionKey(!!getStoredEncryptionKey());
   }, [isLoggedIn]);
 
+  const getAuthHeaders = (includeContentType: boolean = true): HeadersInit => {
+    const headers: Record<string, string> = {};
+    
+    if (includeContentType) {
+      headers["Content-Type"] = "application/json";
+    }
+    
+    const currentToken = token || getStoredToken();
+    if (currentToken) {
+      headers["Authorization"] = `Bearer ${currentToken}`;
+    }
+    return headers;
+  };
+
+  const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const currentToken = token || getStoredToken();
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string> || {}),
+    };
+    
+    if (currentToken) {
+      headers["Authorization"] = `Bearer ${currentToken}`;
+    }
+    
+    return fetch(url, {
+      ...options,
+      headers,
+      credentials: "include",
+    });
+  };
+
   const checkAuth = async () => {
     try {
+      const storedToken = getStoredToken();
+      
+      const headers: HeadersInit = {};
+      if (storedToken) {
+        headers["Authorization"] = `Bearer ${storedToken}`;
+      }
+      
       const response = await fetch("/api/auth/me", {
         credentials: "include",
+        headers,
       });
 
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
         setIsLoggedIn(true);
+        if (storedToken) {
+          setToken(storedToken);
+        }
         
         const storedKey = getStoredEncryptionKey();
         setHasEncryptionKey(!!storedKey);
+      } else {
+        clearToken();
+        setToken(null);
       }
     } catch (err) {
       console.error("Error checking auth:", err);
@@ -102,12 +164,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password, nome, encryptionSalt }),
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.message || "Erro ao criar conta");
       }
 
-      const userData = await response.json();
+      const userData = data.user || data;
+      const newToken = data.token;
+      
+      if (newToken) {
+        storeToken(newToken);
+        setToken(newToken);
+      }
+      
       setUser(userData);
       setIsLoggedIn(true);
       
@@ -132,12 +202,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.message || "Email ou senha incorretos");
       }
 
-      const userData = await response.json();
+      const userData = data.user || data;
+      const newToken = data.token;
+      
+      if (newToken) {
+        storeToken(newToken);
+        setToken(newToken);
+      }
+      
       setUser(userData);
       setIsLoggedIn(true);
       
@@ -156,11 +234,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      const currentToken = token || getStoredToken();
+      const headers: HeadersInit = {};
+      if (currentToken) {
+        headers["Authorization"] = `Bearer ${currentToken}`;
+      }
+      
       await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
+        headers,
       });
       
+      clearToken();
+      setToken(null);
       clearEncryptionKey();
       setHasEncryptionKey(false);
       setUser(null);
@@ -172,8 +259,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
+      const currentToken = token || getStoredToken();
+      const headers: HeadersInit = {};
+      if (currentToken) {
+        headers["Authorization"] = `Bearer ${currentToken}`;
+      }
+      
       const response = await fetch("/api/auth/me", {
         credentials: "include",
+        headers,
       });
 
       if (response.ok) {
@@ -196,10 +290,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const encryptionSalt = generateSalt();
+      const currentToken = token || getStoredToken();
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (currentToken) {
+        headers["Authorization"] = `Bearer ${currentToken}`;
+      }
       
       const response = await fetch("/api/auth/enable-encryption", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify({ encryptionSalt, password }),
       });
@@ -231,7 +330,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading, 
       error,
       hasEncryptionKey,
-      needsEncryptionSetup: !!needsEncryptionSetup
+      needsEncryptionSetup: !!needsEncryptionSetup,
+      getAuthHeaders,
+      authFetch,
     }}>
       {children}
     </AuthContext.Provider>
