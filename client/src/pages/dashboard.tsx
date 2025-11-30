@@ -5,7 +5,7 @@ import {
   File, Image, Video, Music, FileCode, FileArchive, Lock,
   Shield, Loader2, AlertTriangle, UserPlus, Mail, Users,
   CheckCircle, XCircle, Clock, FolderOpen, Settings, UserX, Key,
-  Phone,
+  Phone, Globe, LinkIcon, Eye,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -48,6 +48,9 @@ interface FolderItem {
   nome: string;
   parentId: string | null;
   createdAt: string;
+  isPublic?: boolean;
+  publicSlug?: string | null;
+  publishedAt?: string | null;
 }
 
 interface ShareItem {
@@ -191,6 +194,13 @@ export default function Dashboard() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
   const proofInputRef = useRef<HTMLInputElement>(null);
+  
+  // Public folder modal
+  const [showPublicFolderModal, setShowPublicFolderModal] = useState(false);
+  const [publicFolderTarget, setPublicFolderTarget] = useState<FolderItem | null>(null);
+  const [publicFolderLoading, setPublicFolderLoading] = useState(false);
+  const [publicFolderLink, setPublicFolderLink] = useState<string | null>(null);
+  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   
   // Upgrade requests tracking
   const [upgradeRequests, setUpgradeRequests] = useState<Array<{id: string; status: string; requestedPlan: string; requestedExtraGB?: number; totalPrice?: number; adminNote?: string; currentPlan: string}>>([]);
@@ -534,6 +544,110 @@ export default function Dashboard() {
     }
     fetchResourceInvitations(type, id);
     setShowInviteModal(true);
+  };
+
+  // Public folder handlers
+  const openPublicFolderModal = (folder: FolderItem) => {
+    setPublicFolderTarget(folder);
+    setPublicLinkCopied(false);
+    if (folder.isPublic && folder.publicSlug) {
+      setPublicFolderLink(`${window.location.origin}/p/${folder.publicSlug}`);
+    } else {
+      setPublicFolderLink(null);
+    }
+    setShowPublicFolderModal(true);
+  };
+
+  const makeFolderPublic = async () => {
+    if (!publicFolderTarget) return;
+    
+    setPublicFolderLoading(true);
+    try {
+      const response = await apiFetch(`/api/folders/${publicFolderTarget.id}/make-public`, {
+        method: "POST",
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const fullLink = `${window.location.origin}/p/${data.slug}`;
+        setPublicFolderLink(fullLink);
+        setPublicFolderTarget({ ...publicFolderTarget, isPublic: true, publicSlug: data.slug });
+        toast.success("Pasta tornada pública com sucesso!");
+        fetchContent();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao tornar pasta pública");
+      }
+    } catch (err) {
+      console.error("Error making folder public:", err);
+      toast.error("Erro ao tornar pasta pública");
+    } finally {
+      setPublicFolderLoading(false);
+    }
+  };
+
+  const makeFolderPrivate = async () => {
+    if (!publicFolderTarget) return;
+    
+    setPublicFolderLoading(true);
+    try {
+      const response = await apiFetch(`/api/folders/${publicFolderTarget.id}/make-private`, {
+        method: "POST",
+      });
+      
+      if (response.ok) {
+        setPublicFolderLink(null);
+        setPublicFolderTarget({ ...publicFolderTarget, isPublic: false, publicSlug: null });
+        toast.success("Pasta tornada privada");
+        setShowPublicFolderModal(false);
+        fetchContent();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao tornar pasta privada");
+      }
+    } catch (err) {
+      console.error("Error making folder private:", err);
+      toast.error("Erro ao tornar pasta privada");
+    } finally {
+      setPublicFolderLoading(false);
+    }
+  };
+
+  const regeneratePublicSlug = async () => {
+    if (!publicFolderTarget) return;
+    
+    setPublicFolderLoading(true);
+    try {
+      const response = await apiFetch(`/api/folders/${publicFolderTarget.id}/regenerate-slug`, {
+        method: "POST",
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const fullLink = `${window.location.origin}/p/${data.slug}`;
+        setPublicFolderLink(fullLink);
+        setPublicFolderTarget({ ...publicFolderTarget, publicSlug: data.slug });
+        toast.success("Link regenerado com sucesso!");
+        fetchContent();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao regenerar link");
+      }
+    } catch (err) {
+      console.error("Error regenerating slug:", err);
+      toast.error("Erro ao regenerar link");
+    } finally {
+      setPublicFolderLoading(false);
+    }
+  };
+
+  const copyPublicLink = () => {
+    if (publicFolderLink) {
+      navigator.clipboard.writeText(publicFolderLink);
+      setPublicLinkCopied(true);
+      toast.success("Link copiado!");
+      setTimeout(() => setPublicLinkCopied(false), 2000);
+    }
   };
 
   const fetchContent = async () => {
@@ -2287,9 +2401,25 @@ export default function Dashboard() {
                           data-testid={`folder-item-${folder.id}`}
                           style={{ transition: 'background-color 0.15s' }}
                         >
-                          <Folder className="w-10 h-10 text-yellow-400 mb-2" />
+                          <div className="relative">
+                            <Folder className="w-10 h-10 text-yellow-400 mb-2" />
+                            {folder.isPublic && (
+                              <Globe className="absolute -top-1 -right-1 w-4 h-4 text-green-400" />
+                            )}
+                          </div>
                           <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
+                          {folder.isPublic && (
+                            <span className="text-[10px] text-green-400/70">Pública</span>
+                          )}
                           <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openPublicFolderModal(folder); }}
+                              className={`p-1 rounded-lg ${folder.isPublic ? 'bg-green-500/20 text-green-400 hover:bg-green-500/40' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/40'}`}
+                              title={folder.isPublic ? "Gerir pasta pública" : "Tornar pública"}
+                              data-testid={`button-public-folder-${folder.id}`}
+                            >
+                              <Globe className="w-3 h-3" />
+                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); openInviteModal("folder", folder.id, folder.nome); }}
                               className="p-1 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/40"
@@ -3751,6 +3881,166 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Public Folder Modal */}
+      <AnimatePresence>
+        {showPublicFolderModal && publicFolderTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowPublicFolderModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${publicFolderTarget.isPublic ? 'bg-green-500/20' : 'bg-purple-500/20'}`}>
+                    <Globe className={`w-5 h-5 ${publicFolderTarget.isPublic ? 'text-green-400' : 'text-purple-400'}`} />
+                  </div>
+                  <h2 className="text-xl font-bold text-white">
+                    {publicFolderTarget.isPublic ? 'Pasta Pública' : 'Tornar Pasta Pública'}
+                  </h2>
+                </div>
+                <button onClick={() => setShowPublicFolderModal(false)} className="text-white/50 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                <p className="text-white/50 text-sm mb-1">Pasta:</p>
+                <p className="text-white font-medium flex items-center gap-2">
+                  <Folder className="w-4 h-4 text-yellow-400" />
+                  {publicFolderTarget.nome}
+                </p>
+              </div>
+
+              {!publicFolderTarget.isPublic ? (
+                <>
+                  <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <h3 className="text-purple-300 font-medium mb-2 flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
+                      O que acontece ao tornar pública?
+                    </h3>
+                    <ul className="text-white/70 text-sm space-y-1.5">
+                      <li className="flex items-start gap-2">
+                        <Eye className="w-3 h-3 mt-1 text-purple-400 flex-shrink-0" />
+                        Qualquer pessoa com o link pode ver e baixar os ficheiros
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <LinkIcon className="w-3 h-3 mt-1 text-purple-400 flex-shrink-0" />
+                        Você recebe um link único para partilhar
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Lock className="w-3 h-3 mt-1 text-purple-400 flex-shrink-0" />
+                        Ficheiros encriptados NÃO são incluídos
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowPublicFolderModal(false)}
+                      className="flex-1 py-2.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors font-medium"
+                      data-testid="button-cancel-public-folder"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={makeFolderPublic}
+                      disabled={publicFolderLoading}
+                      className="flex-1 py-2.5 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      data-testid="button-confirm-public-folder"
+                    >
+                      {publicFolderLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Globe className="w-4 h-4" />
+                      )}
+                      Tornar Pública
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-white/70 text-sm mb-2">Link público</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={publicFolderLink || ''}
+                        readOnly
+                        className="flex-1 px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white text-sm font-mono"
+                        data-testid="input-public-folder-link"
+                      />
+                      <button
+                        onClick={copyPublicLink}
+                        className={`px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2 ${
+                          publicLinkCopied 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-primary text-white hover:bg-primary/80'
+                        }`}
+                        data-testid="button-copy-public-link"
+                      >
+                        {publicLinkCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => window.open(publicFolderLink || '', '_blank')}
+                      className="flex-1 py-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors text-sm flex items-center justify-center gap-2"
+                      data-testid="button-view-public-folder"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Ver Página
+                    </button>
+                    <button
+                      onClick={regeneratePublicSlug}
+                      disabled={publicFolderLoading}
+                      className="flex-1 py-2 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      data-testid="button-regenerate-slug"
+                    >
+                      {publicFolderLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                      Novo Link
+                    </button>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/10">
+                    <button
+                      onClick={makeFolderPrivate}
+                      disabled={publicFolderLoading}
+                      className="w-full py-2.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                      data-testid="button-make-private"
+                    >
+                      {publicFolderLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Lock className="w-4 h-4" />
+                      )}
+                      Tornar Privada
+                    </button>
+                    <p className="text-white/40 text-xs text-center mt-2">
+                      Isto irá remover o acesso público imediatamente
+                    </p>
+                  </div>
+                </>
               )}
             </motion.div>
           </motion.div>
