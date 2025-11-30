@@ -150,6 +150,7 @@ export default function Dashboard() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [fileThumbnails, setFileThumbnails] = useState<Record<string, string>>({});
   const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(new Set());
+  const [failedThumbnails, setFailedThumbnails] = useState<Set<string>>(new Set());
   
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -2921,13 +2922,16 @@ export default function Dashboard() {
                                 onClick={() => openPreview(file)}
                                 style={{ contain: 'layout paint' }}
                               >
-                                {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
+                                {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" && !failedThumbnails.has(file.id) ? (
                                   <img 
                                     src={fileThumbnails[file.id]} 
                                     alt={file.nome}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                     decoding="async"
+                                    onError={() => {
+                                      setFailedThumbnails(prev => new Set(prev).add(file.id));
+                                    }}
                                   />
                                 ) : getEffectiveMimeType(file).startsWith("video/") ? (
                                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50">
@@ -2935,6 +2939,14 @@ export default function Dashboard() {
                                       <div className="w-8 h-8 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
                                     ) : (
                                       <Video className="w-10 h-10 text-white/60" />
+                                    )}
+                                  </div>
+                                ) : getEffectiveMimeType(file).startsWith("image/") ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900/30 to-slate-900/50">
+                                    {loadingThumbnails.has(file.id) ? (
+                                      <div className="w-8 h-8 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin" />
+                                    ) : (
+                                      <Image className="w-10 h-10 text-white/60" />
                                     )}
                                   </div>
                                 ) : (
