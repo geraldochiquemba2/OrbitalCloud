@@ -120,7 +120,6 @@ export default function Dashboard() {
   const lastProgressRef = useRef<{ time: number; loaded: number }>({ time: 0, loaded: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadCancelledRef = useRef(false);
-  const [skipEncryption, setSkipEncryption] = useState(false);
   
   // Folder modal
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -1568,9 +1567,9 @@ export default function Dashboard() {
       let wasEncrypted = false;
       
       // Ficheiros são SEMPRE encriptados antes de ir para o Telegram (segurança)
-      // Exceto: pastas públicas ou se o utilizador escolher não encriptar
+      // Exceto: pastas públicas (automático)
       const isInPublicFolder = folderPath.some(f => f.isPublic);
-      const shouldSkipEncryption = skipEncryption || isInPublicFolder;
+      const shouldSkipEncryption = isInPublicFolder;
       
       if (isInPublicFolder && encryptionKey) {
         console.log(`[Upload] Skipping encryption for ${file.name} - in public folder`);
@@ -1808,7 +1807,6 @@ export default function Dashboard() {
     uploadCancelledRef.current = false;
     setShowUploadModal(false);
     setDragOver(false);
-    setSkipEncryption(false);
     
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -3307,6 +3305,14 @@ export default function Dashboard() {
                           <span className="text-white/50 text-sm">Tamanho total:</span>
                           <span className="text-white font-medium">{formatBytes(getTotalPendingSize())}</span>
                         </div>
+                        {folderPath.some(f => f.isPublic) && (
+                          <div className="mb-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                            <p className="text-amber-400 text-xs flex items-center gap-2">
+                              <Globe className="w-3 h-3" />
+                              Ficheiros serão enviados sem encriptação (pasta pública)
+                            </p>
+                          </div>
+                        )}
                         <button
                           onClick={startUpload}
                           className="w-full py-3 rounded-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-semibold transition-opacity flex items-center justify-center gap-2"
