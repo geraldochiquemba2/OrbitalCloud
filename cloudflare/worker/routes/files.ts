@@ -143,14 +143,17 @@ fileRoutes.post('/upload', async (c) => {
     
     const db = createDb(c.env.DATABASE_URL);
     
-    // Check if uploading to a public folder - encryption is not allowed
+    // Ficheiros são enviados SEM encriptação por padrão
+    // Encriptação só acontece se:
+    // 1. Cliente explicitamente pediu encriptação E
+    // 2. Pasta NÃO é pública (pastas públicas nunca aceitam ficheiros encriptados)
     let isFolderPublic = false;
     if (folderId) {
       isFolderPublic = await isFolderOrAncestorPublic(db, folderId);
     }
     
-    // For public folders, always store without encryption (silently force plaintext like Express server)
-    const isEncrypted = isFolderPublic ? false : clientSentEncrypted;
+    // Se pasta é pública, força sem encriptação. Caso contrário, respeita escolha do cliente (default: false)
+    const isEncrypted = isFolderPublic ? false : (clientSentEncrypted || false);
     
     const [currentUser] = await db.select().from(users).where(eq(users.id, user.id));
     if (!currentUser) {
