@@ -1001,19 +1001,34 @@ export default function Dashboard() {
 
   const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string, isInPublicFolder: boolean}>>([]);
   const loadingCountRef = useRef(0);
+  const generationRef = useRef(0);
   const MAX_CONCURRENT_LOADS = isMobile ? 2 : 4;
 
+  useEffect(() => {
+    thumbnailQueueRef.current = [];
+    loadingCountRef.current = 0;
+    generationRef.current++;
+  }, [currentFolderId, viewMode]);
+
   const processQueue = useCallback(async () => {
+    const currentGeneration = generationRef.current;
+    
     while (thumbnailQueueRef.current.length > 0 && loadingCountRef.current < MAX_CONCURRENT_LOADS) {
+      if (generationRef.current !== currentGeneration) return;
+      
       const item = thumbnailQueueRef.current.shift();
       if (!item) break;
       
       if (fileThumbnails[item.id]) continue;
       
       loadingCountRef.current++;
+      const loadGeneration = generationRef.current;
+      
       loadThumbnail(item.id, item.mimeType, item.isInPublicFolder).finally(() => {
-        loadingCountRef.current--;
-        processQueue();
+        if (generationRef.current === loadGeneration) {
+          loadingCountRef.current = Math.max(0, loadingCountRef.current - 1);
+          processQueue();
+        }
       });
     }
   }, [fileThumbnails, loadThumbnail]);
