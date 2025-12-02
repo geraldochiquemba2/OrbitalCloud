@@ -78,6 +78,55 @@ async function getFolderBySlugOrId(db: Database, slugOrId: string) {
   return result.length > 0 ? result[0] : null;
 }
 
+// Debug route - list all public folders and their files
+publicFolderRoutes.get('/debug', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const publicFolders = await db.select({
+      id: folders.id,
+      nome: folders.nome,
+      publicSlug: folders.publicSlug,
+      isPublic: folders.isPublic,
+    }).from(folders).where(eq(folders.isPublic, true));
+    
+    const result = [];
+    for (const folder of publicFolders) {
+      const folderFiles = await db.select({
+        id: files.id,
+        nome: files.nome,
+        isDeleted: files.isDeleted,
+        isEncrypted: files.isEncrypted,
+      }).from(files).where(eq(files.folderId, folder.id));
+      
+      const visibleFiles = folderFiles.filter(f => !f.isDeleted && !f.isEncrypted);
+      
+      result.push({
+        folder: folder.nome,
+        slug: folder.publicSlug,
+        totalFiles: folderFiles.length,
+        visibleFiles: visibleFiles.length,
+        deletedFiles: folderFiles.filter(f => f.isDeleted).length,
+        encryptedFiles: folderFiles.filter(f => f.isEncrypted).length,
+        files: folderFiles.map(f => ({
+          nome: f.nome,
+          isDeleted: f.isDeleted,
+          isEncrypted: f.isEncrypted,
+          visible: !f.isDeleted && !f.isEncrypted
+        }))
+      });
+    }
+    
+    return c.json({ 
+      message: 'Debug: Pastas públicas e seus ficheiros',
+      folders: result 
+    });
+  } catch (error) {
+    console.error('Debug error:', error);
+    return c.json({ message: 'Erro no debug', error: String(error) }, 500);
+  }
+});
+
 // Get public folder by slug or id
 publicFolderRoutes.get('/folder/:slug', async (c) => {
   try {
