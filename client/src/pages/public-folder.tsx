@@ -361,6 +361,32 @@ export default function PublicFolderPage() {
     setPreviewUrl(null);
 
     try {
+      // For videos, use stream URL directly as it's more reliable
+      if (mimeType.startsWith("video/")) {
+        if (file.isEncrypted) {
+          const encryptionKey = await getActiveEncryptionKey();
+          if (!encryptionKey) {
+            console.log("No encryption key available for preview");
+            setPreviewUrl(null);
+            setPreviewLoading(false);
+            return;
+          }
+          
+          const contentRes = await fetch(`/api/public/file/${file.id}/content`);
+          if (contentRes.ok) {
+            const encryptedBuffer = await contentRes.arrayBuffer();
+            const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+            const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
+            const blobUrl = createDownloadUrl(decryptedBlob);
+            setPreviewUrl(blobUrl);
+          }
+        } else {
+          setPreviewUrl(`/api/public/file/${file.id}/stream`);
+        }
+        setPreviewLoading(false);
+        return;
+      }
+
       const res = await fetch(`/api/public/file/${file.id}/preview`);
       if (res.ok) {
         const data = await res.json();
@@ -370,6 +396,7 @@ export default function PublicFolderPage() {
           if (!encryptionKey) {
             console.log("No encryption key available for preview");
             setPreviewUrl(null);
+            setPreviewLoading(false);
             return;
           }
           
