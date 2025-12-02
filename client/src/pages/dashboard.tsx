@@ -1093,12 +1093,18 @@ export default function Dashboard() {
         toast.error("Faça logout e login novamente para desencriptar os ficheiros");
         throw new Error("No encryption key available");
       } else {
-        // Use public endpoint for files in public folders
-        const isInPublicFolder = folderPath.some(f => f.isPublic);
-        if (isInPublicFolder) {
-          setPreviewUrl(`/api/public/file/${file.id}/stream`);
+        // Use stream endpoint for media files (more reliable)
+        const mimeType = meta.originalMimeType || file.tipoMime;
+        if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+          setPreviewUrl(`/api/files/${file.id}/stream`);
         } else {
-          setPreviewUrl(meta.previewUrl || meta.contentUrl);
+          // Use public endpoint for files in public folders
+          const isInPublicFolder = folderPath.some(f => f.isPublic);
+          if (isInPublicFolder) {
+            setPreviewUrl(`/api/public/file/${file.id}/stream`);
+          } else {
+            setPreviewUrl(meta.previewUrl || meta.contentUrl);
+          }
         }
       }
     } catch (err) {
