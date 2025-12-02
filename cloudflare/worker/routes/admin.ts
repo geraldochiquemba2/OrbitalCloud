@@ -7,8 +7,8 @@ import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, adminMiddleware, JWTPayload } from '../middleware/auth';
 import { TelegramService } from '../services/telegram';
-import { users, files, upgradeRequests, PLANS } from '../../../shared/schema';
-import { eq, desc, sql, ne } from 'drizzle-orm';
+import { users, files, folders, upgradeRequests, PLANS } from '../../../shared/schema';
+import { eq, desc, sql, ne, and, inArray } from 'drizzle-orm';
 
 interface Env {
   DATABASE_URL: string;
@@ -229,6 +229,106 @@ adminRoutes.patch('/upgrade-requests/:id', async (c) => {
   } catch (error) {
     console.error('Process upgrade request error:', error);
     return c.json({ message: 'Erro ao processar solicitação' }, 500);
+  }
+});
+
+// Helper to get all folder IDs under a public folder (including descendants)
+async function getAllPublicFolderIds(db: any): Promise<string[]> {
+  // Get all public root folders
+  const publicFolders = await db.select({ id: folders.id })
+    .from(folders)
+    .where(eq(folders.isPublic, true));
+  
+  if (publicFolders.length === 0) {
+    return [];
+  }
+  
+  const publicFolderIds = new Set<string>(publicFolders.map((f: any) => f.id));
+  
+  // Get all folders to build a parent-child map
+  const allFolders = await db.select({ id: folders.id, parentId: folders.parentId })
+    .from(folders);
+  
+  // Build a map of parentId -> children
+  const childrenMap = new Map<string, string[]>();
+  for (const folder of allFolders) {
+    if (folder.parentId) {
+      if (!childrenMap.has(folder.parentId)) {
+        childrenMap.set(folder.parentId, []);
+      }
+      childrenMap.get(folder.parentId)!.push(folder.id);
+    }
+  }
+  
+  // BFS to find all descendants of public folders
+  const queue = [...publicFolderIds];
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const children = childrenMap.get(currentId) || [];
+    for (const childId of children) {
+      if (!publicFolderIds.has(childId)) {
+        publicFolderIds.add(childId);
+        queue.push(childId);
+      }
+    }
+  }
+  
+  return Array.from(publicFolderIds);
+}
+
+// Fix encrypted files in public folders - they should not be encrypted
+adminRoutes.post('/fix-public-folder-files', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL);
+    
+    // Get all folder IDs that are public or descendants of public folders
+    const allPublicFolderIds = await getAllPublicFolderIds(db);
+    
+    if (allPublicFolderIds.length === 0) {
+      return c.json({ 
+        message: 'Nenhuma pasta pública encontrada',
+        fixed: 0 
+      });
+    }
+    
+    // Find files in public folders (including descendants) that are marked as encrypted
+    const encryptedFilesInPublic = await db.select({ 
+      id: files.id,
+      nome: files.nome,
+      folderId: files.folderId 
+    })
+      .from(files)
+      .where(and(
+        inArray(files.folderId, allPublicFolderIds),
+        eq(files.isEncrypted, true),
+        eq(files.isDeleted, false)
+      ));
+    
+    if (encryptedFilesInPublic.length === 0) {
+      return c.json({ 
+        message: 'Nenhum ficheiro encriptado em pastas públicas',
+        fixed: 0,
+        scannedFolders: allPublicFolderIds.length
+      });
+    }
+    
+    // Update files to remove encryption flag
+    const fileIds = encryptedFilesInPublic.map((f: any) => f.id);
+    await db.update(files)
+      .set({ isEncrypted: false })
+      .where(inArray(files.id, fileIds));
+    
+    console.log(`Fixed ${encryptedFilesInPublic.length} files in ${allPublicFolderIds.length} public folders`);
+    
+    return c.json({ 
+      message: `Corrigidos ${encryptedFilesInPublic.length} ficheiros em pastas públicas`,
+      fixed: encryptedFilesInPublic.length,
+      scannedFolders: allPublicFolderIds.length,
+      files: encryptedFilesInPublic.map((f: any) => ({ id: f.id, nome: f.nome }))
+    });
+  } catch (error) {
+    console.error('Fix public folder files error:', error);
+    return c.json({ message: 'Erro ao corrigir ficheiros' }, 500);
   }
 });
 

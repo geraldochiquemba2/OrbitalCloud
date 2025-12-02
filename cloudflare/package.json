@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "dev:remote": "wrangler dev --remote",
-    "build": "npm install && cd .. && npm run build && mkdir -p cloudflare/dist/public && cp -r dist/public/* cloudflare/dist/public/",
+    "build": "cd .. && npm run build && mkdir -p cloudflare/dist/public && cp -r dist/public/* cloudflare/dist/public/",
     "build:worker": "esbuild worker/index.ts --bundle --outdir=dist --format=esm --platform=browser --external:@cloudflare/workers-types",
     "deploy": "npm run build && wrangler deploy --keep-vars",
     "deploy:preview": "npm run build && wrangler versions upload",
@@ -17,10 +17,10 @@
   },
   "dependencies": {
     "hono": "^4.6.0",
-    "@neondatabase/serverless": "^0.10.4",
-    "drizzle-orm": "^0.39.1",
-    "zod": "^3.25.0",
-    "bcryptjs": "^2.4.3"
+    "bcryptjs": "^2.4.3",
+    "@neondatabase/serverless": "0.10.4",
+    "drizzle-orm": "0.39.1",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250101.0",

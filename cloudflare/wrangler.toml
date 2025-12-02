@@ -50,6 +50,15 @@ ENVIRONMENT = "production"
 [build]
 command = "npm run build"
 
+# Resolve modules from parent node_modules
+[build.upload]
+format = "modules"
+
+# Tell wrangler to look in parent node_modules too
+[[rules]]
+type = "ESModule"
+globs = ["**/*.ts"]
+
 [dev]
 port = 8787
 local_protocol = "http"

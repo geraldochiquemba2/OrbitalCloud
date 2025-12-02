@@ -10,6 +10,40 @@ import { TelegramService } from '../services/telegram';
 import { files, users, folders, fileChunks, filePermissions, folderPermissions, uploadSessions, uploadChunks } from '../../../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
+type Database = ReturnType<typeof createDb>;
+
+// Helper function to check if folder or any ancestor is public
+async function isFolderOrAncestorPublic(db: Database, folderId: string): Promise<boolean> {
+  let currentFolderId: string | null = folderId;
+  const visited = new Set<string>();
+  
+  while (currentFolderId) {
+    if (visited.has(currentFolderId)) {
+      break;
+    }
+    visited.add(currentFolderId);
+    
+    const result = await db.select({
+      id: folders.id,
+      isPublic: folders.isPublic,
+      parentId: folders.parentId,
+    }).from(folders).where(eq(folders.id, currentFolderId)).limit(1);
+    
+    if (result.length === 0) {
+      break;
+    }
+    
+    const folder = result[0];
+    if (folder.isPublic) {
+      return true;
+    }
+    
+    currentFolderId = folder.parentId;
+  }
+  
+  return false;
+}
+
 interface Env {
   DATABASE_URL: string;
   JWT_SECRET: string;
@@ -100,7 +134,7 @@ fileRoutes.post('/upload', async (c) => {
       return c.json({ message: 'Nenhum arquivo enviado' }, 400);
     }
     
-    const isEncrypted = formData.get('isEncrypted') === 'true';
+    const clientSentEncrypted = formData.get('isEncrypted') === 'true';
     const originalMimeType = formData.get('originalMimeType') as string || file.type;
     const originalSize = formData.get('originalSize') 
       ? parseInt(formData.get('originalSize') as string, 10) 
@@ -108,6 +142,15 @@ fileRoutes.post('/upload', async (c) => {
     const folderId = formData.get('folderId') as string || null;
     
     const db = createDb(c.env.DATABASE_URL);
+    
+    // Check if uploading to a public folder - encryption is not allowed
+    let isFolderPublic = false;
+    if (folderId) {
+      isFolderPublic = await isFolderOrAncestorPublic(db, folderId);
+    }
+    
+    // For public folders, always store without encryption (silently force plaintext like Express server)
+    const isEncrypted = isFolderPublic ? false : clientSentEncrypted;
     
     const [currentUser] = await db.select().from(users).where(eq(users.id, user.id));
     if (!currentUser) {
@@ -707,7 +750,7 @@ fileRoutes.post('/init-upload', async (c) => {
     const user = c.get('user') as JWTPayload;
     const body = await c.req.json();
     
-    const { fileName, fileSize, mimeType, folderId, isEncrypted, originalMimeType, originalSize } = body;
+    const { fileName, fileSize, mimeType, folderId, isEncrypted: clientSentEncrypted, originalMimeType, originalSize } = body;
     
     console.log(`📂 Init upload: fileName=${fileName}, fileSize=${fileSize}, mimeType=${mimeType}`);
     
@@ -717,6 +760,15 @@ fileRoutes.post('/init-upload', async (c) => {
     }
     
     const db = createDb(c.env.DATABASE_URL);
+    
+    // Check if uploading to a public folder - encryption is not allowed
+    let isFolderPublic = false;
+    if (folderId) {
+      isFolderPublic = await isFolderOrAncestorPublic(db, folderId);
+    }
+    
+    // For public folders, always store without encryption (silently force plaintext like Express server)
+    const isEncrypted = isFolderPublic ? false : (clientSentEncrypted || false);
     
     const [currentUser] = await db.select().from(users).where(eq(users.id, user.id));
     if (!currentUser) {
@@ -934,6 +986,16 @@ fileRoutes.post('/complete-upload', async (c) => {
     const mainChunk = chunks[0];
     console.log(`📋 Complete upload: criando registro do ficheiro...`);
     
+    // Always recompute encryption status from live folder state (handles race conditions)
+    let finalIsEncrypted = session.isEncrypted;
+    if (session.folderId) {
+      const isFolderPublic = await isFolderOrAncestorPublic(db, session.folderId);
+      if (isFolderPublic) {
+        console.log(`📋 Complete upload: pasta é pública, forçando isEncrypted=false`);
+        finalIsEncrypted = false;
+      }
+    }
+    
     const [newFile] = await db.insert(files).values({
       userId: user.id,
       uploadedByUserId: user.id,
@@ -943,7 +1005,7 @@ fileRoutes.post('/complete-upload', async (c) => {
       tipoMime: session.mimeType,
       telegramFileId: mainChunk.telegramFileId,
       telegramBotId: mainChunk.telegramBotId,
-      isEncrypted: session.isEncrypted,
+      isEncrypted: finalIsEncrypted,
       originalMimeType: session.originalMimeType,
       originalSize: session.originalSize,
       isChunked: chunks.length > 1,
