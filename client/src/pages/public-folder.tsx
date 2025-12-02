@@ -684,26 +684,28 @@ export default function PublicFolderPage() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-center p-4 min-h-[300px]">
+            <div className="flex items-center justify-center p-4 min-h-[300px] w-full">
               {previewLoading ? (
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
               ) : previewUrl ? (
                 <>
-                  {previewFile.tipoMime.startsWith("image/") && (
+                  {(previewFile.originalMimeType || previewFile.tipoMime).startsWith("image/") && (
                     <img 
                       src={previewUrl} 
                       alt={previewFile.nome}
                       className="max-w-full max-h-[70vh] object-contain"
                     />
                   )}
-                  {previewFile.tipoMime.startsWith("video/") && (
+                  {(previewFile.originalMimeType || previewFile.tipoMime).startsWith("video/") && (
                     <video 
                       src={previewUrl}
                       controls
-                      className="max-w-full max-h-[70vh]"
+                      controlsList="nodownload"
+                      className="max-w-full max-h-[70vh] w-full"
+                      playsInline
                     />
                   )}
-                  {previewFile.tipoMime.startsWith("audio/") && (
+                  {(previewFile.originalMimeType || previewFile.tipoMime).startsWith("audio/") && (
                     <audio 
                       src={previewUrl}
                       controls
