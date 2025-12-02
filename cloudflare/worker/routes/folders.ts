@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
-import { folders, folderPermissions } from '../../../shared/schema';
+import { folders, folderPermissions, files } from '../../../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
 interface Env {
@@ -173,6 +173,7 @@ folderRoutes.post('/:id/make-public', async (c) => {
     
     const slug = generateSlug();
     
+    // Tornar a pasta pública
     await db.update(folders)
       .set({ 
         isPublic: true, 
@@ -181,10 +182,19 @@ folderRoutes.post('/:id/make-public', async (c) => {
       })
       .where(eq(folders.id, folderId));
     
+    // Descriptografar automaticamente todos os ficheiros da pasta (marcar como não encriptados)
+    const updatedFiles = await db.update(files)
+      .set({ isEncrypted: false })
+      .where(eq(files.folderId, folderId))
+      .returning({ id: files.id });
+    
+    console.log(`[Make Public] Pasta ${folderId}: ${updatedFiles.length} ficheiros marcados como não encriptados`);
+    
     return c.json({ 
       message: 'Pasta tornada pública com sucesso',
       slug,
-      publicUrl: `/p/${slug}`
+      publicUrl: `/p/${slug}`,
+      filesDecrypted: updatedFiles.length
     });
   } catch (error) {
     console.error('Make folder public error:', error);
@@ -204,6 +214,7 @@ folderRoutes.post('/:id/make-private', async (c) => {
       return c.json({ message: 'Pasta não encontrada' }, 404);
     }
     
+    // Tornar a pasta privada
     await db.update(folders)
       .set({ 
         isPublic: false, 
@@ -212,7 +223,18 @@ folderRoutes.post('/:id/make-private', async (c) => {
       })
       .where(eq(folders.id, folderId));
     
-    return c.json({ message: 'Pasta tornada privada com sucesso' });
+    // Encriptar automaticamente todos os ficheiros da pasta (marcar como encriptados)
+    const updatedFiles = await db.update(files)
+      .set({ isEncrypted: true })
+      .where(eq(files.folderId, folderId))
+      .returning({ id: files.id });
+    
+    console.log(`[Make Private] Pasta ${folderId}: ${updatedFiles.length} ficheiros marcados como encriptados`);
+    
+    return c.json({ 
+      message: 'Pasta tornada privada com sucesso',
+      filesEncrypted: updatedFiles.length
+    });
   } catch (error) {
     console.error('Make folder private error:', error);
     return c.json({ message: 'Erro ao tornar pasta privada' }, 500);
