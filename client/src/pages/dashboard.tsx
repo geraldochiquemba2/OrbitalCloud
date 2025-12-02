@@ -119,7 +119,7 @@ export default function Dashboard() {
   const lastProgressRef = useRef<{ time: number; loaded: number }>({ time: 0, loaded: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadCancelledRef = useRef(false);
-  const [enableEncryptionUpload, setEnableEncryptionUpload] = useState(false);
+  const [skipEncryption, setSkipEncryption] = useState(false);
   
   // Folder modal
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -1381,16 +1381,19 @@ export default function Dashboard() {
       let originalSize = file.size;
       let wasEncrypted = false;
       
-      // Encriptação só acontece se o utilizador escolher explicitamente
-      // Pastas públicas NUNCA aceitam encriptação
+      // Ficheiros são SEMPRE encriptados antes de ir para o Telegram (segurança)
+      // Exceto: pastas públicas ou se o utilizador escolher não encriptar
       const isInPublicFolder = folderPath.some(f => f.isPublic);
-      const shouldEncrypt = enableEncryptionUpload && !isInPublicFolder && encryptionKey && isEncryptionSupported();
+      const shouldSkipEncryption = skipEncryption || isInPublicFolder;
       
-      if (enableEncryptionUpload && isInPublicFolder) {
-        console.log(`[Upload] Cannot encrypt for ${file.name} - in public folder`);
+      if (isInPublicFolder && encryptionKey) {
+        console.log(`[Upload] Skipping encryption for ${file.name} - in public folder`);
       }
       
-      if (shouldEncrypt) {
+      if (!shouldSkipEncryption && (!encryptionKey || !isEncryptionSupported())) {
+        console.warn("Encryption key not available - file will be uploaded without encryption");
+        toast.warning(`${file.name} será enviado SEM encriptação. Faça logout e login novamente para ativar a encriptação.`);
+      } else if (!shouldSkipEncryption && encryptionKey) {
         setCurrentUploadFile(`A encriptar ${file.name}...`);
         
         if (uploadCancelledRef.current) {
@@ -3071,14 +3074,14 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2 mb-3 p-2 rounded bg-white/5 border border-white/10">
                         <input
                           type="checkbox"
-                          id="enable-encryption"
-                          checked={enableEncryptionUpload}
-                          onChange={(e) => setEnableEncryptionUpload(e.target.checked)}
+                          id="skip-encryption"
+                          checked={skipEncryption}
+                          onChange={(e) => setSkipEncryption(e.target.checked)}
                           className="rounded"
-                          data-testid="checkbox-enable-encryption"
+                          data-testid="checkbox-skip-encryption"
                         />
-                        <label htmlFor="enable-encryption" className="text-white/70 text-xs cursor-pointer flex-1">
-                          Encriptar ficheiros (requer chave de encriptação)
+                        <label htmlFor="skip-encryption" className="text-white/70 text-xs cursor-pointer flex-1">
+                          Enviar SEM encriptação (apenas para pastas públicas)
                         </label>
                       </div>
                       
