@@ -726,9 +726,10 @@ export default function PublicFolderPage() {
                   {(previewFile.originalMimeType || previewFile.tipoMime).startsWith("video/") && (
                     <video 
                       src={previewUrl}
+                      poster={thumbnails[previewFile.id] && !thumbnails[previewFile.id].includes("error") && !thumbnails[previewFile.id].includes("encrypted") ? thumbnails[previewFile.id] : undefined}
                       controls
                       controlsList="nodownload"
-                      className="max-w-full max-h-[70vh] w-full"
+                      className="max-w-full max-h-[70vh] w-full bg-black"
                       playsInline
                     />
                   )}
