@@ -2842,10 +2842,8 @@ export default function Dashboard() {
                               data-testid={`shared-subfolder-file-item-${file.id}`}
                             >
                               <div 
-                                className={`aspect-square flex items-center justify-center bg-black/20 overflow-hidden ${
-                                  file.isEncrypted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-                                }`}
-                                onClick={() => !file.isEncrypted && openPreview(file)}
+                                className="aspect-square flex items-center justify-center bg-black/20 overflow-hidden cursor-pointer"
+                                onClick={() => openPreview(file)}
                               >
                                 {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
                                   <img 
@@ -2854,10 +2852,6 @@ export default function Dashboard() {
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                   />
-                                ) : file.isEncrypted ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-900/50 to-slate-900/50">
-                                    <Lock className="w-10 h-10 text-amber-400" />
-                                  </div>
                                 ) : getEffectiveMimeType(file).startsWith("video/") ? (
                                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50 relative">
                                     {loadingThumbnails.has(file.id) ? (
