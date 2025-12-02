@@ -636,32 +636,70 @@ export default function PublicFolderPage() {
                           </div>
                         )}
                         
-                        {/* Hover overlay with actions */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                          {isMedia && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); openPreview(file); }}
-                              className="p-3 rounded-full bg-blue-500/80 text-white hover:bg-blue-500 transition-colors"
-                              title="Visualizar"
-                              data-testid={`button-preview-${file.id}`}
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); downloadFile(file); }}
-                            disabled={downloadingId === file.id}
-                            className="p-3 rounded-full bg-primary/80 text-white hover:bg-primary transition-colors disabled:opacity-50"
-                            title="Descarregar"
-                            data-testid={`button-download-${file.id}`}
-                          >
-                            {downloadingId === file.id ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                              <Download className="w-5 h-5" />
+                        {/* Desktop: Hover overlay with actions */}
+                        {!isMobile && (
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            {isMedia && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openPreview(file); }}
+                                className="p-3 rounded-full bg-blue-500/80 text-white hover:bg-blue-500 transition-colors"
+                                title="Visualizar"
+                                data-testid={`button-preview-${file.id}`}
+                              >
+                                <Eye className="w-5 h-5" />
+                              </button>
                             )}
-                          </button>
-                        </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); downloadFile(file); }}
+                              disabled={downloadingId === file.id}
+                              className="p-3 rounded-full bg-primary/80 text-white hover:bg-primary transition-colors disabled:opacity-50"
+                              title="Descarregar"
+                              data-testid={`button-download-${file.id}`}
+                            >
+                              {downloadingId === file.id ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <Download className="w-5 h-5" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Mobile: Bottom action bar always visible */}
+                        {isMobile && (
+                          <div 
+                            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-6"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              {isMedia && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openPreview(file); }}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/90 text-white active:bg-blue-600 transition-colors"
+                                  data-testid={`button-preview-mobile-${file.id}`}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  <span className="text-xs font-medium">Ver</span>
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); downloadFile(file); }}
+                                disabled={downloadingId === file.id}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 text-white active:bg-primary transition-colors disabled:opacity-50"
+                                data-testid={`button-download-mobile-${file.id}`}
+                              >
+                                {downloadingId === file.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Download className="w-4 h-4" />
+                                    <span className="text-xs font-medium">Baixar</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       
                       {/* File info */}
@@ -687,31 +725,47 @@ export default function PublicFolderPage() {
 
       {previewFile && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm ${isMobile ? 'p-0' : 'p-4'}`}
           onClick={closePreview}
+          data-testid="preview-modal-backdrop"
         >
           <div
-            className="relative max-w-4xl w-full max-h-[90vh] bg-slate-800 rounded-2xl overflow-hidden"
+            className={`relative bg-slate-900 overflow-hidden ${
+              isMobile 
+                ? 'w-full h-full' 
+                : 'max-w-4xl w-full max-h-[90vh] rounded-2xl'
+            }`}
             onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <h3 className="text-white font-medium truncate">{previewFile.nome}</h3>
-              <div className="flex items-center gap-2">
+            <div className={`flex items-center justify-between border-b border-white/10 sticky top-0 bg-slate-900/95 backdrop-blur-sm z-10 ${isMobile ? 'p-3' : 'p-4'}`}>
+              <h3 className={`text-white font-medium truncate flex-1 mr-2 ${isMobile ? 'text-sm' : ''}`}>{previewFile.nome}</h3>
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  onClick={() => downloadFile(previewFile)}
-                  className="p-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/40 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); downloadFile(previewFile); }}
+                  className={`rounded-lg bg-primary/20 text-primary hover:bg-primary/40 active:bg-primary/50 transition-colors ${isMobile ? 'p-3' : 'p-2'}`}
+                  data-testid="button-download-preview"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
                 </button>
                 <button
-                  onClick={closePreview}
-                  className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); closePreview(); }}
+                  className={`rounded-lg bg-white/10 text-white hover:bg-white/20 active:bg-white/30 transition-colors ${isMobile ? 'p-3' : 'p-2'}`}
+                  data-testid="button-close-preview"
                 >
-                  <ChevronLeft className="w-4 h-4 rotate-180" />
+                  <ChevronLeft className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} rotate-180`} />
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-center p-4 min-h-[300px] w-full">
+            <div 
+              className={`flex items-center justify-center w-full overflow-auto ${
+                isMobile 
+                  ? 'h-[calc(100vh-60px)] p-2' 
+                  : 'p-4 min-h-[300px]'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+            >
               {previewLoading ? (
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
               ) : previewUrl ? (
@@ -720,7 +774,14 @@ export default function PublicFolderPage() {
                     <img 
                       src={previewUrl} 
                       alt={previewFile.nome}
-                      className="max-w-full max-h-[70vh] object-contain"
+                      className={`object-contain ${
+                        isMobile 
+                          ? 'max-w-full max-h-[calc(100vh-80px)] w-auto h-auto touch-manipulation' 
+                          : 'max-w-full max-h-[70vh]'
+                      }`}
+                      onClick={(e) => e.stopPropagation()}
+                      onTouchEnd={(e) => e.stopPropagation()}
+                      data-testid="preview-image"
                     />
                   )}
                   {(previewFile.originalMimeType || previewFile.tipoMime).startsWith("video/") && (
@@ -729,20 +790,33 @@ export default function PublicFolderPage() {
                       poster={thumbnails[previewFile.id] && !thumbnails[previewFile.id].includes("error") && !thumbnails[previewFile.id].includes("encrypted") ? thumbnails[previewFile.id] : undefined}
                       controls
                       controlsList="nodownload"
-                      className="max-w-full max-h-[70vh] w-full bg-black"
+                      className={`bg-black ${
+                        isMobile 
+                          ? 'w-full max-h-[calc(100vh-80px)] touch-manipulation' 
+                          : 'max-w-full max-h-[70vh] w-full'
+                      }`}
                       playsInline
+                      webkit-playsinline="true"
+                      x-webkit-airplay="allow"
+                      preload="metadata"
+                      onClick={(e) => e.stopPropagation()}
+                      onTouchEnd={(e) => e.stopPropagation()}
+                      data-testid="preview-video"
                     />
                   )}
                   {(previewFile.originalMimeType || previewFile.tipoMime).startsWith("audio/") && (
                     <audio 
                       src={previewUrl}
                       controls
-                      className="w-full max-w-md"
+                      className={`${isMobile ? 'w-full' : 'w-full max-w-md'}`}
+                      onClick={(e) => e.stopPropagation()}
+                      onTouchEnd={(e) => e.stopPropagation()}
+                      data-testid="preview-audio"
                     />
                   )}
                 </>
               ) : (
-                <p className="text-white/50">Não foi possível carregar a visualização</p>
+                <p className="text-white/50 text-center px-4">Não foi possível carregar a visualização</p>
               )}
             </div>
           </div>
