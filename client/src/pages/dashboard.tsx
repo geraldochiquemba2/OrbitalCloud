@@ -3251,20 +3251,6 @@ export default function Dashboard() {
                           Limpar todos
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 mb-3 p-2 rounded bg-white/5 border border-white/10">
-                        <input
-                          type="checkbox"
-                          id="skip-encryption"
-                          checked={skipEncryption}
-                          onChange={(e) => setSkipEncryption(e.target.checked)}
-                          className="rounded"
-                          data-testid="checkbox-skip-encryption"
-                        />
-                        <label htmlFor="skip-encryption" className="text-white/70 text-xs cursor-pointer flex-1">
-                          Enviar SEM encriptação (apenas para pastas públicas)
-                        </label>
-                      </div>
-                      
                       <div className="max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                         {pendingUploadFiles.map((file, index) => {
                           const fileKey = `${file.name}-${index}`;
