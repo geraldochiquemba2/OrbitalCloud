@@ -271,6 +271,119 @@ fileRoutes.post('/upload', async (c) => {
   }
 });
 
+fileRoutes.post('/:id/reprocess', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    const formData = await c.req.formData();
+    
+    const file = formData.get('file') as File;
+    if (!file) {
+      return c.json({ message: 'Nenhum arquivo enviado' }, 400);
+    }
+    
+    const isEncrypted = formData.get('isEncrypted') === 'true';
+    const originalMimeType = formData.get('originalMimeType') as string || file.type;
+    const originalSize = formData.get('originalSize') 
+      ? parseInt(formData.get('originalSize') as string, 10) 
+      : file.size;
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [existingFile] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!existingFile) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    if (existingFile.userId !== user.id) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    
+    if (!telegram.isAvailable()) {
+      return c.json({ 
+        message: 'Serviço de armazenamento temporariamente indisponível.'
+      }, 503);
+    }
+    
+    const MAX_SINGLE_UPLOAD_SIZE = 20 * 1024 * 1024;
+    if (file.size > MAX_SINGLE_UPLOAD_SIZE) {
+      return c.json({ 
+        message: `Ficheiro muito grande para reprocessamento direto. Máximo: 20MB. Para ficheiros maiores, use o sistema de upload chunked.`,
+        maxSize: MAX_SINGLE_UPLOAD_SIZE,
+        fileSize: file.size,
+        useChunkedReprocess: true,
+      }, 400);
+    }
+    
+    const sizeDiff = file.size - Number(existingFile.tamanho);
+    if (sizeDiff > 0) {
+      const [currentUser] = await db.select().from(users).where(eq(users.id, user.id));
+      if (currentUser && Number(currentUser.storageUsed) + sizeDiff > Number(currentUser.storageLimit)) {
+        return c.json({ 
+          message: 'Quota de armazenamento excedida',
+          storageUsed: Number(currentUser.storageUsed),
+          storageLimit: Number(currentUser.storageLimit),
+        }, 400);
+      }
+    }
+    
+    const fileBuffer = await file.arrayBuffer();
+    const uploadResult = await telegram.uploadLargeFile(fileBuffer, existingFile.nome);
+    
+    const mainFileId = uploadResult.chunks[0].fileId;
+    const mainBotId = uploadResult.chunks[0].botId;
+    
+    if (existingFile.isChunked && existingFile.totalChunks && existingFile.totalChunks > 1) {
+      await db.delete(fileChunks).where(eq(fileChunks.fileId, fileId));
+    }
+    
+    const [updatedFile] = await db.update(files)
+      .set({
+        telegramFileId: mainFileId,
+        telegramBotId: mainBotId,
+        tamanho: file.size,
+        tipoMime: isEncrypted ? 'application/octet-stream' : originalMimeType,
+        isEncrypted,
+        originalMimeType,
+        originalSize,
+        isChunked: uploadResult.isChunked,
+        totalChunks: uploadResult.chunks.length,
+      })
+      .where(eq(files.id, fileId))
+      .returning();
+    
+    if (uploadResult.isChunked && uploadResult.chunks.length > 1) {
+      const chunksData = uploadResult.chunks.map(chunk => ({
+        fileId: fileId,
+        chunkIndex: chunk.chunkIndex,
+        telegramFileId: chunk.fileId,
+        telegramBotId: chunk.botId,
+        chunkSize: chunk.chunkSize,
+      }));
+      await db.insert(fileChunks).values(chunksData);
+    }
+    
+    const sizeDifference = file.size - Number(existingFile.tamanho);
+    if (sizeDifference !== 0) {
+      await db.update(users)
+        .set({ 
+          storageUsed: sql`${users.storageUsed} + ${sizeDifference}`
+        })
+        .where(eq(users.id, user.id));
+    }
+    
+    return c.json(updatedFile);
+  } catch (error: any) {
+    console.error('Reprocess error:', error);
+    return c.json({ 
+      message: error.message || 'Erro ao reprocessar arquivo',
+      error: 'reprocess_failed'
+    }, 500);
+  }
+});
+
 fileRoutes.get('/:id/download', async (c) => {
   try {
     const user = c.get('user') as JWTPayload;

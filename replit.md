@@ -69,11 +69,21 @@ The platform includes a WebSocket server (`server/websocket.ts`) for real-time u
 
 **Important:** WebSocket is disabled in development mode to avoid conflicts with Vite's HMR (Hot Module Replacement) WebSocket. The client-side hook (`useWebSocket`) gracefully handles this by silently disabling after a few failed connection attempts.
 
+### Automatic Encryption Toggle for Public Folders
+
+When folders are toggled between public and private, files are automatically processed:
+
+- **Making Public:** All encrypted files are automatically decrypted client-side and re-uploaded to Telegram without encryption. This allows public access to the files.
+- **Making Private:** All unencrypted files are automatically encrypted client-side and re-uploaded to Telegram with AES-256-GCM encryption.
+
+**Important:** This process happens in the browser and shows a progress UI. For files larger than 20MB, the reprocessing may fail in Cloudflare Workers due to request size limits. Files uploaded through the chunked upload system maintain their original encryption state when toggling.
+
 ### Known Limitations
 
 - **Telegram Dependency:** Primary storage relies on Telegram Bot API. Monitor ToS changes and prepare Cloudflare R2 fallback.
 - **Single Instance:** Current architecture assumes single server instance. Multi-instance scaling requires shared session/quota storage.
 - **WebSocket in Development:** Real-time WebSocket features are disabled in development mode due to Vite HMR conflicts. Test real-time features in production builds.
+- **Cloudflare Workers Reprocess Limit:** File reprocessing (for encryption toggle) is limited to 20MB per file due to Cloudflare Workers request size limits. Larger files maintain their original encryption state.
 
 ## Deployment (Cloudflare Workers)
 

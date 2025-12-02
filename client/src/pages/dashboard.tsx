@@ -577,20 +577,27 @@ export default function Dashboard() {
       }
       
       const folderFiles: FileItem[] = await filesResponse.json();
+      const MAX_REPROCESS_SIZE = 20 * 1024 * 1024; // 20MB limit for Cloudflare Workers
       const encryptedFiles = folderFiles.filter(f => f.isEncrypted);
+      const processableFiles = encryptedFiles.filter(f => (f.originalSize || f.tamanho) <= MAX_REPROCESS_SIZE);
+      const skippedFiles = encryptedFiles.filter(f => (f.originalSize || f.tamanho) > MAX_REPROCESS_SIZE);
       
-      if (encryptedFiles.length > 0) {
+      if (skippedFiles.length > 0) {
+        toast.warning(`${skippedFiles.length} ficheiro(s) grande(s) (>20MB) não serão desencriptados e ficarão indisponíveis na pasta pública.`);
+      }
+      
+      if (processableFiles.length > 0) {
         if (!encryptionKey) {
           toast.error("Chave de encriptação não disponível. Faça logout e login novamente.");
           return;
         }
         
         setProcessingFiles(true);
-        setProcessingProgress({ current: 0, total: encryptedFiles.length, fileName: "" });
+        setProcessingProgress({ current: 0, total: processableFiles.length, fileName: "" });
         
-        for (let i = 0; i < encryptedFiles.length; i++) {
-          const file = encryptedFiles[i];
-          setProcessingProgress({ current: i + 1, total: encryptedFiles.length, fileName: file.nome });
+        for (let i = 0; i < processableFiles.length; i++) {
+          const file = processableFiles[i];
+          setProcessingProgress({ current: i + 1, total: processableFiles.length, fileName: file.nome });
           
           try {
             const downloadResponse = await apiFetch(`/api/files/${file.id}/content`);
@@ -662,20 +669,27 @@ export default function Dashboard() {
       }
       
       const folderFiles: FileItem[] = await filesResponse.json();
+      const MAX_REPROCESS_SIZE = 20 * 1024 * 1024; // 20MB limit for Cloudflare Workers
       const unencryptedFiles = folderFiles.filter(f => !f.isEncrypted);
+      const processableFiles = unencryptedFiles.filter(f => (f.originalSize || f.tamanho) <= MAX_REPROCESS_SIZE);
+      const skippedFiles = unencryptedFiles.filter(f => (f.originalSize || f.tamanho) > MAX_REPROCESS_SIZE);
       
-      if (unencryptedFiles.length > 0) {
+      if (skippedFiles.length > 0) {
+        toast.warning(`${skippedFiles.length} ficheiro(s) grande(s) (>20MB) permanecerão sem encriptação.`);
+      }
+      
+      if (processableFiles.length > 0) {
         if (!encryptionKey) {
           toast.error("Chave de encriptação não disponível. Faça logout e login novamente.");
           return;
         }
         
         setProcessingFiles(true);
-        setProcessingProgress({ current: 0, total: unencryptedFiles.length, fileName: "" });
+        setProcessingProgress({ current: 0, total: processableFiles.length, fileName: "" });
         
-        for (let i = 0; i < unencryptedFiles.length; i++) {
-          const file = unencryptedFiles[i];
-          setProcessingProgress({ current: i + 1, total: unencryptedFiles.length, fileName: file.nome });
+        for (let i = 0; i < processableFiles.length; i++) {
+          const file = processableFiles[i];
+          setProcessingProgress({ current: i + 1, total: processableFiles.length, fileName: file.nome });
           
           try {
             const downloadResponse = await apiFetch(`/api/files/${file.id}/content`);
