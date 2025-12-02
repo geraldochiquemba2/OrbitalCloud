@@ -665,37 +665,20 @@ export default function PublicFolderPage() {
                           </div>
                         )}
                         
-                        {/* Mobile: Bottom action bar always visible */}
-                        {isMobile && (
+                        {/* Mobile: Bottom action bar always visible - only for media files */}
+                        {isMobile && isMedia && (
                           <div 
                             className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-6"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="flex items-center justify-center gap-2">
-                              {isMedia && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); openPreview(file); }}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/90 text-white active:bg-blue-600 transition-colors"
-                                  data-testid={`button-preview-mobile-${file.id}`}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                  <span className="text-xs font-medium">Ver</span>
-                                </button>
-                              )}
+                            <div className="flex items-center justify-center">
                               <button
-                                onClick={(e) => { e.stopPropagation(); downloadFile(file); }}
-                                disabled={downloadingId === file.id}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 text-white active:bg-primary transition-colors disabled:opacity-50"
-                                data-testid={`button-download-mobile-${file.id}`}
+                                onClick={(e) => { e.stopPropagation(); openPreview(file); }}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-500/90 text-white active:bg-blue-600 transition-colors"
+                                data-testid={`button-preview-mobile-${file.id}`}
                               >
-                                {downloadingId === file.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Download className="w-4 h-4" />
-                                    <span className="text-xs font-medium">Baixar</span>
-                                  </>
-                                )}
+                                <Eye className="w-4 h-4" />
+                                <span className="text-xs font-medium">Ver</span>
                               </button>
                             </div>
                           </div>
