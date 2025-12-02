@@ -961,20 +961,41 @@ export default function Dashboard() {
       } else if (meta.isEncrypted && !encryptionKey) {
         setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
       } else {
-        // Always use authenticated endpoint when logged in (more reliable with Cloudflare)
-        const streamEndpoint = `/api/files/${fileId}/stream`;
+        // Fetch via apiFetch to include auth token, then create blob URL
+        // This is required for Cloudflare Workers where direct URL doesn't include auth headers
+        const effectiveMimeType = meta.originalMimeType || mimeType;
         
-        if (mimeType.startsWith("video/") || meta.originalMimeType?.startsWith("video/")) {
+        if (effectiveMimeType.startsWith("video/")) {
           try {
-            const thumbnailDataUrl = await generateVideoThumbnail(streamEndpoint);
-            setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
+            const streamResponse = await apiFetch(`/api/files/${fileId}/stream`);
+            if (streamResponse.ok) {
+              const blob = await streamResponse.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              const thumbnailDataUrl = await generateVideoThumbnail(blobUrl);
+              URL.revokeObjectURL(blobUrl);
+              setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
+            } else {
+              setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+            }
           } catch (err) {
             console.error("Error generating video thumbnail:", err);
             setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
           }
         } else {
-          // Use internal stream endpoint instead of direct Telegram URL to avoid CORS issues with Cloudflare
-          setFileThumbnails(prev => ({ ...prev, [fileId]: streamEndpoint }));
+          // For images, fetch and create blob URL
+          try {
+            const streamResponse = await apiFetch(`/api/files/${fileId}/stream`);
+            if (streamResponse.ok) {
+              const blob = await streamResponse.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              setFileThumbnails(prev => ({ ...prev, [fileId]: blobUrl }));
+            } else {
+              setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+            }
+          } catch (err) {
+            console.error("Error loading image thumbnail:", err);
+            setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+          }
         }
       }
     } catch (err) {
@@ -1071,12 +1092,17 @@ export default function Dashboard() {
       const metaResponse = await apiFetch(`/api/files/${file.id}/download-data`);
       if (!metaResponse.ok) {
         console.warn(`Failed to fetch metadata for ${file.id}, trying direct stream...`);
-        // Fallback: try to load directly from stream endpoint
+        // Fallback: fetch via apiFetch and create blob URL
         const mimeType = file.tipoMime;
         if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
-          setPreviewUrl(`/api/files/${file.id}/stream`);
-          setPreviewLoading(false);
-          return;
+          const streamResponse = await apiFetch(`/api/files/${file.id}/stream`);
+          if (streamResponse.ok) {
+            const blob = await streamResponse.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            setPreviewUrl(blobUrl);
+            setPreviewLoading(false);
+            return;
+          }
         }
         throw new Error("Could not fetch file data");
       }
@@ -1115,9 +1141,17 @@ export default function Dashboard() {
       } else {
         const mimeType = meta.originalMimeType || file.tipoMime;
         
-        if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
-          // Always use authenticated stream endpoint when logged in (more reliable with Cloudflare)
-          setPreviewUrl(`/api/files/${file.id}/stream`);
+        if (mimeType.startsWith("image/") || mimeType.startsWith("video/") || mimeType.startsWith("audio/")) {
+          // Fetch via apiFetch to include auth token, then create blob URL
+          // This is required for Cloudflare Workers where direct URL doesn't include auth headers
+          const streamResponse = await apiFetch(`/api/files/${file.id}/stream`);
+          if (streamResponse.ok) {
+            const blob = await streamResponse.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            setPreviewUrl(blobUrl);
+          } else {
+            throw new Error("Could not fetch file stream");
+          }
         } else {
           setPreviewUrl(meta.previewUrl || meta.contentUrl);
         }
