@@ -71,27 +71,60 @@ fileRoutes.get('/', async (c) => {
     
     const db = createDb(c.env.DATABASE_URL);
     
-    let query;
     if (folderId) {
-      query = db.select().from(files)
+      // Verificar se o utilizador tem acesso à pasta (dono ou colaborador)
+      const [folder] = await db.select().from(folders).where(eq(folders.id, folderId));
+      if (!folder) {
+        return c.json({ message: 'Pasta não encontrada' }, 404);
+      }
+      
+      const isOwner = folder.userId === user.id;
+      let hasAccess = isOwner;
+      
+      if (!isOwner) {
+        // Verificar permissão na pasta ou em qualquer pasta ancestral
+        let currentFolderId: string | null = folderId;
+        while (currentFolderId && !hasAccess) {
+          const [permission] = await db.select().from(folderPermissions)
+            .where(and(
+              eq(folderPermissions.folderId, currentFolderId),
+              eq(folderPermissions.userId, user.id)
+            ));
+          if (permission) {
+            hasAccess = true;
+            break;
+          }
+          // Verificar pasta pai
+          const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+          currentFolderId = parentFolder?.parentId || null;
+        }
+      }
+      
+      if (!hasAccess) {
+        return c.json({ message: 'Acesso negado' }, 403);
+      }
+      
+      // Listar todos os ficheiros da pasta (independente do userId)
+      const result = await db.select().from(files)
         .where(and(
-          eq(files.userId, user.id),
           eq(files.folderId, folderId),
           eq(files.isDeleted, false)
         ))
         .orderBy(desc(files.createdAt));
+      
+      return c.json(result);
     } else {
-      query = db.select().from(files)
+      // Pasta raiz - apenas ficheiros do próprio utilizador
+      const result = await db.select().from(files)
         .where(and(
           eq(files.userId, user.id),
           eq(files.isDeleted, false),
           sql`${files.folderId} IS NULL`
         ))
         .orderBy(desc(files.createdAt));
+      
+      return c.json(result);
     }
-    
-    const result = await query;
-    return c.json(result);
   } catch (error) {
     console.error('Get files error:', error);
     return c.json({ message: 'Erro ao buscar arquivos' }, 500);
@@ -109,7 +142,8 @@ fileRoutes.get('/search', async (c) => {
     
     const db = createDb(c.env.DATABASE_URL);
     
-    const result = await db.select().from(files)
+    // Buscar ficheiros do próprio utilizador
+    const ownFiles = await db.select().from(files)
       .where(and(
         eq(files.userId, user.id),
         eq(files.isDeleted, false),
@@ -117,7 +151,27 @@ fileRoutes.get('/search', async (c) => {
       ))
       .orderBy(desc(files.createdAt));
     
-    return c.json(result);
+    // Buscar ficheiros em pastas onde o utilizador tem permissão
+    const permissions = await db.select().from(folderPermissions)
+      .where(eq(folderPermissions.userId, user.id));
+    
+    let sharedFiles: typeof ownFiles = [];
+    if (permissions.length > 0) {
+      const folderIds = permissions.map(p => p.folderId);
+      sharedFiles = await db.select().from(files)
+        .where(and(
+          sql`${files.folderId} IN (${sql.join(folderIds.map(id => sql`${id}`), sql`, `)})`,
+          sql`${files.userId} != ${user.id}`,
+          eq(files.isDeleted, false),
+          sql`${files.nome} ILIKE ${`%${query}%`}`
+        ))
+        .orderBy(desc(files.createdAt));
+    }
+    
+    // Combinar e remover duplicados
+    const allFiles = [...ownFiles, ...sharedFiles];
+    
+    return c.json(allFiles);
   } catch (error) {
     console.error('Search files error:', error);
     return c.json({ message: 'Erro ao buscar arquivos' }, 500);
@@ -143,6 +197,55 @@ fileRoutes.post('/upload', async (c) => {
     
     const db = createDb(c.env.DATABASE_URL);
     
+    // Verificar se é uma pasta compartilhada e determinar o proprietário real
+    let fileOwnerId = user.id;
+    let storageOwnerId = user.id;
+    let isSharedFolder = false;
+    
+    if (folderId) {
+      const [folder] = await db.select().from(folders).where(eq(folders.id, folderId));
+      if (!folder) {
+        return c.json({ message: 'Pasta não encontrada' }, 404);
+      }
+      
+      if (folder.userId !== user.id) {
+        // É uma pasta de outro utilizador - verificar permissão de colaborador (com herança)
+        let hasPermission = false;
+        let permissionRole = '';
+        let currentFolderId: string | null = folderId;
+        
+        // Verificar permissão na pasta ou em qualquer pasta ancestral
+        while (currentFolderId && !hasPermission) {
+          const [permission] = await db.select().from(folderPermissions)
+            .where(and(
+              eq(folderPermissions.folderId, currentFolderId),
+              eq(folderPermissions.userId, user.id)
+            ));
+          if (permission) {
+            hasPermission = true;
+            permissionRole = permission.role;
+            break;
+          }
+          // Verificar pasta pai
+          const [ancestorFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+          currentFolderId = ancestorFolder?.parentId || null;
+        }
+        
+        if (!hasPermission) {
+          return c.json({ message: 'Não tem permissão para aceder a esta pasta' }, 403);
+        }
+        
+        if (permissionRole !== 'collaborator') {
+          return c.json({ message: 'Apenas colaboradores podem adicionar ficheiros a esta pasta. Você tem permissão apenas de visualização.' }, 403);
+        }
+        
+        // Ficheiro pertence ao dono da pasta, mas foi enviado pelo colaborador
+        fileOwnerId = folder.userId;
+        storageOwnerId = folder.userId;
+        isSharedFolder = true;
+      }
+    }
+    
     // Ficheiros são enviados SEM encriptação por padrão
     // Encriptação só acontece se:
     // 1. Cliente explicitamente pediu encriptação E
@@ -155,24 +258,29 @@ fileRoutes.post('/upload', async (c) => {
     // Se pasta é pública, força sem encriptação. Caso contrário, respeita escolha do cliente (default: false)
     const isEncrypted = isFolderPublic ? false : (clientSentEncrypted || false);
     
-    const [currentUser] = await db.select().from(users).where(eq(users.id, user.id));
-    if (!currentUser) {
-      return c.json({ message: 'Utilizador não encontrado' }, 404);
+    // Verificar quota do proprietário do armazenamento (dono da pasta para pastas compartilhadas)
+    const [storageOwner] = await db.select().from(users).where(eq(users.id, storageOwnerId));
+    if (!storageOwner) {
+      return c.json({ message: 'Utilizador proprietário não encontrado' }, 404);
     }
     
-    if (currentUser.uploadLimit !== -1 && currentUser.uploadsCount >= currentUser.uploadLimit) {
+    if (storageOwner.uploadLimit !== -1 && storageOwner.uploadsCount >= storageOwner.uploadLimit) {
       return c.json({ 
-        message: 'Limite de uploads atingido.',
-        uploadsCount: currentUser.uploadsCount,
-        uploadLimit: currentUser.uploadLimit,
+        message: isSharedFolder 
+          ? 'O proprietário da pasta atingiu o limite de uploads.' 
+          : 'Limite de uploads atingido.',
+        uploadsCount: storageOwner.uploadsCount,
+        uploadLimit: storageOwner.uploadLimit,
       }, 400);
     }
     
-    if (Number(currentUser.storageUsed) + originalSize > Number(currentUser.storageLimit)) {
+    if (Number(storageOwner.storageUsed) + originalSize > Number(storageOwner.storageLimit)) {
       return c.json({ 
-        message: 'Quota de armazenamento excedida',
-        storageUsed: Number(currentUser.storageUsed),
-        storageLimit: Number(currentUser.storageLimit),
+        message: isSharedFolder 
+          ? 'O proprietário da pasta não tem espaço suficiente.' 
+          : 'Quota de armazenamento excedida',
+        storageUsed: Number(storageOwner.storageUsed),
+        storageLimit: Number(storageOwner.storageLimit),
       }, 400);
     }
     
@@ -203,7 +311,7 @@ fileRoutes.post('/upload', async (c) => {
     const mainBotId = uploadResult.chunks[0].botId;
     
     const [newFile] = await db.insert(files).values({
-      userId: user.id,
+      userId: fileOwnerId,
       uploadedByUserId: user.id,
       folderId,
       nome: file.name,
@@ -229,12 +337,13 @@ fileRoutes.post('/upload', async (c) => {
       await db.insert(fileChunks).values(chunksData);
     }
     
+    // Actualizar quota do proprietário do armazenamento
     await db.update(users)
       .set({ 
         storageUsed: sql`${users.storageUsed} + ${originalSize}`,
         uploadsCount: sql`${users.uploadsCount} + 1`
       })
-      .where(eq(users.id, user.id));
+      .where(eq(users.id, storageOwnerId));
     
     return c.json(newFile);
   } catch (error: any) {
@@ -618,8 +727,36 @@ fileRoutes.delete('/:id', async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     
     const [file] = await db.select().from(files).where(eq(files.id, fileId));
-    if (!file || file.userId !== user.id) {
+    if (!file) {
       return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    // Verificar permissão: dono do ficheiro, quem fez upload, ou colaborador da pasta (com herança)
+    const isOwner = file.userId === user.id;
+    const isUploader = file.uploadedByUserId === user.id;
+    let isCollaborator = false;
+    
+    if (!isOwner && !isUploader && file.folderId) {
+      // Verificar permissão na pasta ou em qualquer pasta ancestral
+      let currentFolderId: string | null = file.folderId;
+      while (currentFolderId && !isCollaborator) {
+        const [permission] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (permission?.role === 'collaborator') {
+          isCollaborator = true;
+          break;
+        }
+        // Verificar pasta pai
+        const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = parentFolder?.parentId || null;
+      }
+    }
+    
+    if (!isOwner && !isUploader && !isCollaborator) {
+      return c.json({ message: 'Não tem permissão para eliminar este ficheiro' }, 403);
     }
     
     await db.update(files)

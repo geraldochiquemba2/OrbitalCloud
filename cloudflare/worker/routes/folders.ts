@@ -25,25 +25,56 @@ folderRoutes.get('/', async (c) => {
     
     const db = createDb(c.env.DATABASE_URL);
     
-    let query;
     if (parentId) {
-      query = db.select().from(folders)
-        .where(and(
-          eq(folders.userId, user.id),
-          eq(folders.parentId, parentId)
-        ))
+      // Verificar se o utilizador tem acesso à pasta pai (dono ou colaborador)
+      const [parentFolder] = await db.select().from(folders).where(eq(folders.id, parentId));
+      if (!parentFolder) {
+        return c.json({ message: 'Pasta não encontrada' }, 404);
+      }
+      
+      const isOwner = parentFolder.userId === user.id;
+      let hasAccess = isOwner;
+      
+      if (!isOwner) {
+        // Verificar permissão na pasta ou em qualquer pasta ancestral
+        let currentFolderId: string | null = parentId;
+        while (currentFolderId && !hasAccess) {
+          const [permission] = await db.select().from(folderPermissions)
+            .where(and(
+              eq(folderPermissions.folderId, currentFolderId),
+              eq(folderPermissions.userId, user.id)
+            ));
+          if (permission) {
+            hasAccess = true;
+            break;
+          }
+          // Verificar pasta pai
+          const [ancestorFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+          currentFolderId = ancestorFolder?.parentId || null;
+        }
+      }
+      
+      if (!hasAccess) {
+        return c.json({ message: 'Acesso negado' }, 403);
+      }
+      
+      // Listar todas as subpastas (independente do userId)
+      const result = await db.select().from(folders)
+        .where(eq(folders.parentId, parentId))
         .orderBy(desc(folders.createdAt));
+      
+      return c.json(result);
     } else {
-      query = db.select().from(folders)
+      // Pasta raiz - apenas pastas do próprio utilizador
+      const result = await db.select().from(folders)
         .where(and(
           eq(folders.userId, user.id),
           sql`${folders.parentId} IS NULL`
         ))
         .orderBy(desc(folders.createdAt));
+      
+      return c.json(result);
     }
-    
-    const result = await query;
-    return c.json(result);
   } catch (error) {
     console.error('Get folders error:', error);
     return c.json({ message: 'Erro ao buscar pastas' }, 500);
@@ -61,8 +92,51 @@ folderRoutes.post('/', async (c) => {
     
     const db = createDb(c.env.DATABASE_URL);
     
+    // Determinar o proprietário da pasta
+    let folderOwnerId = user.id;
+    
+    if (parentId) {
+      const [parentFolder] = await db.select().from(folders).where(eq(folders.id, parentId));
+      if (parentFolder) {
+        if (parentFolder.userId !== user.id) {
+          // É uma subpasta de uma pasta compartilhada - verificar permissão (com herança)
+          let hasPermission = false;
+          let permissionRole = '';
+          let currentFolderId: string | null = parentId;
+          
+          // Verificar permissão na pasta ou em qualquer pasta ancestral
+          while (currentFolderId && !hasPermission) {
+            const [permission] = await db.select().from(folderPermissions)
+              .where(and(
+                eq(folderPermissions.folderId, currentFolderId),
+                eq(folderPermissions.userId, user.id)
+              ));
+            if (permission) {
+              hasPermission = true;
+              permissionRole = permission.role;
+              break;
+            }
+            // Verificar pasta pai
+            const [ancestorFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+            currentFolderId = ancestorFolder?.parentId || null;
+          }
+          
+          if (!hasPermission) {
+            return c.json({ message: 'Não tem permissão para aceder a esta pasta' }, 403);
+          }
+          
+          if (permissionRole !== 'collaborator') {
+            return c.json({ message: 'Apenas colaboradores podem criar subpastas. Você tem permissão apenas de visualização.' }, 403);
+          }
+          
+          // Subpasta pertence ao dono da pasta pai
+          folderOwnerId = parentFolder.userId;
+        }
+      }
+    }
+    
     const [folder] = await db.insert(folders).values({
-      userId: user.id,
+      userId: folderOwnerId,
       nome,
       parentId: parentId || null,
     }).returning();
@@ -82,8 +156,35 @@ folderRoutes.delete('/:id', async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     
     const [folder] = await db.select().from(folders).where(eq(folders.id, folderId));
-    if (!folder || folder.userId !== user.id) {
+    if (!folder) {
       return c.json({ message: 'Pasta não encontrada' }, 404);
+    }
+    
+    // Verificar permissão: dono da pasta ou colaborador (com herança)
+    const isOwner = folder.userId === user.id;
+    let isCollaborator = false;
+    
+    if (!isOwner && folder.parentId) {
+      // Verificar permissão na pasta pai ou em qualquer pasta ancestral
+      let currentFolderId: string | null = folder.parentId;
+      while (currentFolderId && !isCollaborator) {
+        const [permission] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (permission?.role === 'collaborator') {
+          isCollaborator = true;
+          break;
+        }
+        // Verificar pasta pai
+        const [ancestorFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = ancestorFolder?.parentId || null;
+      }
+    }
+    
+    if (!isOwner && !isCollaborator) {
+      return c.json({ message: 'Não tem permissão para eliminar esta pasta' }, 403);
     }
     
     await db.delete(folders).where(eq(folders.id, folderId));
