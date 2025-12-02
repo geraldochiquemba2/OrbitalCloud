@@ -111,7 +111,7 @@ export default function PublicFolderPage() {
             const ctx = canvas.getContext("2d");
             if (ctx) {
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              const quality = isMobile ? 0.7 : 0.8;
+              const quality = isMobile ? 0.9 : 0.95;
               const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
               video.src = "";
               video.load();
