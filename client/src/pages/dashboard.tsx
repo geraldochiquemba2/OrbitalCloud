@@ -2425,7 +2425,8 @@ export default function Dashboard() {
           const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
           fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
         } else {
-          const fileResponse = await apiFetch(data.downloadUrl);
+          // Use server endpoint instead of direct Telegram URL to avoid CORS issues on Cloudflare Workers
+          const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
           if (!fileResponse.ok) {
             throw new Error("Erro ao descarregar ficheiro");
           }
