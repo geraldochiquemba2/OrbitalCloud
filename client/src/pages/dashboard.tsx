@@ -2432,7 +2432,10 @@ export default function Dashboard() {
           setDownloadProgress({ fileId: file.id, progress: 70, fileName: file.nome });
           const encryptedBuffer = await fileResponse.arrayBuffer();
           toast.info("A desencriptar ficheiro...");
-          const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+          const isV2 = isChunkedEncryption(data.encryptionVersion);
+          const decryptedBuffer = isV2
+            ? await decryptChunk(encryptedBuffer, encryptionKey)
+            : await decryptBuffer(encryptedBuffer, encryptionKey);
           fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
         } else {
           // Use server endpoint instead of direct Telegram URL to avoid CORS issues on Cloudflare Workers
