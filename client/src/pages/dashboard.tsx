@@ -3304,64 +3304,86 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {sharedFolderFiles.length > 0 && (
-                      <div>
-                        {sharedFolderFolders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                          {sharedFolderFiles.map((file) => (
-                            <div
-                              key={file.id}
-                              className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border transition-colors overflow-hidden ${
-                                file.isEncrypted ? 'border-amber-500/50' : 'border-white/20'
-                              }`}
-                              data-testid={`shared-subfolder-file-item-${file.id}`}
-                            >
-                              <div 
-                                className="aspect-square flex items-center justify-center bg-black/20 overflow-hidden cursor-pointer"
-                                onClick={() => openPreview(file)}
+                    {sharedFolderFiles.length > 0 && (() => {
+                      const rootFolder = sharedFolders.find(f => f.id === currentSharedFolderId) || 
+                                        (sharedFolderPath.length > 0 ? sharedFolders.find(f => f.id === sharedFolderPath[0]?.id) : null);
+                      const isCollaboratorRole = rootFolder?.role === "collaborator";
+                      
+                      return (
+                        <div>
+                          {sharedFolderFolders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                            {sharedFolderFiles.map((file) => (
+                              <div
+                                key={file.id}
+                                className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border transition-colors overflow-hidden ${
+                                  file.isEncrypted ? 'border-amber-500/50' : 'border-white/20'
+                                }`}
+                                data-testid={`shared-subfolder-file-item-${file.id}`}
                               >
-                                {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
-                                  <img 
-                                    src={fileThumbnails[file.id]} 
-                                    alt={file.nome}
-                                    className="w-full h-full object-cover"
-                                    loading="lazy"
-                                  />
-                                ) : getEffectiveMimeType(file).startsWith("video/") ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50 relative">
-                                    {loadingThumbnails.has(file.id) ? (
-                                      <div className="w-8 h-8 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
-                                    ) : (
-                                      <Video className="w-10 h-10 text-white/60" />
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center p-4">
-                                    <div className="w-12 h-12 flex items-center justify-center">
-                                      {getFileIcon(getEffectiveMimeType(file))}
+                                <div 
+                                  className="aspect-square flex items-center justify-center bg-black/20 overflow-hidden cursor-pointer"
+                                  onClick={() => openPreview(file)}
+                                >
+                                  {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
+                                    <img 
+                                      src={fileThumbnails[file.id]} 
+                                      alt={file.nome}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  ) : getEffectiveMimeType(file).startsWith("video/") ? (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50 relative">
+                                      {loadingThumbnails.has(file.id) ? (
+                                        <div className="w-8 h-8 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin" />
+                                      ) : (
+                                        <Video className="w-10 h-10 text-white/60" />
+                                      )}
                                     </div>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div className="p-2 flex-1">
-                                <p className="text-white text-xs font-medium truncate" title={file.nome}>{file.nome}</p>
-                                {!file.isEncrypted && (
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center p-4">
+                                      <div className="w-12 h-12 flex items-center justify-center">
+                                        {getFileIcon(getEffectiveMimeType(file))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="absolute top-1 right-1 flex items-center gap-1">
                                   <button
                                     onClick={(e) => { e.stopPropagation(); downloadFile(file); }}
-                                    className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors w-full mt-1"
+                                    className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
                                     title="Download"
                                     data-testid={`button-download-shared-subfolder-${file.id}`}
                                   >
-                                    <Download className="w-3 h-3 mx-auto" />
+                                    <Download className="w-3 h-3" />
                                   </button>
-                                )}
+                                  {isCollaboratorRole && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setFileToDelete(file); setShowDeleteConfirm(true); }}
+                                      className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                                      title="Eliminar"
+                                      data-testid={`button-delete-shared-subfolder-${file.id}`}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                                
+                                <div className="p-2 flex-1">
+                                  <p className="text-white text-xs font-medium truncate" title={file.nome}>{file.nome}</p>
+                                  {file.isEncrypted && (
+                                    <p className="text-amber-400/70 text-[10px] flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" /> Encriptado
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {sharedFolderFiles.length === 0 && sharedFolderFolders.length === 0 && (
                       <div className="flex flex-col items-center justify-center h-64 text-white/50">

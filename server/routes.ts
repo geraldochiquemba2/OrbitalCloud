@@ -992,17 +992,44 @@ export async function registerRoutes(
   app.delete("/api/files/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
-      if (!file || file.userId !== req.user!.id) {
+      if (!file) {
         return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      // Check if user is owner
+      const isOwner = file.userId === req.user!.id;
+      let hasPermission = isOwner;
+
+      // If not owner, check for collaborator permission on folder (with ancestry inheritance)
+      if (!hasPermission && file.folderId) {
+        let currentFolderId: string | null = file.folderId;
+        while (currentFolderId && !hasPermission) {
+          const folderPerm = await storage.getFolderPermission(currentFolderId, req.user!.id);
+          if (folderPerm && folderPerm.role === "collaborator") {
+            hasPermission = true;
+            break;
+          }
+          // Check parent folder
+          const folder = await storage.getFolder(currentFolderId);
+          currentFolderId = folder?.parentId || null;
+        }
+      }
+
+      if (!hasPermission) {
+        return res.status(403).json({ message: "Sem permissão para eliminar este ficheiro" });
       }
 
       await storage.moveToTrash(req.params.id);
       
-      // Notify via WebSocket
-      wsManager.notifyFileDeleted(req.user!.id, req.params.id);
+      // Notify via WebSocket - notify both the owner and the user who deleted
+      wsManager.notifyFileDeleted(file.userId, req.params.id);
+      if (file.userId !== req.user!.id) {
+        wsManager.notifyFileDeleted(req.user!.id, req.params.id);
+      }
       
       res.json({ message: "Arquivo movido para a lixeira" });
     } catch (error) {
+      console.error("Delete file error:", error);
       res.status(500).json({ message: "Erro ao deletar arquivo" });
     }
   });
