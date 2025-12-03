@@ -1642,9 +1642,10 @@ export default function Dashboard() {
       const encryptionKey = await getActiveEncryptionKey();
       
       // Ficheiros são SEMPRE encriptados antes de ir para o Telegram (segurança)
-      // Exceto: pastas públicas (automático)
+      // Exceto: pastas públicas (automático) ou pastas partilhadas de outros utilizadores
       const isInPublicFolder = folderPath.some(f => f.isPublic);
-      const shouldSkipEncryption = isInPublicFolder;
+      const isUploadingToSharedFolder = viewMode === "shared" && currentSharedFolderId !== null;
+      const shouldSkipEncryption = isInPublicFolder || isUploadingToSharedFolder;
       
       // NEW: Use V2 chunked encryption (encrypt each chunk individually)
       const willEncrypt = !shouldSkipEncryption && encryptionKey && isEncryptionSupported();
@@ -1652,6 +1653,10 @@ export default function Dashboard() {
       
       if (isInPublicFolder && encryptionKey) {
         console.log(`[Upload] Skipping encryption for ${file.name} - in public folder`);
+      }
+      
+      if (isUploadingToSharedFolder && encryptionKey) {
+        console.log(`[Upload] Skipping encryption for ${file.name} - uploading to shared folder`);
       }
       
       if (!shouldSkipEncryption && (!encryptionKey || !isEncryptionSupported())) {
