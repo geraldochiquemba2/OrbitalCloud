@@ -7,8 +7,8 @@ import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, adminMiddleware, JWTPayload } from '../middleware/auth';
 import { TelegramService } from '../services/telegram';
-import { users, files, folders, upgradeRequests, PLANS } from '../../../shared/schema';
-import { eq, desc, sql, ne, and, inArray } from 'drizzle-orm';
+import { users, files, folders, upgradeRequests, PLANS, uploadSessions, uploadChunks } from '../../../shared/schema';
+import { eq, desc, sql, ne, and, inArray, lt } from 'drizzle-orm';
 
 interface Env {
   DATABASE_URL: string;
@@ -366,5 +366,105 @@ adminRoutes.get('/upgrade-requests/:id/proof', async (c) => {
   } catch (error) {
     console.error('Get proof error:', error);
     return c.json({ message: 'Erro ao buscar comprovativo' }, 500);
+  }
+});
+
+adminRoutes.post('/cleanup-expired-sessions', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL);
+    const now = new Date();
+    
+    const expiredSessions = await db.select({
+      id: uploadSessions.id,
+      userId: uploadSessions.userId,
+      fileName: uploadSessions.fileName,
+      status: uploadSessions.status,
+      expiresAt: uploadSessions.expiresAt,
+    }).from(uploadSessions)
+      .where(lt(uploadSessions.expiresAt, now));
+    
+    if (expiredSessions.length === 0) {
+      return c.json({
+        message: 'Nenhuma sessão expirada encontrada',
+        deletedSessions: 0,
+        deletedChunks: 0,
+      });
+    }
+    
+    const sessionIds = expiredSessions.map(s => s.id);
+    
+    const expiredChunks = await db.select({
+      id: uploadChunks.id,
+      telegramFileId: uploadChunks.telegramFileId,
+      telegramBotId: uploadChunks.telegramBotId,
+    }).from(uploadChunks)
+      .where(inArray(uploadChunks.sessionId, sessionIds));
+    
+    await db.delete(uploadChunks)
+      .where(inArray(uploadChunks.sessionId, sessionIds));
+    
+    await db.delete(uploadSessions)
+      .where(inArray(uploadSessions.id, sessionIds));
+    
+    console.log(`Cleaned up ${expiredSessions.length} expired sessions and ${expiredChunks.length} orphan chunks`);
+    
+    return c.json({
+      message: `Limpas ${expiredSessions.length} sessões expiradas e ${expiredChunks.length} chunks órfãos`,
+      deletedSessions: expiredSessions.length,
+      deletedChunks: expiredChunks.length,
+      sessions: expiredSessions.map(s => ({
+        id: s.id,
+        fileName: s.fileName,
+        status: s.status,
+        expiresAt: s.expiresAt,
+      })),
+    });
+  } catch (error) {
+    console.error('Cleanup expired sessions error:', error);
+    return c.json({ message: 'Erro ao limpar sessões expiradas' }, 500);
+  }
+});
+
+adminRoutes.get('/expired-sessions-stats', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL);
+    const now = new Date();
+    
+    const [expiredCount] = await db.select({ 
+      count: sql`count(*)` 
+    }).from(uploadSessions)
+      .where(lt(uploadSessions.expiresAt, now));
+    
+    const [totalSessions] = await db.select({ 
+      count: sql`count(*)` 
+    }).from(uploadSessions);
+    
+    const [pendingSessions] = await db.select({ 
+      count: sql`count(*)` 
+    }).from(uploadSessions)
+      .where(eq(uploadSessions.status, 'pending'));
+    
+    const expiredSessionIds = await db.select({ id: uploadSessions.id })
+      .from(uploadSessions)
+      .where(lt(uploadSessions.expiresAt, now));
+    
+    let orphanChunksCount = 0;
+    if (expiredSessionIds.length > 0) {
+      const [orphanCount] = await db.select({ 
+        count: sql`count(*)` 
+      }).from(uploadChunks)
+        .where(inArray(uploadChunks.sessionId, expiredSessionIds.map(s => s.id)));
+      orphanChunksCount = Number(orphanCount?.count || 0);
+    }
+    
+    return c.json({
+      expiredSessions: Number(expiredCount?.count || 0),
+      totalSessions: Number(totalSessions?.count || 0),
+      pendingSessions: Number(pendingSessions?.count || 0),
+      orphanChunksInExpiredSessions: orphanChunksCount,
+    });
+  } catch (error) {
+    console.error('Get expired sessions stats error:', error);
+    return c.json({ message: 'Erro ao buscar estatísticas' }, 500);
   }
 });

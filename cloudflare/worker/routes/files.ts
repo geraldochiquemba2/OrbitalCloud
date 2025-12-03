@@ -509,6 +509,20 @@ fileRoutes.get('/:id/download', async (c) => {
       return c.json({ message: 'Arquivo sem referência de download' }, 400);
     }
     
+    const MAX_LEGACY_SIZE = 50 * 1024 * 1024;
+    const fileSize = Number(file.originalSize || file.tamanho);
+    
+    if (file.isChunked && file.totalChunks > 1 && fileSize > MAX_LEGACY_SIZE) {
+      return c.json({ 
+        message: 'Ficheiro muito grande para download direto. Use o download por chunks.',
+        error: 'file_too_large',
+        fileSize: fileSize,
+        maxSize: MAX_LEGACY_SIZE,
+        useChunkedDownload: true,
+        chunksInfoUrl: `/api/files/${fileId}/chunks-info`
+      }, 413);
+    }
+    
     const telegram = new TelegramService(c.env);
     
     if (file.isChunked && file.totalChunks > 1) {
@@ -681,6 +695,20 @@ fileRoutes.get('/:id/content', async (c) => {
     
     if (!file.telegramFileId || !file.telegramBotId) {
       return c.json({ message: 'Arquivo sem referência de download' }, 400);
+    }
+    
+    const MAX_LEGACY_SIZE = 50 * 1024 * 1024;
+    const fileSize = Number(file.originalSize || file.tamanho);
+    
+    if (file.isChunked && file.totalChunks > 1 && fileSize > MAX_LEGACY_SIZE) {
+      return c.json({ 
+        message: 'Ficheiro muito grande para download direto. Use o download por chunks.',
+        error: 'file_too_large',
+        fileSize: fileSize,
+        maxSize: MAX_LEGACY_SIZE,
+        useChunkedDownload: true,
+        chunksInfoUrl: `/api/files/${fileId}/chunks-info`
+      }, 413);
     }
     
     const telegram = new TelegramService(c.env);

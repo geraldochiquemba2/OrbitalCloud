@@ -85,20 +85,28 @@ The system supports downloading files up to 2GB through chunked streaming:
 **Backend (Cloudflare Workers):**
 - `GET /api/files/:id/chunks-info` - Returns chunk metadata (count, sizes, encryption status)
 - `GET /api/files/:id/chunk/:index` - Downloads individual chunk by index
+- Legacy endpoints (`/download`, `/content`) protected with 50MB limit for chunked files
 
 **Frontend Download Strategy:**
 1. **Chrome/Edge Desktop (File System Access API):** True streaming to disk via `showSaveFilePicker()`. Each chunk is written directly to file without accumulating in memory. Best option for large files.
 
-2. **Other Browsers (Safari, Firefox, Mobile):** Uses Blob accumulation. Browser manages memory by potentially offloading Blobs to disk. Works well for unencrypted files up to ~1GB.
+2. **V2 Encrypted Files (Chrome/Edge):** Stream-decrypt each chunk and write directly to disk. No memory limit - supports files up to 2GB.
 
-3. **Encrypted Files:** Must be buffered entirely for AES-GCM decryption. Limited by browser memory:
+3. **Other Browsers (Safari, Firefox, Mobile):** Uses Blob accumulation. Browser manages memory by potentially offloading Blobs to disk. Works well for files up to ~1GB.
+
+4. **V1 Encrypted Files (Legacy):** Must be buffered entirely for AES-GCM decryption. Limited by browser memory:
    - Mobile: 200MB max
    - Desktop: 500MB max
-   - Files exceeding these limits show error with suggestion to move to public folder
+   - Files exceeding these limits show error
 
 **Chunk Sizes:**
 - Upload: 10MB per chunk (within Telegram's 50MB limit, allows for encryption overhead)
 - Download from Telegram: 19MB per chunk (within Telegram's 20MB limit)
+
+### Admin Maintenance Endpoints
+
+- `POST /api/admin/cleanup-expired-sessions` - Clean expired upload sessions and orphan chunks
+- `GET /api/admin/expired-sessions-stats` - View statistics on expired sessions
 
 ### Known Limitations
 
@@ -106,8 +114,8 @@ The system supports downloading files up to 2GB through chunked streaming:
 - **Single Instance:** Current architecture assumes single server instance. Multi-instance scaling requires shared session/quota storage.
 - **WebSocket in Development:** Real-time WebSocket features are disabled in development mode due to Vite HMR conflicts. Test real-time features in production builds.
 - **Cloudflare Workers Reprocess Limit:** File reprocessing (for encryption toggle) is limited to 20MB per file due to Cloudflare Workers request size limits. Larger files maintain their original encryption state.
-- **Encrypted Large Files:** Due to AES-GCM requiring full-buffer decryption, encrypted files over 200MB (mobile) or 500MB (desktop) cannot be downloaded. Users should move such files to public folders for large downloads.
-- **Mobile Browser Streaming:** iOS Safari and most mobile browsers don't support File System Access API, so large file downloads use Blob accumulation which may exhaust memory for very large files.
+- **V1 Encrypted Large Files:** Legacy V1 encrypted files over 200MB (mobile) or 500MB (desktop) cannot be downloaded due to AES-GCM requiring full-buffer decryption. New files use V2 per-chunk encryption which has no memory limit.
+- **Mobile Browser Streaming:** iOS Safari and most mobile browsers don't support File System Access API, so large file downloads use Blob accumulation which may exhaust memory for files over ~1GB.
 
 ## Deployment (Cloudflare Workers)
 

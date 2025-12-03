@@ -2117,6 +2117,74 @@ export default function Dashboard() {
     }
   };
   
+  const streamEncryptedV2ToFile = async (
+    file: FileItem,
+    chunksInfo: any,
+    encryptionKey: CryptoKey,
+    mimeType: string
+  ): Promise<boolean> => {
+    if (!hasFileSystemAccess()) return false;
+    
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: file.nome,
+        types: [{
+          description: 'File',
+          accept: { [mimeType]: [`.${file.nome.split('.').pop() || 'bin'}`] }
+        }]
+      });
+      
+      const writable = await handle.createWritable();
+      const totalChunks = chunksInfo.totalChunks;
+      let downloadedBytes = 0;
+      const startTime = Date.now();
+      
+      for (let i = 0; i < totalChunks; i++) {
+        if (downloadCancelledRef.current) {
+          await writable.abort();
+          throw new Error("Download cancelado");
+        }
+        
+        const progress = Math.round((i / totalChunks) * 95);
+        const elapsed = (Date.now() - startTime) / 1000;
+        const speed = downloadedBytes > 0 ? formatBytes(downloadedBytes / elapsed) + '/s' : '';
+        setDownloadProgress({ fileId: file.id, progress, fileName: file.nome, speed });
+        
+        let retries = 0;
+        const maxRetries = 3;
+        let success = false;
+        
+        while (!success && retries < maxRetries) {
+          try {
+            const chunkResponse = await apiFetch(`/api/files/${file.id}/chunk/${i}`);
+            if (!chunkResponse.ok) throw new Error(`HTTP ${chunkResponse.status}`);
+            
+            const encryptedChunk = await chunkResponse.arrayBuffer();
+            const decryptedChunk = await decryptChunk(encryptedChunk, encryptionKey);
+            await writable.write(new Uint8Array(decryptedChunk));
+            downloadedBytes += encryptedChunk.byteLength;
+            success = true;
+          } catch (err) {
+            retries++;
+            if (retries >= maxRetries) {
+              await writable.abort();
+              throw new Error(`Erro ao baixar/desencriptar chunk ${i + 1}/${totalChunks}`);
+            }
+            await new Promise(r => setTimeout(r, 1000 * retries));
+          }
+        }
+      }
+      
+      await writable.close();
+      return true;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return false;
+      }
+      throw err;
+    }
+  };
+  
   const streamingDownloadLargeFile = async (
     file: FileItem, 
     chunksInfo: any, 
@@ -2138,12 +2206,18 @@ export default function Dashboard() {
       throw new Error("File too large for V1 encrypted download");
     }
     
-    if (!hasFileSystemAccess() && fileSize > 500 * 1024 * 1024 && !isV2Encryption) {
+    if (!hasFileSystemAccess() && fileSize > 500 * 1024 * 1024) {
       toast.warning(`Download de ficheiro grande (${formatBytes(fileSize)}). Pode demorar e usar muita memória.`);
     }
     
+    const mimeType = data.originalMimeType || chunksInfo.originalMimeType || file.tipoMime || 'application/octet-stream';
+    
+    if (isV2Encryption && encryptionKey && hasFileSystemAccess()) {
+      const streamed = await streamEncryptedV2ToFile(file, chunksInfo, encryptionKey, mimeType);
+      if (streamed) return;
+    }
+    
     if (!data.isEncrypted && hasFileSystemAccess()) {
-      const mimeType = chunksInfo.originalMimeType || file.tipoMime || 'application/octet-stream';
       const streamed = await streamToFile(file, chunksInfo, mimeType);
       if (streamed) return;
     }
