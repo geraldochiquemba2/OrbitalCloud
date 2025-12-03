@@ -3171,6 +3171,19 @@ export default function Dashboard() {
             className="bg-white/5 p-6 rounded-2xl border border-white/20 min-h-[400px]"
             style={{ willChange: 'auto', contain: 'layout' }}
           >
+            {/* Upload Button - show in files view mode */}
+            {viewMode === "files" && !searchResults && (
+              <div className="flex justify-center mb-4">
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all shadow-lg"
+                  data-testid="button-upload-dashboard"
+                >
+                  <Upload className="w-4 h-4" />
+                  Enviar Ficheiros
+                </button>
+              </div>
+            )}
             {/* Upload Button - only show inside shared folder when user is collaborator */}
             {viewMode === "shared" && currentSharedFolderId && (() => {
               const currentFolder = sharedFolders.find(f => f.id === currentSharedFolderId) || 
