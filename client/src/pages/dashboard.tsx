@@ -2323,6 +2323,7 @@ export default function Dashboard() {
   const downloadFile = async (file: FileItem) => {
     downloadCancelledRef.current = false;
     console.log("📥 Starting download for file:", file.id, file.nome);
+    alert("Download started for: " + file.nome);
     
     try {
       setDownloadProgress({ fileId: file.id, progress: 0, fileName: file.nome });
