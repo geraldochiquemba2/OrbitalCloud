@@ -2706,6 +2706,32 @@ export async function registerRoutes(
     }
   });
 
+  // Get chunks info for a file
+  app.get("/api/files/:id/chunks-info", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+      
+      // Check if user has access (owner or has permission)
+      const hasAccess = await storage.hasFileAccess(req.params.id, req.user!.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      res.json({
+        isChunked: file.isChunked || false,
+        totalChunks: file.totalChunks || 1,
+        originalMimeType: file.originalMimeType || file.tipoMime,
+        originalSize: file.originalSize || file.tamanho
+      });
+    } catch (error) {
+      console.error("Chunks info error:", error);
+      res.status(500).json({ message: "Erro ao obter informações de chunks" });
+    }
+  });
+
   // Download shared file (public)
   app.get("/api/shares/:linkCode/download", async (req: Request, res: Response) => {
     try {
