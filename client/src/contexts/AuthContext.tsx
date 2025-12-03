@@ -31,6 +31,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   enableEncryption: (password: string) => Promise<void>;
+  revalidateSession: () => Promise<boolean>;
   loading: boolean;
   error: string | null;
   hasEncryptionKey: boolean;
@@ -279,6 +280,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const revalidateSession = async (): Promise<boolean> => {
+    try {
+      const currentToken = token || getStoredToken();
+      const headers: HeadersInit = {};
+      if (currentToken) {
+        headers["Authorization"] = `Bearer ${currentToken}`;
+      }
+      
+      const response = await fetch("/api/auth/me", {
+        credentials: "include",
+        headers,
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        setIsLoggedIn(true);
+        
+        const storedKey = getStoredEncryptionKey();
+        setHasEncryptionKey(!!storedKey);
+        
+        console.log("[Auth] Session revalidated successfully");
+        return true;
+      } else {
+        console.log("[Auth] Session invalid, clearing auth state");
+        clearToken();
+        setToken(null);
+        setUser(null);
+        setIsLoggedIn(false);
+        return false;
+      }
+    } catch (err) {
+      console.error("[Auth] Error revalidating session:", err);
+      return false;
+    }
+  };
+
   const enableEncryption = async (password: string) => {
     if (!isEncryptionSupported()) {
       throw new Error("Encriptação não suportada neste browser");
@@ -327,6 +365,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout, 
       refreshUser,
       enableEncryption,
+      revalidateSession,
       loading, 
       error,
       hasEncryptionKey,
