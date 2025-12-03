@@ -623,6 +623,7 @@ fileRoutes.get('/:id/download-data', async (c) => {
       tipoMime: file.tipoMime,
       createdAt: file.createdAt,
       isEncrypted: file.isEncrypted || false,
+      encryptionVersion: file.encryptionVersion || 1,
       isOwner: isOwner,
       originalMimeType: file.originalMimeType || file.tipoMime,
       originalSize: file.originalSize || file.tamanho,

@@ -27,7 +27,11 @@ import {
   isEncryptionSupported,
   getStoredEncryptionKey,
   importKey,
-  exportKey
+  exportKey,
+  encryptBufferChunk,
+  decryptChunk,
+  ENCRYPTION_VERSION,
+  isChunkedEncryption
 } from "@/lib/encryption";
 import { apiFetch, getAuthToken } from "@/lib/api";
 
@@ -1637,14 +1641,14 @@ export default function Dashboard() {
     try {
       const encryptionKey = await getActiveEncryptionKey();
       
-      let fileToUpload: globalThis.File | Blob = file;
-      let originalSize = file.size;
-      let wasEncrypted = false;
-      
       // Ficheiros são SEMPRE encriptados antes de ir para o Telegram (segurança)
       // Exceto: pastas públicas (automático)
       const isInPublicFolder = folderPath.some(f => f.isPublic);
       const shouldSkipEncryption = isInPublicFolder;
+      
+      // NEW: Use V2 chunked encryption (encrypt each chunk individually)
+      const willEncrypt = !shouldSkipEncryption && encryptionKey && isEncryptionSupported();
+      const encryptionVersion = willEncrypt ? ENCRYPTION_VERSION.V2_PER_CHUNK : ENCRYPTION_VERSION.V1_FULL_FILE;
       
       if (isInPublicFolder && encryptionKey) {
         console.log(`[Upload] Skipping encryption for ${file.name} - in public folder`);
@@ -1653,19 +1657,6 @@ export default function Dashboard() {
       if (!shouldSkipEncryption && (!encryptionKey || !isEncryptionSupported())) {
         console.warn("Encryption key not available - file will be uploaded without encryption");
         toast.warning(`${file.name} será enviado SEM encriptação. Faça logout e login novamente para ativar a encriptação.`);
-      } else if (!shouldSkipEncryption && encryptionKey) {
-        setCurrentUploadFile(`A encriptar ${file.name}...`);
-        
-        if (uploadCancelledRef.current) {
-          return "cancelled";
-        }
-        
-        const encrypted = await encryptFile(file, encryptionKey);
-        fileToUpload = new Blob([encrypted.encryptedBuffer], { type: 'application/octet-stream' });
-        originalSize = encrypted.originalSize;
-        wasEncrypted = true;
-        
-        setCurrentUploadFile(`A enviar ${file.name}...`);
       }
       
       if (uploadCancelledRef.current) {
@@ -1674,25 +1665,26 @@ export default function Dashboard() {
       
       uploadStartTimeRef.current = Date.now();
       lastProgressRef.current = { time: Date.now(), loaded: 0 };
-      setCurrentFileSize(fileToUpload.size);
+      setCurrentFileSize(file.size);
       setUploadSpeed("");
       setUploadTimeRemaining("");
 
       // Use chunked upload for all files (ensures each request is under 30s timeout)
       setCurrentUploadFile(`A preparar upload de ${file.name}...`);
       
-      // Initialize upload session
+      // Initialize upload session with V2 encryption info
       const initResponse = await apiFetch("/api/files/init-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fileName: file.name,
-          fileSize: fileToUpload.size,
-          mimeType: wasEncrypted ? 'application/octet-stream' : file.type,
+          fileSize: file.size,
+          mimeType: willEncrypt ? 'application/octet-stream' : file.type,
           folderId,
-          isEncrypted: wasEncrypted,
+          isEncrypted: willEncrypt,
+          encryptionVersion: willEncrypt ? encryptionVersion : 1,
           originalMimeType: file.type,
-          originalSize,
+          originalSize: file.size,
         }),
       });
       
@@ -1703,28 +1695,37 @@ export default function Dashboard() {
       }
       
       const { sessionId, totalChunks, chunkSize } = await initResponse.json();
-      console.log(`[Chunked Upload] Session ${sessionId}: ${totalChunks} chunks of ${chunkSize} bytes`);
+      console.log(`[Chunked Upload V2] Session ${sessionId}: ${totalChunks} chunks of ${chunkSize} bytes, encrypted=${willEncrypt}`);
       
       if (uploadCancelledRef.current) {
-        // Cancel the session
         await apiFetch(`/api/files/upload-session/${sessionId}`, { method: "DELETE" });
         return "cancelled";
       }
       
-      // Upload chunks sequentially
+      // Upload chunks sequentially - encrypting each chunk individually (V2)
       setCurrentUploadFile(`A enviar ${file.name}...`);
       let allChunksUploaded = true;
       
       for (let i = 0; i < totalChunks; i++) {
         if (uploadCancelledRef.current) {
-          // Cancel the session
           await apiFetch(`/api/files/upload-session/${sessionId}`, { method: "DELETE" });
           return "cancelled";
         }
         
         const start = i * chunkSize;
-        const end = Math.min(start + chunkSize, fileToUpload.size);
-        const chunk = fileToUpload.slice(start, end);
+        const end = Math.min(start + chunkSize, file.size);
+        const chunkSlice = file.slice(start, end);
+        
+        // NEW V2: Encrypt each chunk individually (streaming encryption)
+        let chunkToUpload: Blob;
+        if (willEncrypt && encryptionKey) {
+          setCurrentUploadFile(`A encriptar e enviar ${file.name} (${i + 1}/${totalChunks})...`);
+          const chunkBuffer = await chunkSlice.arrayBuffer();
+          const encryptedChunk = await encryptBufferChunk(chunkBuffer, encryptionKey);
+          chunkToUpload = new Blob([encryptedChunk], { type: 'application/octet-stream' });
+        } else {
+          chunkToUpload = chunkSlice;
+        }
         
         // Reset progress tracking for each chunk
         lastProgressRef.current = { time: Date.now(), loaded: 0 };
@@ -1740,12 +1741,11 @@ export default function Dashboard() {
             return "cancelled";
           }
           
-          // Reset progress ref on retry as well
           if (retries > 0) {
             lastProgressRef.current = { time: Date.now(), loaded: 0 };
           }
           
-          const result = await uploadChunk(chunk, sessionId, i, totalChunks, file.name);
+          const result = await uploadChunk(chunkToUpload, sessionId, i, totalChunks, file.name);
           
           if (result.success) {
             chunkSuccess = true;
@@ -1753,7 +1753,7 @@ export default function Dashboard() {
             retries++;
             if (retries < maxRetries) {
               console.log(`[Chunked Upload] Retry ${retries}/${maxRetries} for chunk ${i + 1}/${totalChunks}`);
-              await new Promise(resolve => setTimeout(resolve, 1000 * retries)); // Exponential backoff
+              await new Promise(resolve => setTimeout(resolve, 1000 * retries));
             }
           }
         }
@@ -1762,7 +1762,6 @@ export default function Dashboard() {
           allChunksUploaded = false;
           console.error(`[Chunked Upload] Failed to upload chunk ${i + 1}/${totalChunks} after ${maxRetries} retries`);
           toast.error(`Erro ao enviar parte ${i + 1} de ${file.name}. Verifique a sua conexão.`);
-          // Cancel the session
           await apiFetch(`/api/files/upload-session/${sessionId}`, { method: "DELETE" });
           break;
         }
@@ -1806,8 +1805,8 @@ export default function Dashboard() {
         const fileData = await completeResponse.json();
         console.log(`[Complete Upload] Ficheiro criado com sucesso:`, fileData.id);
         
-        if (wasEncrypted) {
-          toast.success(`${file.name} enviado com sucesso (encriptado)`);
+        if (willEncrypt) {
+          toast.success(`${file.name} enviado com sucesso (encriptado V2)`);
         } else {
           toast.success(`${file.name} enviado com sucesso`);
         }
@@ -2129,13 +2128,17 @@ export default function Dashboard() {
     const MAX_ENCRYPTED_DESKTOP = 500 * 1024 * 1024;
     const maxEncryptedSize = isMobile ? MAX_ENCRYPTED_MOBILE : MAX_ENCRYPTED_DESKTOP;
     
-    if (data.isEncrypted && fileSize > maxEncryptedSize) {
+    // V2 encryption: No size limit (per-chunk decryption)
+    // V1 encryption: Has size limits (full-buffer decryption)
+    const isV2Encryption = data.isEncrypted && isChunkedEncryption(data.encryptionVersion);
+    
+    if (data.isEncrypted && !isV2Encryption && fileSize > maxEncryptedSize) {
       const sizeMB = Math.round(maxEncryptedSize / (1024 * 1024));
-      toast.error(`Ficheiros encriptados acima de ${sizeMB}MB não são suportados em ${isMobile ? 'telemóveis' : 'browsers sem streaming'}. Considere mover para uma pasta pública.`);
-      throw new Error("File too large for encrypted download");
+      toast.error(`Ficheiros encriptados (V1) acima de ${sizeMB}MB não são suportados. Ficheiros novos usam encriptação V2 sem limite.`);
+      throw new Error("File too large for V1 encrypted download");
     }
     
-    if (!hasFileSystemAccess() && fileSize > 500 * 1024 * 1024) {
+    if (!hasFileSystemAccess() && fileSize > 500 * 1024 * 1024 && !isV2Encryption) {
       toast.warning(`Download de ficheiro grande (${formatBytes(fileSize)}). Pode demorar e usar muita memória.`);
     }
     
@@ -2162,16 +2165,25 @@ export default function Dashboard() {
       
       let retries = 0;
       const maxRetries = 3;
-      let chunkBlob: Blob | null = null;
+      let processedChunk: Blob | null = null;
       
-      while (!chunkBlob && retries < maxRetries) {
+      while (!processedChunk && retries < maxRetries) {
         try {
           const chunkResponse = await apiFetch(`/api/files/${file.id}/chunk/${i}`);
           if (!chunkResponse.ok) {
             throw new Error(`HTTP ${chunkResponse.status}`);
           }
-          chunkBlob = await chunkResponse.blob();
-          downloadedBytes += chunkBlob.size;
+          
+          // V2: Decrypt each chunk individually (streaming)
+          if (isV2Encryption && encryptionKey) {
+            const encryptedChunk = await chunkResponse.arrayBuffer();
+            const decryptedChunk = await decryptChunk(encryptedChunk, encryptionKey);
+            processedChunk = new Blob([decryptedChunk]);
+            downloadedBytes += encryptedChunk.byteLength;
+          } else {
+            processedChunk = await chunkResponse.blob();
+            downloadedBytes += processedChunk.size;
+          }
         } catch (err) {
           retries++;
           if (retries >= maxRetries) {
@@ -2181,8 +2193,8 @@ export default function Dashboard() {
         }
       }
       
-      if (chunkBlob) {
-        chunkBlobs.push(chunkBlob);
+      if (processedChunk) {
+        chunkBlobs.push(processedChunk);
       }
     }
     
@@ -2190,7 +2202,8 @@ export default function Dashboard() {
     
     let finalBlob: Blob;
     
-    if (data.isEncrypted && encryptionKey) {
+    // V1: Decrypt combined blob (old method) - only for non-V2 encrypted files
+    if (data.isEncrypted && encryptionKey && !isV2Encryption) {
       toast.info("A desencriptar ficheiro grande...");
       setDownloadProgress({ fileId: file.id, progress: 93, fileName: file.nome });
       
@@ -2203,7 +2216,8 @@ export default function Dashboard() {
       const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
       finalBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
     } else {
-      finalBlob = new Blob(chunkBlobs, { type: chunksInfo.originalMimeType || file.tipoMime });
+      // V2 encrypted files or non-encrypted: chunks are already processed
+      finalBlob = new Blob(chunkBlobs, { type: data.originalMimeType || chunksInfo.originalMimeType || file.tipoMime });
       chunkBlobs.length = 0;
     }
     
@@ -2278,6 +2292,9 @@ export default function Dashboard() {
         const chunkBlobs: Blob[] = [];
         const totalChunks = chunksInfo.totalChunks;
         
+        // Check if using V2 encryption (per-chunk encryption)
+        const isV2Encryption = data.isEncrypted && isChunkedEncryption(data.encryptionVersion);
+        
         for (let i = 0; i < totalChunks; i++) {
           const progress = Math.round(((i) / totalChunks) * 90);
           setDownloadProgress({ fileId: file.id, progress, fileName: file.nome });
@@ -2287,19 +2304,27 @@ export default function Dashboard() {
             throw new Error(`Erro ao baixar chunk ${i + 1}/${totalChunks}`);
           }
           
-          chunkBlobs.push(await chunkResponse.blob());
+          // V2: Decrypt each chunk individually (streaming decryption)
+          if (isV2Encryption && encryptionKey) {
+            const encryptedChunk = await chunkResponse.arrayBuffer();
+            const decryptedChunk = await decryptChunk(encryptedChunk, encryptionKey);
+            chunkBlobs.push(new Blob([decryptedChunk]));
+          } else {
+            chunkBlobs.push(await chunkResponse.blob());
+          }
         }
         
         setDownloadProgress({ fileId: file.id, progress: 92, fileName: file.nome });
         
-        if (data.isEncrypted && encryptionKey) {
+        // V1: Decrypt combined blob (old method)
+        if (data.isEncrypted && encryptionKey && !isV2Encryption) {
           toast.info("A desencriptar ficheiro...");
           const combinedBlob = new Blob(chunkBlobs);
           const encryptedBuffer = await combinedBlob.arrayBuffer();
           const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
           fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
         } else {
-          fileBlob = new Blob(chunkBlobs, { type: chunksInfo.originalMimeType || file.tipoMime });
+          fileBlob = new Blob(chunkBlobs, { type: data.originalMimeType || chunksInfo.originalMimeType || file.tipoMime });
         }
       } else {
         setDownloadProgress({ fileId: file.id, progress: 30, fileName: file.nome });

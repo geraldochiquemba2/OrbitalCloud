@@ -149,6 +149,7 @@ sharedContentRoutes.get('/files/:id/download-data', async (c) => {
     
     return c.json({
       isEncrypted: file.isEncrypted || false,
+      encryptionVersion: file.encryptionVersion || 1,
       isOwner: isOwner,
       originalMimeType: file.originalMimeType || file.tipoMime,
       downloadUrl: `/api/files/${fileId}/download`,

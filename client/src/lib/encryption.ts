@@ -250,3 +250,180 @@ export async function getActiveEncryptionKey(): Promise<CryptoKey | null> {
     return null;
   }
 }
+
+// ============================================================
+// CHUNKED ENCRYPTION (V2) - Streaming without memory limits
+// ============================================================
+
+/**
+ * Encryption version constants
+ */
+export const ENCRYPTION_VERSION = {
+  V1_FULL_FILE: 1,  // Original: encrypt entire file, then chunk
+  V2_PER_CHUNK: 2,  // New: encrypt each chunk individually (streaming)
+} as const;
+
+/**
+ * Default chunk size for encryption (5MB chunks)
+ * Each chunk is encrypted independently with its own IV
+ */
+export const ENCRYPTION_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+
+/**
+ * Chunk header size: 4 bytes for original size + 12 bytes for IV
+ */
+const CHUNK_HEADER_SIZE = 4 + IV_LENGTH;
+
+/**
+ * Encrypt a single chunk with its own IV
+ * Format: [4 bytes: original size][12 bytes: IV][encrypted data + auth tag]
+ */
+export async function encryptChunk(chunk: ArrayBuffer, key: CryptoKey): Promise<ArrayBuffer> {
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: ALGORITHM, iv: iv },
+    key,
+    chunk
+  );
+  
+  // Create result: [4 bytes original size][12 bytes IV][encrypted data]
+  const originalSize = chunk.byteLength;
+  const result = new Uint8Array(CHUNK_HEADER_SIZE + encryptedData.byteLength);
+  
+  // Write original chunk size (4 bytes, big-endian)
+  const sizeView = new DataView(result.buffer);
+  sizeView.setUint32(0, originalSize, false);
+  
+  // Write IV
+  result.set(iv, 4);
+  
+  // Write encrypted data
+  result.set(new Uint8Array(encryptedData), CHUNK_HEADER_SIZE);
+  
+  return result.buffer;
+}
+
+/**
+ * Decrypt a single encrypted chunk
+ * Reads the header to extract original size and IV, then decrypts
+ */
+export async function decryptChunk(encryptedChunk: ArrayBuffer, key: CryptoKey): Promise<ArrayBuffer> {
+  const data = new Uint8Array(encryptedChunk);
+  
+  // Read original size (for verification)
+  const sizeView = new DataView(encryptedChunk);
+  const originalSize = sizeView.getUint32(0, false);
+  
+  // Extract IV
+  const iv = data.slice(4, CHUNK_HEADER_SIZE);
+  
+  // Extract encrypted data
+  const encryptedData = data.slice(CHUNK_HEADER_SIZE);
+  
+  const decrypted = await crypto.subtle.decrypt(
+    { name: ALGORITHM, iv: iv },
+    key,
+    encryptedData
+  );
+  
+  // Verify size matches
+  if (decrypted.byteLength !== originalSize) {
+    console.warn(`Decrypted size (${decrypted.byteLength}) doesn't match expected (${originalSize})`);
+  }
+  
+  return decrypted;
+}
+
+/**
+ * Generator that yields encrypted chunks from a file
+ * Use this for memory-efficient upload of large files
+ */
+export async function* encryptFileChunked(
+  file: File, 
+  key: CryptoKey,
+  chunkSize: number = ENCRYPTION_CHUNK_SIZE
+): AsyncGenerator<{ chunk: ArrayBuffer; index: number; total: number; originalSize: number }> {
+  const totalChunks = Math.ceil(file.size / chunkSize);
+  
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize, file.size);
+    const slice = file.slice(start, end);
+    const buffer = await slice.arrayBuffer();
+    
+    const encryptedChunk = await encryptChunk(buffer, key);
+    
+    yield {
+      chunk: encryptedChunk,
+      index: i,
+      total: totalChunks,
+      originalSize: buffer.byteLength
+    };
+  }
+}
+
+/**
+ * Encrypt a single buffer chunk (for use with already-sliced data)
+ * Returns the encrypted chunk with header
+ */
+export async function encryptBufferChunk(buffer: ArrayBuffer, key: CryptoKey): Promise<ArrayBuffer> {
+  return encryptChunk(buffer, key);
+}
+
+/**
+ * Check if a file uses V2 (chunked) encryption
+ */
+export function isChunkedEncryption(encryptionVersion: number | undefined): boolean {
+  return encryptionVersion === ENCRYPTION_VERSION.V2_PER_CHUNK;
+}
+
+/**
+ * Streaming decryption helper that processes chunks one at a time
+ * Use this for memory-efficient download of large encrypted files
+ */
+export async function* decryptChunksStreaming(
+  chunks: AsyncIterable<ArrayBuffer>,
+  key: CryptoKey
+): AsyncGenerator<ArrayBuffer> {
+  for await (const encryptedChunk of chunks) {
+    const decrypted = await decryptChunk(encryptedChunk, key);
+    yield decrypted;
+  }
+}
+
+/**
+ * Create a Blob from streaming decrypted chunks
+ * Memory-efficient: only holds current chunk in memory
+ */
+export async function createBlobFromDecryptedStream(
+  chunks: AsyncIterable<ArrayBuffer>,
+  key: CryptoKey,
+  mimeType: string
+): Promise<Blob> {
+  const parts: ArrayBuffer[] = [];
+  
+  for await (const chunk of decryptChunksStreaming(chunks, key)) {
+    parts.push(chunk);
+  }
+  
+  return new Blob(parts, { type: mimeType });
+}
+
+/**
+ * Stream decrypted content directly to a WritableStream
+ * Best option for browsers that support File System Access API (Chrome/Edge)
+ */
+export async function streamDecryptToWriter(
+  chunks: AsyncIterable<ArrayBuffer>,
+  key: CryptoKey,
+  writer: WritableStreamDefaultWriter<Uint8Array>
+): Promise<void> {
+  try {
+    for await (const chunk of decryptChunksStreaming(chunks, key)) {
+      await writer.write(new Uint8Array(chunk));
+    }
+  } finally {
+    await writer.close();
+  }
+}

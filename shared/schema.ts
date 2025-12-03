@@ -56,6 +56,7 @@ export const files = pgTable("files", {
   deletedAt: timestamp("deleted_at"),
   sharedLinkId: varchar("shared_link_id"),
   isEncrypted: boolean("is_encrypted").notNull().default(false),
+  encryptionVersion: integer("encryption_version").notNull().default(1),
   originalMimeType: text("original_mime_type"),
   originalSize: bigint("original_size", { mode: "number" }),
   isChunked: boolean("is_chunked").notNull().default(false),
@@ -155,6 +156,7 @@ export const uploadSessions = pgTable("upload_sessions", {
   uploadedChunks: integer("uploaded_chunks").notNull().default(0),
   folderId: varchar("folder_id").references(() => folders.id, { onDelete: "set null" }),
   isEncrypted: boolean("is_encrypted").notNull().default(false),
+  encryptionVersion: integer("encryption_version").notNull().default(1),
   originalMimeType: text("original_mime_type"),
   originalSize: bigint("original_size", { mode: "number" }),
   status: text("status").notNull().default("pending"),
@@ -288,6 +290,7 @@ export const insertFileSchema = createInsertSchema(files).omit({
   sharedLinkId: true,
 }).extend({
   isEncrypted: z.boolean().optional(),
+  encryptionVersion: z.number().optional(),
   originalMimeType: z.string().optional(),
   originalSize: z.number().optional(),
 });

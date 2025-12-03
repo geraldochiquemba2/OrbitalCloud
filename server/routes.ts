@@ -647,6 +647,7 @@ export async function registerRoutes(
         mimeType: z.string(),
         folderId: z.string().nullable().optional(),
         isEncrypted: z.boolean().optional(),
+        encryptionVersion: z.number().optional(), // 1 = V1 (full file), 2 = V2 (per-chunk)
         originalMimeType: z.string().optional(),
         originalSize: z.number().optional(),
       });
@@ -728,6 +729,9 @@ export async function registerRoutes(
 
       // Create upload session
       const expiresAt = new Date(Date.now() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000);
+      const isEncrypted = isFolderPublic ? false : (data.isEncrypted || false);
+      const encryptionVersion = isEncrypted ? (data.encryptionVersion || 1) : 1;
+      
       const session = await storage.createUploadSession({
         userId: user.id,
         fileName: data.fileName,
@@ -735,7 +739,8 @@ export async function registerRoutes(
         mimeType: data.mimeType,
         totalChunks,
         folderId: data.folderId || null,
-        isEncrypted: isFolderPublic ? false : (data.isEncrypted || false),
+        isEncrypted,
+        encryptionVersion,
         originalMimeType: data.originalMimeType,
         originalSize: data.originalSize,
         expiresAt,
@@ -897,6 +902,7 @@ export async function registerRoutes(
         telegramFileId: sortedChunks[0].telegramFileId,
         telegramBotId: sortedChunks[0].telegramBotId,
         isEncrypted: session.isEncrypted,
+        encryptionVersion: session.encryptionVersion || 1,
         originalMimeType: session.originalMimeType ?? undefined,
         originalSize: session.originalSize ?? undefined,
         isChunked,
@@ -2634,6 +2640,7 @@ export async function registerRoutes(
           totalChunks: file.totalChunks,
           chunks: chunkUrls,
           isEncrypted: file.isEncrypted || false,
+          encryptionVersion: file.encryptionVersion || 1,
           isOwner,
           sharedEncryptionKey,
           originalMimeType: file.originalMimeType || file.tipoMime,
@@ -2657,6 +2664,7 @@ export async function registerRoutes(
           isChunked: false,
           downloadUrl,
           isEncrypted: file.isEncrypted || false,
+          encryptionVersion: file.encryptionVersion || 1,
           isOwner,
           sharedEncryptionKey,
           originalMimeType: file.originalMimeType || file.tipoMime,

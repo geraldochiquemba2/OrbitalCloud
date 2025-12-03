@@ -391,6 +391,7 @@ shareRoutes.post('/:linkCode/download-data', async (c) => {
       tipoMime: file.tipoMime,
       createdAt: file.createdAt,
       isEncrypted: file.isEncrypted || false,
+      encryptionVersion: file.encryptionVersion || 1,
       isOwner: false,
       originalMimeType: file.originalMimeType || file.tipoMime,
       originalSize: file.originalSize || file.tamanho,
