@@ -175,11 +175,27 @@ export default function Home() {
         </div>
       </section>
       {/* Features Grid */}
-      <section id="features" className="py-24 px-6 md:px-12 relative overflow-hidden" style={{
-        backgroundImage: 'url(/features-bg.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}>
+      <section id="features" className="py-24 px-6 md:px-12 relative overflow-hidden">
+        {/* Background with fallback gradient for mobile */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+          style={{ zIndex: 0 }}
+        />
+        {/* Background image - lazy loaded with better mobile handling */}
+        <div 
+          className="absolute inset-0 hidden md:block"
+          style={{
+            backgroundImage: 'url(/features-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            zIndex: 1
+          }}
+        />
+        {/* Overlay for better text readability */}
+        <div 
+          className="absolute inset-0 bg-black/30 md:bg-black/20"
+          style={{ zIndex: 2 }}
+        />
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Tecnologia de Ponta</h2>
