@@ -1742,7 +1742,7 @@ export default function Dashboard() {
       
       xhr.open("POST", "/api/files/upload-chunk");
       xhr.withCredentials = true;
-      xhr.timeout = 25000; // 25 second timeout per chunk (under Cloudflare's 30s limit)
+      xhr.timeout = 120000; // 2 minute timeout per chunk (aligned with Cloudflare Worker)
       
       const token = getAuthToken();
       if (token) {
@@ -1794,7 +1794,7 @@ export default function Dashboard() {
       setUploadSpeed("");
       setUploadTimeRemaining("");
 
-      // Use chunked upload for all files (ensures each request is under 30s timeout)
+      // Use chunked upload for all files (each chunk has 2 minute timeout)
       setCurrentUploadFile(`A preparar upload de ${file.name}...`);
       
       // Initialize upload session with V2 encryption info
