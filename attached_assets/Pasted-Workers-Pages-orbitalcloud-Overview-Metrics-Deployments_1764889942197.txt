@@ -1,0 +1,144 @@
+Workers & Pages
+orbitalcloud
+Overview
+Metrics
+Deployments
+Bindings
+Observability
+Settings
+orbitalcloud.orbt.workers.dev
+Enable logging for Cloudflare Workers and update configuration Enable Workers Logs and configure observability settings within wrangler.jsonc. Replit-Commit-Author: Agent Replit-Commit-Session-Id: f70474be-15a9-48b6-9638-7cdabe270731 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 739e8e4e-06cf-468b-8d91-b690b607d20e Replit-Commit-Screenshot-Url: https://st
+geraldochiquemba2/OrbitalCloud
+by fdfdsfsdfsdfsdf
+4 minutes ago
+Metrics
+Last 24 hours
+
+Requests
+14k
+496.24%
+
+Errors
+0
+
+CPU Time
+2.14
+ms
+24.02%
+Bindings
+orbitalcloud
+
+Assets
+
+ASSETS
+
+
+Binding
+
+Add binding
+
+Versions
+ccd317e1
+
+
+Enable logging for Cloudflare Workers and update configuration Enable Workers Logs and configure observability settings within wrangler.jsonc. Replit-Commit-Author: Agent Replit-Commit-Session-Id: f70474be-15a9-48b6-9638-7cdabe270731 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 739e8e4e-06cf-468b-8d91-b690b607d20e Replit-Commit-Screenshot-Url: https://st
+main
+by fdfdsfsdfsdfsdf
+4m ago
+94348b80
+
+Updated variable: DATABASE_URL
+Dashboard
+
+by geraldochiquemba
+6m ago
+ff5e1abe
+
+
+Update database connection settings for production environment Modify the DATABASE_URL environment variable in the Cloudflare Worker configuration to point to the Supabase database instead of the deprecated Neon database. Replit-Commit-Author: Agent Replit-Commit-Session-Id: f70474be-15a9-48b6-9638-7cdabe270731 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id
+main
+by fdfdsfsdfsdfsdf
+22m ago
+9c444d16
+
+Updated variable: DATABASE_URL
+Dashboard
+
+by geraldochiquemba
+25m ago
+255b03a9
+
+Atualizar código e correções
+main
+by geraldochiquemba2
+12h ago
+806d41f7
+
+
+Increase file upload timeout to improve stability Update client-side upload timeout to 120 seconds, aligning with the Cloudflare Worker's timeout and improving stability for large file uploads. Replit-Commit-Author: Agent Replit-Commit-Session-Id: fa97d133-17dd-4b33-b9dc-b8ce08de1864 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 88645d03-a533-41aa-881d-35
+main
+by dfdsfsdfsdfsdff
+13h ago
+21bdb853
+
+
+Increase file upload timeout to allow for larger files Increase the Cloudflare Worker timeout for file uploads from 25 seconds to 120 seconds to accommodate larger files and provide a more informative error message on timeout. Replit-Commit-Author: Agent Replit-Commit-Session-Id: fa97d133-17dd-4b33-b9dc-b8ce08de1864 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Eve
+main
+by dfdsfsdfsdfsdff
+14h ago
+65bb4b96
+
+
+Update file upload process to handle encryption version correctly Fixes an issue where the encryptionVersion was not being correctly passed or stored during file uploads and in the chunks-info endpoint, ensuring proper handling of encrypted files (v2). Replit-Commit-Author: Agent Replit-Commit-Session-Id: fa97d133-17dd-4b33-b9dc-b8ce08de1864 Replit-Commit-Checkpoint-Type: full_ch
+main
+by dfdsfsdfsdfsdff
+15h ago
+8459a325
+
+
+Update project documentation with technical details about frontend and backend architecture Update replit.md to detail frontend technologies (React, TypeScript, Vite, TailwindCSS, Shadcn/ui, Framer Motion, AES-256-GCM encryption) and backend architecture (Express.js, Node.js, Passport.js, Telegram Bot API storage). Replit-Commit-Author: Agent Replit-Commit-Session-Id: d001b3a8-94
+main
+by uytytuytyutuyty
+15h ago
+abc7c504
+
+
+Saved progress at the end of the loop Replit-Commit-Author: Agent Replit-Commit-Session-Id: 593ea406-3cd9-4396-a8c2-45068a51e573 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 662cdf56-02fb-4844-aae1-e925e6826aa7 Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/e3fc6db6-d8f0-4991-ac71-378aa3b54422/593ea406-3cd9-
+main
+by fhgfhfghfghfhfh
+15h ago
+Domains & Routes
+workers.dev
+orbitalcloud.orbt.workers.dev
+
+Preview URLs
+*-orbitalcloud.orbt.workers.dev
+
+Custom domains
+—
+
+Routes
+—
+
+Next steps
+Connect a custom domain
+
+Use your own domain to serve your worker for a professional appearance.
+
+Enable observability
+
+Monitor your worker's performance with logs and tracing.
+
+Store your data
+
+Connect KV, D1, or R2 storage to persist data across requests.
+
+
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2025 Cloudflare, Inc.
