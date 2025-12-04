@@ -256,8 +256,10 @@ publicFolderRoutes.get('/file/:fileId/preview', async (c) => {
         'Cross-Origin-Resource-Policy': 'cross-origin',
         'Content-Type': mimeType,
         'Content-Length': file.tamanho.toString(),
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600, must-revalidate',
         'Content-Disposition': `inline; filename="${encodeURIComponent(file.nome)}"`,
+        'ETag': `"${file.id}-${file.tamanho}"`,
+        'Vary': 'Accept-Encoding'
       }
     });
   } catch (error) {
@@ -319,7 +321,9 @@ publicFolderRoutes.get('/file/:fileId/stream', async (c) => {
         'Cross-Origin-Resource-Policy': 'cross-origin',
         'Content-Type': mimeType,
         'Content-Length': file.tamanho.toString(),
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600, must-revalidate',
+        'ETag': `"${file.id}-${file.tamanho}"`,
+        'Vary': 'Accept-Encoding'
       }
     });
   } catch (error) {
@@ -378,7 +382,9 @@ publicFolderRoutes.get('/file/:fileId/content', async (c) => {
         'Cross-Origin-Resource-Policy': 'cross-origin',
         'Content-Type': 'application/octet-stream',
         'Content-Length': file.tamanho.toString(),
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600, must-revalidate',
+        'ETag': `"${file.id}-${file.tamanho}"`,
+        'Vary': 'Accept-Encoding'
       }
     });
   } catch (error) {

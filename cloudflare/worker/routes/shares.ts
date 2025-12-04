@@ -538,7 +538,11 @@ shareRoutes.get('/:linkCode/stream', async (c) => {
       headers: {
         'Content-Type': file.originalMimeType || file.tipoMime,
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=3600'
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600, must-revalidate',
+        'ETag': `"${file.id}-${file.tamanho}"`,
+        'Vary': 'Accept-Encoding'
       }
     });
   } catch (error) {
@@ -581,8 +585,10 @@ shareRoutes.get('/:linkCode/preview', async (c) => {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Cross-Origin-Resource-Policy': 'cross-origin',
-        'Cache-Control': 'public, max-age=3600',
-        'Content-Disposition': `inline; filename="${encodeURIComponent(file.nome)}"`
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600, must-revalidate',
+        'Content-Disposition': `inline; filename="${encodeURIComponent(file.nome)}"`,
+        'ETag': `"${file.id}-${file.tamanho}"`,
+        'Vary': 'Accept-Encoding'
       }
     });
   } catch (error) {

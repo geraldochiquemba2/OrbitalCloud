@@ -277,7 +277,18 @@ export default function Dashboard() {
         return;
       }
       
-      setFileThumbnails({});
+      setFileThumbnails(prev => {
+        Object.values(prev).forEach(url => {
+          if (url && url.startsWith('blob:')) {
+            try {
+              URL.revokeObjectURL(url);
+            } catch (e) {
+              console.warn("Failed to revoke blob URL during visibility refresh:", e);
+            }
+          }
+        });
+        return {};
+      });
       setLoadingThumbnails(new Set());
       setFailedThumbnails(new Set());
       thumbnailQueueRef.current = [];
@@ -1224,6 +1235,43 @@ export default function Dashboard() {
     thumbnailQueueRef.current.push({ id: fileId, mimeType });
     processQueue();
   }, [fileThumbnails, processQueue]);
+
+  const handleThumbnailError = useCallback((fileId: string, mimeType: string) => {
+    setFileThumbnails(prev => {
+      const currentUrl = prev[fileId];
+      if (currentUrl && currentUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(currentUrl);
+        } catch (e) {
+          console.warn("Failed to revoke blob URL:", e);
+        }
+      }
+      const next = { ...prev };
+      delete next[fileId];
+      return next;
+    });
+    
+    setFailedThumbnails(prev => {
+      if (prev.has(fileId)) {
+        return prev;
+      }
+      
+      const next = new Set(prev);
+      next.add(fileId);
+      
+      setTimeout(() => {
+        setFailedThumbnails(p => {
+          const updated = new Set(p);
+          updated.delete(fileId);
+          return updated;
+        });
+        thumbnailQueueRef.current.push({ id: fileId, mimeType });
+        processQueue();
+      }, 2000);
+      
+      return next;
+    });
+  }, [processQueue]);
 
   useEffect(() => {
     const mediaFiles = files.filter(isMediaFile);
@@ -3515,12 +3563,14 @@ export default function Dashboard() {
                                   className="aspect-square flex items-center justify-center bg-black/20 overflow-hidden cursor-pointer"
                                   onClick={() => openPreview(file)}
                                 >
-                                  {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
+                                  {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" && !failedThumbnails.has(file.id) ? (
                                     <img 
                                       src={fileThumbnails[file.id]} 
                                       alt={file.nome}
                                       className="w-full h-full object-cover"
                                       loading="lazy"
+                                      decoding="async"
+                                      onError={() => handleThumbnailError(file.id, getEffectiveMimeType(file))}
                                     />
                                   ) : getEffectiveMimeType(file).startsWith("video/") ? (
                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50 relative">
@@ -3604,13 +3654,15 @@ export default function Dashboard() {
                             onClick={() => !file.isEncrypted && openPreview(file)}
                             title={file.isEncrypted ? "Ficheiro encriptado - não pode ser visualizado" : "Clique para ver"}
                           >
-                            {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
+                            {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" && !failedThumbnails.has(file.id) ? (
                               <div className="w-full h-full relative">
                                 <img 
                                   src={fileThumbnails[file.id]} 
                                   alt={file.nome}
                                   className="w-full h-full object-cover"
                                   loading="lazy"
+                                  decoding="async"
+                                  onError={() => handleThumbnailError(file.id, getEffectiveMimeType(file))}
                                 />
                                 {file.isEncrypted && (
                                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -3756,9 +3808,7 @@ export default function Dashboard() {
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                     decoding="async"
-                                    onError={() => {
-                                      setFailedThumbnails(prev => new Set(prev).add(file.id));
-                                    }}
+                                    onError={() => handleThumbnailError(file.id, getEffectiveMimeType(file))}
                                   />
                                 ) : getEffectiveMimeType(file).startsWith("video/") ? (
                                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-slate-900/50">

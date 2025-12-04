@@ -56,10 +56,55 @@ export default function PublicFolderPage() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(new Set());
+  const [failedThumbnails, setFailedThumbnails] = useState<Set<string>>(new Set());
+  const thumbnailsRef = useRef<Record<string, string>>({});
   const thumbnailQueueRef = useRef<PublicFile[]>([]);
   const isProcessingRef = useRef(false);
   const videoThumbnailQueueRef = useRef<PublicFile[]>([]);
   const isProcessingVideoRef = useRef(false);
+
+  useEffect(() => {
+    thumbnailsRef.current = thumbnails;
+  }, [thumbnails]);
+
+  const handleThumbnailError = useCallback((file: PublicFile) => {
+    setThumbnails(prev => {
+      const currentUrl = prev[file.id];
+      if (currentUrl && currentUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(currentUrl);
+        } catch (e) {
+          console.warn("Failed to revoke blob URL:", e);
+        }
+      }
+      const next = { ...prev };
+      delete next[file.id];
+      return next;
+    });
+    
+    setFailedThumbnails(prev => {
+      if (prev.has(file.id)) {
+        return prev;
+      }
+      
+      const next = new Set(prev);
+      next.add(file.id);
+      
+      setTimeout(() => {
+        setFailedThumbnails(p => {
+          const updated = new Set(p);
+          updated.delete(file.id);
+          return updated;
+        });
+        thumbnailQueueRef.current.push(file);
+        if (!isProcessingRef.current) {
+          processNextThumbnail();
+        }
+      }, 2000);
+      
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (slug) {
@@ -200,7 +245,7 @@ export default function PublicFolderPage() {
     isProcessingVideoRef.current = true;
     const file = videoThumbnailQueueRef.current.shift();
     
-    if (file && !thumbnails[file.id]) {
+    if (file && !thumbnailsRef.current[file.id]) {
       setLoadingThumbnails(prev => new Set(prev).add(file.id));
       try {
         if (file.isEncrypted) {
@@ -247,7 +292,7 @@ export default function PublicFolderPage() {
     if (videoThumbnailQueueRef.current.length > 0) {
       setTimeout(processNextVideoThumbnail, 200);
     }
-  }, [thumbnails, generateVideoThumbnail]);
+  }, [generateVideoThumbnail]);
 
   const processNextThumbnail = useCallback(async () => {
     if (isProcessingRef.current || thumbnailQueueRef.current.length === 0) return;
@@ -255,7 +300,7 @@ export default function PublicFolderPage() {
     isProcessingRef.current = true;
     const file = thumbnailQueueRef.current.shift();
     
-    if (file && !thumbnails[file.id]) {
+    if (file && !thumbnailsRef.current[file.id]) {
       try {
         if (file.isEncrypted) {
           const encryptionKey = await getActiveEncryptionKey();
@@ -300,7 +345,7 @@ export default function PublicFolderPage() {
     if (thumbnailQueueRef.current.length > 0) {
       setTimeout(processNextThumbnail, 100);
     }
-  }, [thumbnails]);
+  }, []);
 
   const fetchFolderData = async () => {
     setLoading(true);
@@ -594,20 +639,24 @@ export default function PublicFolderPage() {
                             <Lock className="w-10 h-10 text-yellow-400/70" />
                             <span className="text-white/50 text-xs">Encriptado</span>
                           </div>
-                        ) : isImage && thumbnail && thumbnail !== "encrypted" ? (
+                        ) : isImage && thumbnail && thumbnail !== "encrypted" && !failedThumbnails.has(file.id) ? (
                           <img 
                             src={thumbnail} 
                             alt={file.nome}
                             className="w-full h-full object-cover"
                             loading="lazy"
+                            decoding="async"
+                            onError={() => handleThumbnailError(file)}
                           />
-                        ) : isVideo && thumbnail && thumbnail !== "video_error" && thumbnail !== "encrypted" ? (
+                        ) : isVideo && thumbnail && thumbnail !== "video_error" && thumbnail !== "encrypted" && !failedThumbnails.has(file.id) ? (
                           <div className="relative w-full h-full">
                             <img 
                               src={thumbnail} 
                               alt={file.nome}
                               className="w-full h-full object-cover"
                               loading="lazy"
+                              decoding="async"
+                              onError={() => handleThumbnailError(file)}
                             />
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20">
