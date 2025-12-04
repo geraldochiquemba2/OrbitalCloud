@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
 import { TelegramService } from '../services/telegram';
-import { files, users, folders, fileChunks, filePermissions, folderPermissions, uploadSessions, uploadChunks } from '../../../shared/schema';
+import { files, users, folders, fileChunks, filePermissions, folderPermissions, uploadSessions, uploadChunks, File, User, Folder, FileChunk, FilePermission, FolderPermission, UploadSession, UploadChunk } from '../schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
 type Database = ReturnType<typeof createDb>;

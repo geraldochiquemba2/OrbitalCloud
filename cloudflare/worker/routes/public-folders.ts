@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { Env } from '../index';
 import { TelegramService } from '../services/telegram';
 import { createDb } from '../db';
-import { files, folders, users } from '../../../shared/schema';
+import { files, folders, users, File, Folder, User } from '../schema';
 import { eq, and, desc } from 'drizzle-orm';
 
 export const publicFolderRoutes = new Hono<{ Bindings: Env }>();

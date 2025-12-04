@@ -12,7 +12,7 @@
 import { Hono } from 'hono';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
-import { users, files, PLANS } from '../../../shared/schema';
+import { users, files, PLANS, User, File } from '../schema';
 import { eq, sql } from 'drizzle-orm';
 import { TelegramService } from '../services/telegram';
 

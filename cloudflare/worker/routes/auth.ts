@@ -10,7 +10,7 @@ import { z } from 'zod';
 import bcryptModule from 'bcryptjs';
 import { createDb } from '../db';
 import { createToken, authMiddleware, JWTPayload } from '../middleware/auth';
-import { users } from '../../../shared/schema';
+import { users, User } from '../schema';
 import { eq } from 'drizzle-orm';
 
 const bcrypt = (bcryptModule as any).default || bcryptModule;
@@ -79,7 +79,8 @@ function isBcryptHash(hash: string): boolean {
 
 async function verifyBcryptHash(password: string, hash: string): Promise<boolean> {
   try {
-    return await bcrypt.compare(password, hash);
+    const result = bcrypt.compareSync(password, hash);
+    return result;
   } catch (error) {
     console.error('Bcrypt verification error:', error);
     return false;
@@ -99,6 +100,7 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
     return verifyBcryptHash(password, storedHash);
   }
   
+  console.error('Unknown hash format:', storedHash.substring(0, 10));
   return false;
 }
 
@@ -122,7 +124,8 @@ authRoutes.post('/register', async (c) => {
 
     const db = createDb(c.env.DATABASE_URL);
     
-    const [existingUser] = await db.select().from(users).where(eq(users.email, email));
+    const existingUsers = await db.select().from(users).where(eq(users.email, email));
+    const existingUser = existingUsers[0];
     if (existingUser) {
       return c.json({ message: 'Email já está em uso' }, 400);
     }
@@ -130,13 +133,15 @@ authRoutes.post('/register', async (c) => {
     const salt = encryptionSalt || generateSalt();
     const hashedPassword = await hashPassword(password);
     
-    const [user] = await db.insert(users).values({
+    const insertedUsers = await db.insert(users).values({
       email,
       passwordHash: hashedPassword,
       nome,
       plano: 'gratis',
       encryptionSalt: salt,
     }).returning();
+    
+    const user = insertedUsers[0] as User;
 
     const token = await createToken({
       id: user.id,
@@ -170,7 +175,7 @@ authRoutes.post('/register', async (c) => {
       return c.json({ message: 'Dados inválidos', errors: error.errors }, 400);
     }
     console.error('Register error:', error);
-    return c.json({ message: 'Erro ao criar conta' }, 500);
+    return c.json({ message: 'Erro ao criar conta', error: String(error) }, 500);
   }
 });
 
@@ -184,17 +189,27 @@ authRoutes.post('/login', async (c) => {
     const body = await c.req.json();
     const { email, password } = schema.parse(body);
 
+    console.log('Login attempt for:', email);
+
     const db = createDb(c.env.DATABASE_URL);
     
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const foundUsers = await db.select().from(users).where(eq(users.email, email));
+    const user = foundUsers[0] as User | undefined;
+    
     if (!user) {
+      console.log('User not found:', email);
       return c.json({ message: 'Email ou senha incorretos' }, 401);
     }
 
+    console.log('User found, verifying password. Hash type:', user.passwordHash.substring(0, 10));
+
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
+      console.log('Password verification failed for:', email);
       return c.json({ message: 'Email ou senha incorretos' }, 401);
     }
+
+    console.log('Password verified, creating token');
 
     const token = await createToken({
       id: user.id,
@@ -207,6 +222,8 @@ authRoutes.post('/login', async (c) => {
       uploadLimit: user.uploadLimit,
       isAdmin: user.isAdmin,
     }, c.env.JWT_SECRET);
+
+    console.log('Login successful for:', email);
 
     return c.json({
       token,
@@ -228,7 +245,7 @@ authRoutes.post('/login', async (c) => {
       return c.json({ message: 'Dados inválidos', errors: error.errors }, 400);
     }
     console.error('Login error:', error);
-    return c.json({ message: 'Erro ao fazer login' }, 500);
+    return c.json({ message: 'Erro ao fazer login', error: String(error) }, 500);
   }
 });
 
@@ -237,10 +254,11 @@ authRoutes.post('/logout', (c) => {
 });
 
 authRoutes.get('/me', authMiddleware, async (c) => {
-  const user = c.get('user') as JWTPayload;
+  const userPayload = c.get('user') as JWTPayload;
   
   const db = createDb(c.env.DATABASE_URL);
-  const [fullUser] = await db.select().from(users).where(eq(users.id, user.id));
+  const foundUsers = await db.select().from(users).where(eq(users.id, userPayload.id));
+  const fullUser = foundUsers[0] as User | undefined;
   
   if (!fullUser) {
     return c.json({ message: 'Utilizador não encontrado' }, 404);
@@ -262,10 +280,11 @@ authRoutes.get('/me', authMiddleware, async (c) => {
 
 authRoutes.post('/refresh', authMiddleware, async (c) => {
   try {
-    const user = c.get('user') as JWTPayload;
+    const userPayload = c.get('user') as JWTPayload;
     
     const db = createDb(c.env.DATABASE_URL);
-    const [fullUser] = await db.select().from(users).where(eq(users.id, user.id));
+    const foundUsers = await db.select().from(users).where(eq(users.id, userPayload.id));
+    const fullUser = foundUsers[0] as User | undefined;
     
     if (!fullUser) {
       return c.json({ message: 'Utilizador não encontrado' }, 404);
@@ -306,7 +325,7 @@ authRoutes.post('/refresh', authMiddleware, async (c) => {
 
 authRoutes.post('/enable-encryption', authMiddleware, async (c) => {
   try {
-    const user = c.get('user') as JWTPayload;
+    const userPayload = c.get('user') as JWTPayload;
     const { encryptionSalt, password } = await c.req.json();
     
     if (!encryptionSalt || typeof encryptionSalt !== 'string') {
@@ -318,7 +337,8 @@ authRoutes.post('/enable-encryption', authMiddleware, async (c) => {
     }
     
     const db = createDb(c.env.DATABASE_URL);
-    const [fullUser] = await db.select().from(users).where(eq(users.id, user.id));
+    const foundUsers = await db.select().from(users).where(eq(users.id, userPayload.id));
+    const fullUser = foundUsers[0] as User | undefined;
     
     if (!fullUser) {
       return c.json({ message: 'Utilizador não encontrado' }, 404);
@@ -335,7 +355,7 @@ authRoutes.post('/enable-encryption', authMiddleware, async (c) => {
     
     await db.update(users)
       .set({ encryptionSalt })
-      .where(eq(users.id, user.id));
+      .where(eq(users.id, userPayload.id));
     
     return c.json({ 
       message: 'Encriptação ativada com sucesso',
@@ -349,7 +369,7 @@ authRoutes.post('/enable-encryption', authMiddleware, async (c) => {
 
 authRoutes.post('/change-password', authMiddleware, async (c) => {
   try {
-    const user = c.get('user') as JWTPayload;
+    const userPayload = c.get('user') as JWTPayload;
     
     const schema = z.object({
       currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
@@ -360,7 +380,8 @@ authRoutes.post('/change-password', authMiddleware, async (c) => {
     const { currentPassword, newPassword } = schema.parse(body);
 
     const db = createDb(c.env.DATABASE_URL);
-    const [fullUser] = await db.select().from(users).where(eq(users.id, user.id));
+    const foundUsers = await db.select().from(users).where(eq(users.id, userPayload.id));
+    const fullUser = foundUsers[0] as User | undefined;
 
     if (!fullUser) {
       return c.json({ message: 'Utilizador não encontrado' }, 404);
@@ -375,7 +396,7 @@ authRoutes.post('/change-password', authMiddleware, async (c) => {
 
     await db.update(users)
       .set({ passwordHash: newHashedPassword })
-      .where(eq(users.id, user.id));
+      .where(eq(users.id, userPayload.id));
 
     return c.json({ message: 'Senha alterada com sucesso' });
   } catch (error) {

@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
-import { invitations, files, folders, users, filePermissions, folderPermissions } from '../../../shared/schema';
+import { invitations, files, folders, users, filePermissions, folderPermissions, Invitation, File, Folder, User, FilePermission, FolderPermission } from '../schema';
 import { eq, and, desc } from 'drizzle-orm';
 
 interface Env {

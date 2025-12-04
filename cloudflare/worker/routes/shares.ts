@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, optionalAuthMiddleware, JWTPayload } from '../middleware/auth';
 import { TelegramService } from '../services/telegram';
-import { files, shares, fileChunks, users, filePermissions } from '../../../shared/schema';
+import { files, shares, fileChunks, users, filePermissions, File, Share, FileChunk, User, FilePermission } from '../schema';
 import { eq, and } from 'drizzle-orm';
 
 interface Env {

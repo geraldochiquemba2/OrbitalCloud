@@ -5,7 +5,7 @@
 import { Hono } from 'hono';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
-import { files, folders, users, filePermissions, folderPermissions, fileChunks } from '../../../shared/schema';
+import { files, folders, users, filePermissions, folderPermissions, fileChunks, File, Folder, User, FilePermission, FolderPermission, FileChunk } from '../schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { TelegramService } from '../services/telegram';
 
