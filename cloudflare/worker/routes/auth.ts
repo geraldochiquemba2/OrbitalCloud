@@ -20,7 +20,11 @@ interface Env {
   JWT_SECRET: string;
 }
 
-export const authRoutes = new Hono<{ Bindings: Env }>();
+interface Variables {
+  user: JWTPayload;
+}
+
+export const authRoutes = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 const PBKDF2_ITERATIONS = 100000;
 const HASH_LENGTH = 32;
