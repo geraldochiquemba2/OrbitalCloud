@@ -1,8 +1,8 @@
 /**
  * Database Connection for Cloudflare Workers
  * 
- * Usa @neondatabase/serverless para conectar ao Neon PostgreSQL.
- * Compatível com ambiente Workers (não usa conexões persistentes).
+ * Usa @neondatabase/serverless para conectar ao Supabase PostgreSQL.
+ * O driver neon funciona via HTTP, compatível com qualquer PostgreSQL.
  */
 
 import { neon, neonConfig } from '@neondatabase/serverless';
