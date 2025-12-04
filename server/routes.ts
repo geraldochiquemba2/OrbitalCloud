@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import session from "express-session";
@@ -12,6 +12,7 @@ import { telegramService } from "./telegram";
 import bcrypt from "bcrypt";
 import { wsManager } from "./websocket";
 import jwt from "jsonwebtoken";
+import cors from "cors";
 
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
 const JWT_EXPIRY = '7d';
@@ -178,21 +179,74 @@ passport.deserializeUser(async (id: string, done) => {
   }
 });
 
-// Auth middleware
-function requireAuth(req: Request, res: Response, next: Function) {
+// Auth middleware - supports session and JWT fallback for cross-origin requests
+async function requireAuth(req: Request, res: Response, next: Function) {
   if (req.isAuthenticated()) {
     return next();
   }
+  
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const payload = verifyJWT(token);
+    if (payload) {
+      const user = await storage.getUser(payload.id);
+      if (user) {
+        req.user = {
+          id: user.id,
+          email: user.email,
+          nome: user.nome,
+          plano: user.plano,
+          storageLimit: user.storageLimit,
+          storageUsed: user.storageUsed,
+          uploadsCount: user.uploadsCount,
+          uploadLimit: user.uploadLimit,
+          isAdmin: user.isAdmin,
+        };
+        return next();
+      }
+    }
+  }
+  
   res.status(401).json({ message: "Não autorizado" });
 }
 
-// Admin middleware
+// Admin middleware - supports session and JWT fallback
 async function requireAdmin(req: Request, res: Response, next: Function) {
-  if (!req.isAuthenticated()) {
+  let userId: string | undefined;
+  
+  if (req.isAuthenticated()) {
+    userId = req.user!.id;
+  } else {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const payload = verifyJWT(token);
+      if (payload) {
+        userId = payload.id;
+        const user = await storage.getUser(payload.id);
+        if (user) {
+          req.user = {
+            id: user.id,
+            email: user.email,
+            nome: user.nome,
+            plano: user.plano,
+            storageLimit: user.storageLimit,
+            storageUsed: user.storageUsed,
+            uploadsCount: user.uploadsCount,
+            uploadLimit: user.uploadLimit,
+            isAdmin: user.isAdmin,
+          };
+        }
+      }
+    }
+  }
+  
+  if (!userId) {
     return res.status(401).json({ message: "Não autorizado" });
   }
   
-  const user = await storage.getUser(req.user!.id);
+  const user = await storage.getUser(userId);
   if (!user?.isAdmin) {
     return res.status(403).json({ message: "Acesso negado - requer privilégios de administrador" });
   }
@@ -211,18 +265,71 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Configure CORS for cross-origin requests (Cloudflare hosting support)
+  const isProduction = process.env.NODE_ENV === "production";
+  const allowedOrigins = [
+    process.env.CORS_ORIGIN,
+    process.env.CLOUDFLARE_ORIGIN,
+    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
+    'https://angocloud.ao',
+    'https://www.angocloud.ao',
+    'http://localhost:5000',
+    'http://localhost:3000',
+  ].filter(Boolean) as string[];
+  
+  // Get specific Cloudflare Pages subdomain from env or default
+  const cloudflarePagesDomain = process.env.CLOUDFLARE_PAGES_DOMAIN || 'angocloud';
+  
+  app.use(cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (same-origin, mobile apps, curl)
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // In development, allow all origins for easier testing
+      if (!isProduction) {
+        return callback(null, true);
+      }
+      
+      // Check exact match in allowed origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // Allow only specific project subdomains
+      if (origin.endsWith('.angocloud.ao')) {
+        return callback(null, true);
+      }
+      
+      // Allow only the specific Cloudflare Pages project (not all *.pages.dev)
+      const pagesPattern = new RegExp(`^https://(${cloudflarePagesDomain}(-[a-z0-9]+)?)\\.pages\\.dev$`);
+      if (pagesPattern.test(origin)) {
+        return callback(null, true);
+      }
+      
+      // Reject all other origins in production
+      callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Range'],
+    exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length', 'X-Is-Encrypted', 'X-Original-Mime-Type', 'X-Original-Size'],
+  }));
+  
   // Configure session with 10 minutes inactivity timeout
+  // Use sameSite: "none" in production for cross-origin cookie support (Cloudflare)
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "angocloud-secret-key-change-in-production",
       resave: true,
       rolling: true,
       saveUninitialized: false,
-      proxy: process.env.NODE_ENV === "production",
+      proxy: isProduction,
       cookie: {
-        secure: process.env.NODE_ENV === "production",
+        secure: isProduction,
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: isProduction ? "none" : "lax",
         maxAge: 10 * 60 * 1000, // 10 minutes inactivity timeout
       },
     })
@@ -2495,11 +2602,7 @@ export async function registerRoutes(
       // Handle Range requests for video seeking (critical for mobile)
       const range = req.headers.range;
       
-      // Set common headers
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Range");
-      res.setHeader("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length");
+      // Set common headers - CORS headers are handled by middleware for authenticated endpoints
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
       res.setHeader("Cache-Control", "public, max-age=3600");
       res.setHeader("Accept-Ranges", "bytes");
@@ -2568,7 +2671,6 @@ export async function registerRoutes(
 
         try {
           res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : (file.originalMimeType || file.tipoMime));
-          res.setHeader("Access-Control-Allow-Origin", "*");
           res.setHeader("Cache-Control", "public, max-age=3600");
 
           const chunkData = chunks.map(c => ({ 
@@ -2606,7 +2708,6 @@ export async function registerRoutes(
       }
       
       res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : (file.originalMimeType || file.tipoMime));
-      res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cache-Control", "public, max-age=3600");
       
       const arrayBuffer = await response.arrayBuffer();
