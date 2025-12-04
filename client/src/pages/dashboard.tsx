@@ -1061,14 +1061,44 @@ export default function Dashboard() {
       
       if (meta.isEncrypted && encryptionKey) {
         try {
-          const fileResponse = await apiFetch(`/api/files/${fileId}/content`);
-          if (!fileResponse.ok) {
-            setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
-            return;
+          // Check if file is V2 encrypted (chunked encryption)
+          const chunksInfoResponse = await apiFetch(`/api/files/${fileId}/chunks-info`);
+          const chunksInfo = chunksInfoResponse.ok ? await chunksInfoResponse.json() : { isChunked: false, totalChunks: 1 };
+          const isV2Encryption = isChunkedEncryption(meta.encryptionVersion);
+          
+          let decryptedBuffer: ArrayBuffer;
+          
+          if (isV2Encryption && chunksInfo.isChunked && chunksInfo.totalChunks > 1) {
+            // V2 encryption: download and decrypt each chunk individually
+            const decryptedChunks: ArrayBuffer[] = [];
+            for (let j = 0; j < chunksInfo.totalChunks; j++) {
+              const chunkResponse = await apiFetch(`/api/files/${fileId}/chunk/${j}`);
+              if (!chunkResponse.ok) {
+                throw new Error(`Erro ao baixar chunk ${j + 1}/${chunksInfo.totalChunks}`);
+              }
+              const encryptedChunk = await chunkResponse.arrayBuffer();
+              const decryptedChunk = await decryptChunk(encryptedChunk, encryptionKey);
+              decryptedChunks.push(decryptedChunk);
+            }
+            const totalSize = decryptedChunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+            const combined = new Uint8Array(totalSize);
+            let offset = 0;
+            for (const chunk of decryptedChunks) {
+              combined.set(new Uint8Array(chunk), offset);
+              offset += chunk.byteLength;
+            }
+            decryptedBuffer = combined.buffer;
+          } else {
+            // V1 encryption or single chunk: download all at once
+            const fileResponse = await apiFetch(`/api/files/${fileId}/content`);
+            if (!fileResponse.ok) {
+              setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+              return;
+            }
+            const encryptedBuffer = await fileResponse.arrayBuffer();
+            decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
           }
           
-          const encryptedBuffer = await fileResponse.arrayBuffer();
-          const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
           const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
           const url = createDownloadUrl(blob);
           
@@ -1253,13 +1283,43 @@ export default function Dashboard() {
       }
       
       if (meta.isEncrypted && encryptionKey) {
-        const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
-        if (!fileResponse.ok) {
-          throw new Error("Could not fetch encrypted file");
+        // Check if file is V2 encrypted (chunked encryption)
+        const chunksInfoResponse = await apiFetch(`/api/files/${file.id}/chunks-info`);
+        const chunksInfo = chunksInfoResponse.ok ? await chunksInfoResponse.json() : { isChunked: false, totalChunks: 1 };
+        const isV2Encryption = isChunkedEncryption(meta.encryptionVersion);
+        
+        let decryptedBuffer: ArrayBuffer;
+        
+        if (isV2Encryption && chunksInfo.isChunked && chunksInfo.totalChunks > 1) {
+          // V2 encryption: download and decrypt each chunk individually
+          const decryptedChunks: ArrayBuffer[] = [];
+          for (let j = 0; j < chunksInfo.totalChunks; j++) {
+            const chunkResponse = await apiFetch(`/api/files/${file.id}/chunk/${j}`);
+            if (!chunkResponse.ok) {
+              throw new Error(`Erro ao baixar chunk ${j + 1}/${chunksInfo.totalChunks}`);
+            }
+            const encryptedChunk = await chunkResponse.arrayBuffer();
+            const decryptedChunk = await decryptChunk(encryptedChunk, encryptionKey);
+            decryptedChunks.push(decryptedChunk);
+          }
+          const totalSize = decryptedChunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+          const combined = new Uint8Array(totalSize);
+          let offset = 0;
+          for (const chunk of decryptedChunks) {
+            combined.set(new Uint8Array(chunk), offset);
+            offset += chunk.byteLength;
+          }
+          decryptedBuffer = combined.buffer;
+        } else {
+          // V1 encryption or single chunk: download all at once
+          const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
+          if (!fileResponse.ok) {
+            throw new Error("Could not fetch encrypted file");
+          }
+          const encryptedBuffer = await fileResponse.arrayBuffer();
+          decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
         }
         
-        const encryptedBuffer = await fileResponse.arrayBuffer();
-        const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
         const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
         const url = createDownloadUrl(blob);
         setPreviewUrl(url);
