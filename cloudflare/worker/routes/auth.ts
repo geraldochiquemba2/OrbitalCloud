@@ -187,26 +187,40 @@ authRoutes.post('/login', async (c) => {
   try {
     if (!c.env.DATABASE_URL) {
       console.error('DATABASE_URL is not configured');
-      return c.json({ message: 'Erro de configuração do servidor' }, 500);
+      return c.json({ message: 'Erro de configuração do servidor', code: 'NO_DATABASE_URL' }, 500);
     }
     if (!c.env.JWT_SECRET) {
       console.error('JWT_SECRET is not configured');
-      return c.json({ message: 'Erro de configuração do servidor' }, 500);
+      return c.json({ message: 'Erro de configuração do servidor', code: 'NO_JWT_SECRET' }, 500);
     }
 
-    const schema = z.object({
+    const loginSchema = z.object({
       email: z.string().email(),
       password: z.string(),
     });
 
     const body = await c.req.json();
-    const { email, password } = schema.parse(body);
+    const { email, password } = loginSchema.parse(body);
 
     console.log('Login attempt for:', email);
+    console.log('DATABASE_URL configured:', !!c.env.DATABASE_URL);
 
-    const db = createDb(c.env.DATABASE_URL);
+    let db;
+    try {
+      db = createDb(c.env.DATABASE_URL);
+    } catch (dbError) {
+      console.error('Database connection error:', dbError);
+      return c.json({ message: 'Erro ao conectar à base de dados', code: 'DB_CONNECTION_ERROR' }, 500);
+    }
     
-    const foundUsers = await db.select().from(users).where(eq(users.email, email));
+    let foundUsers;
+    try {
+      foundUsers = await db.select().from(users).where(eq(users.email, email));
+    } catch (queryError) {
+      console.error('Database query error:', queryError);
+      return c.json({ message: 'Erro ao consultar base de dados', code: 'DB_QUERY_ERROR', detail: String(queryError) }, 500);
+    }
+    
     const user = foundUsers[0] as User | undefined;
     
     if (!user) {
