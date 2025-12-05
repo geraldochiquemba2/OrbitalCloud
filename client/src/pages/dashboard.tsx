@@ -3927,8 +3927,8 @@ export default function Dashboard() {
                         {!searchResults && folders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
                         
                         {/* Selection Controls Bar */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                          <div className="flex flex-wrap items-center gap-2">
                             {!isSelectionMode ? (
                               <button
                                 onClick={() => setIsSelectionMode(true)}
@@ -3942,29 +3942,29 @@ export default function Dashboard() {
                               <>
                                 <button
                                   onClick={selectAllFiles}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-medium transition-colors"
+                                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-medium transition-colors"
                                   data-testid="button-select-all"
                                 >
                                   <CheckSquare className="w-3.5 h-3.5" />
-                                  Selecionar Todos
+                                  <span className="hidden xs:inline">Selecionar </span>Todos
                                 </button>
                                 {selectedFiles.size > 0 && (
                                   <button
                                     onClick={deselectAllFiles}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-colors"
+                                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-colors"
                                     data-testid="button-deselect-all"
                                   >
                                     <Square className="w-3.5 h-3.5" />
-                                    Desmarcar Todos
+                                    <span className="hidden xs:inline">Desmarcar </span>Limpar
                                   </button>
                                 )}
                                 <button
                                   onClick={exitSelectionMode}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-colors"
+                                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-colors"
                                   data-testid="button-exit-selection-mode"
                                 >
                                   <X className="w-3.5 h-3.5" />
-                                  Cancelar
+                                  <span className="hidden sm:inline">Cancelar</span>
                                 </button>
                               </>
                             )}
@@ -3972,8 +3972,8 @@ export default function Dashboard() {
                           
                           {/* Bulk Actions when files are selected */}
                           {selectedFiles.size > 0 && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-white/60 text-xs mr-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-white/60 text-xs">
                                 {selectedFiles.size} selecionado{selectedFiles.size > 1 ? 's' : ''}
                               </span>
                               {viewMode === "trash" ? (
@@ -3981,31 +3981,31 @@ export default function Dashboard() {
                                   <button
                                     onClick={bulkRestoreFiles}
                                     disabled={bulkActionLoading}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-300 text-xs font-medium transition-colors disabled:opacity-50"
+                                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-300 text-xs font-medium transition-colors disabled:opacity-50"
                                     data-testid="button-bulk-restore"
                                   >
                                     {bulkActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                                    Restaurar
+                                    <span className="hidden sm:inline">Restaurar</span>
                                   </button>
                                   <button
                                     onClick={bulkPermanentDeleteFiles}
                                     disabled={bulkActionLoading}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium transition-colors disabled:opacity-50"
+                                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium transition-colors disabled:opacity-50"
                                     data-testid="button-bulk-permanent-delete"
                                   >
                                     {bulkActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                    Eliminar Permanentemente
+                                    <span className="hidden sm:inline">Eliminar</span>
                                   </button>
                                 </>
                               ) : (
                                 <button
                                   onClick={bulkDeleteFiles}
                                   disabled={bulkActionLoading}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium transition-colors disabled:opacity-50"
+                                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium transition-colors disabled:opacity-50"
                                   data-testid="button-bulk-delete"
                                 >
                                   {bulkActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                  Mover para Lixeira
+                                  <span className="hidden sm:inline">Mover para Lixeira</span>
                                 </button>
                               )}
                             </div>
