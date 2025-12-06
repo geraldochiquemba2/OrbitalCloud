@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { Check, Cloud, Server, Lock, HardDrive, Heart, Mail, Phone, FileText, X, Files, Database } from "lucide-react";
+import { Check, Cloud, Server, Lock, HardDrive, Heart, Mail, Phone, FileText, X, Files, Database, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useIsMobile } from "@/hooks/use-mobile";
