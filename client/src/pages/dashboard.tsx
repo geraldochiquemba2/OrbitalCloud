@@ -3134,9 +3134,9 @@ export default function Dashboard() {
         {/* Support Bar - height ~28px */}
         <div className="w-full py-1.5 px-4 md:px-8 bg-black/40 backdrop-blur-sm border-b border-white/10 z-50 fixed top-0 left-0">
           <div className="max-w-7xl mx-auto flex flex-wrap justify-center md:justify-between items-center gap-2 md:gap-4 text-xs text-white/70">
-            <div className="flex items-center gap-1.5 text-amber-400/90">
-              <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-              <span className="text-[10px] sm:text-xs">Se os ficheiros não carregarem, faça logout, actualize o navegador e entre novamente.</span>
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="w-3 h-3 flex-shrink-0 text-amber-400" />
+              <span className="text-[10px] sm:text-xs text-amber-400">Se os ficheiros não carregarem, faça logout, actualize o navegador e entre novamente.</span>
             </div>
             <div className="flex items-center gap-3">
               <a href="mailto:OrbitalCloud@outlook.com.br" className="flex items-center gap-1.5 hover:text-white transition-colors">
